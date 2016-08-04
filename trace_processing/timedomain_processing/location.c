@@ -4680,6 +4680,59 @@ void initStationParameters(StationParameters * psta_params) {
         psta_params->sta_corr[n].valid = 0;
     }
     psta_params->sta_corr_checked = 0;
+    psta_params->process_this_channel_orientation = -1;
+}
+
+/** find and associate source_id for other channel orientations matching this net/sta/chan
+ *
+ *  returns number of matching channel found and associated
+ */
+
+int associate3CompChannelSet(StationParameters* station_params, int n_sources, int source_id) {
+
+    char *network = station_params[source_id].network;
+    char *station = station_params[source_id].station;
+    char *location = station_params[source_id].location;
+    char *channel = station_params[source_id].channel;
+
+    int first_found = -1;
+    int second_found = -1;
+    int nfound = 0;
+
+    for (int n = 0; n < n_sources; n++) {
+        if (n != source_id) {
+            if (strcmp(network, station_params[n].network) == 0
+                    && strcmp(station, station_params[n].station) == 0
+                    && strcmp(location, station_params[n].location) == 0
+                    && strncmp(channel, station_params[n].channel, 2) == 0) {
+                if (first_found < 0) {
+                    first_found = n;
+                    station_params[first_found].channel_set[0] = source_id;
+                    station_params[source_id].channel_set[0] = first_found;
+                    nfound++;
+                    printf("DEBUG: associate3CompChannelSet %d %s_%s_%s_%s: first_found: %d %s_%s_%s_%s\n",
+                            source_id, network, station, location, channel,
+                            n, station_params[n].network, station_params[n].station, station_params[n].location, station_params[n].channel);
+                } else {
+                    second_found = n;
+                    station_params[first_found].channel_set[1] = second_found;
+                    station_params[source_id].channel_set[1] = second_found;
+                    station_params[second_found].channel_set[0] = first_found;
+                    station_params[second_found].channel_set[1] = source_id;
+                    nfound++;
+                    printf("DEBUG: associate3CompChannelSet %d %s_%s_%s_%s: second_found: %d %s_%s_%s_%s\n",
+                            source_id, network, station, location, channel,
+                            n, station_params[n].network, station_params[n].station, station_params[n].location, station_params[n].channel);
+                    break;
+                }
+            }
+        }
+    }
+
+    printf("DEBUG: associate3CompChannelSet %d %s_%s_%s_%s: nfound: %d\n",
+            source_id, network, station, location, channel, nfound);
+    return (nfound);
+
 }
 
 void initAssociateLocateParameters(

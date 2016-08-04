@@ -27,7 +27,7 @@ void init_common_globals() {
     verbose = 0;
     details = 0;
 
-    data_input_filter_component_accept_z = DEFAULT_DATA_INPUT_COMPONENT_ACCEPT_Z;
+    strcpy(data_input_filter_component_accept, DEFAULT_DATA_INPUT_COMPONENT_ACCEPT);
     data_input_filter_ignore_duplicate_net_sta = DEFAULT_DATA_INPUT_IGNORE_DUPLICATE_NET_STA;
     data_input_filter_ignore_duplicate_sta = DEFAULT_DATA_INPUT_IGNORE_DUPLICATE_STA;
 
@@ -106,11 +106,13 @@ int init_common_processing(char *outpath) {
 
     int int_param;
     //double double_param;
+    char out_buf[SETTINGS_MAX_STR_LEN];
 
     // data input
-    if ((int_param = settings_get_int(app_prop_settings, "DataInput", "filter.component.accept.z")) != INT_INVALID)
-        data_input_filter_component_accept_z = int_param;
-    printf("Info: property set: [DataInput] filter.component.accept.z %d\n", data_input_filter_component_accept_z);
+    if (settings_get(app_prop_settings, "DataInput", "filter.component.accept", out_buf, SETTINGS_MAX_STR_LEN)) {
+        strcpy(data_input_filter_component_accept, out_buf);
+    }
+    printf("Info: property set: [DataInput] filter.component.accept %s\n", data_input_filter_component_accept);
     //
     if ((int_param = settings_get_int(app_prop_settings, "DataInput", "filter.ignore_duplicate_net_sta")) != INT_INVALID)
         data_input_filter_ignore_duplicate_net_sta = int_param;
@@ -118,7 +120,7 @@ int init_common_processing(char *outpath) {
     //
     if ((int_param = settings_get_int(app_prop_settings, "DataInput", "filter.ignore_duplicate_sta")) != INT_INVALID)
         data_input_filter_ignore_duplicate_sta = int_param;
-    printf("Info: property set: [DataInput] filter.component.accept.z %d\n", data_input_filter_ignore_duplicate_sta);
+    printf("Info: property set: [DataInput] filter.ignore_duplicate_sta %d\n", data_input_filter_ignore_duplicate_sta);
 
     // report
     if ((int_param = settings_get_int(app_prop_settings, "Report", "report.sliding_window.length")) != INT_INVALID)

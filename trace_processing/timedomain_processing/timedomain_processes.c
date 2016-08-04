@@ -30,7 +30,7 @@
 
 #define DEBUG 0
 
-/**  Method to calculate square of data values */
+/**  Method to copy data array to newly allocated array */
 
 float* copyData(
 

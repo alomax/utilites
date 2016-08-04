@@ -425,8 +425,10 @@ void free_TimedomainProcessingDataList(TimedomainProcessingData** data_list, int
         return;
 
     int n;
-    for (n = 0; n < num_data; n++)
+    for (n = 0; n < num_data; n++) {
         free_TimedomainProcessingData(*(data_list + n));
+        *(data_list + n) = NULL;      // 20160802 AJL - memory bug fix?
+    }
 
     free(data_list);
 

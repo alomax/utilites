@@ -3065,6 +3065,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
             if (deData->t_time_t > time_max) {
                 removeTimedomainProcessingDataFromDataList(deData, &data_list, &num_de_data);
                 free_TimedomainProcessingData(deData);
+                data_list[n] = NULL; // 20160802 AJL - memory bug fix?
             }
         }
     }
@@ -5137,7 +5138,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         return (-1);
     }
     printHypoDataHeaderString(hypoDataString);
-    fprintf(hypocentersCsvHeaderStream, "%s\n", hypoDataString);  // 20160525 AJL - correction: added missing header for hypo csv files
+    fprintf(hypocentersCsvHeaderStream, "%s\n", hypoDataString); // 20160525 AJL - correction: added missing header for hypo csv files
     fclose_counter(hypocentersCsvHeaderStream);
     //
     sprintf(outname, "%s/hypos.csv", outnameroot);
@@ -6502,9 +6503,9 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         if (fdtest > 0) {
             // the file exists
             export_flag = 1;
+            close(fdtest);
         }
         printf("Info: export_waveforms_all: flag_file_name:%s fdtest:%d export_flag:%d\n", outname, fdtest, export_flag);
-        close(fdtest);
         remove(outname);
 
         if (export_flag) {
@@ -6695,6 +6696,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                 if (deData->is_associated && deData->is_associated == (phypo->hyp_assoc_index + 1)) {
                     removeTimedomainProcessingDataFromDataList(deData, &data_list, &num_de_data);
                     free_TimedomainProcessingData(deData);
+                    data_list[n] = NULL; // 20160802 AJL - memory bug fix?
                 }
             }
             // flag event as not actively associated, will insure that event is not persistent or relocated at a later time
@@ -6739,6 +6741,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         if (deData->t_time_t < time_min && !deData->is_associated) { // 20150507 AJL - leave associated data, should be removed when hypocenter archived
             removeTimedomainProcessingDataFromDataList(deData, &data_list, &num_de_data);
             free_TimedomainProcessingData(deData);
+            data_list[n] = NULL; // 20160802 AJL - memory bug fix?
         }
     }
 

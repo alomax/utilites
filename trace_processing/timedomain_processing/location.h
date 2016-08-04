@@ -56,7 +56,7 @@ LinRegressPower;
 typedef struct {
     //  calculated during association
     double ot_variance_weight;
-    double weight_sum_assoc_unique;     // weight sum corrected for duplicate station/phase associations
+    double weight_sum_assoc_unique; // weight sum corrected for duplicate station/phase associations
     double amp_att_weight; // amplitude attenuation (linear regression)
     double gap_weight;
     double distanceClose_weight;
@@ -146,7 +146,7 @@ typedef struct {
     statistic_level mwpdLevelStatistics;
     message_trigger_theshold messageTriggerThreshold;
     // flags
-    int hyp_assoc_index;    // 0...n index when associated,   event not associated if hyp_assoc_index<0
+    int hyp_assoc_index; // 0...n index when associated,   event not associated if hyp_assoc_index<0
     // id
     long unique_id;
     int alert_sent_count;
@@ -205,6 +205,7 @@ static int use_amplitude_attenuation;
 
 
 #define MIN_NUM_STATION_CORRECTIONS_USE 10
+
 typedef struct {
     int checked;
     int valid;
@@ -246,6 +247,8 @@ typedef struct {
     // 20160601 AJL - sta corr changed from P only to any phase
     int sta_corr_checked;
     StaCorrections *sta_corr;
+    int process_this_channel_orientation; // flag indicating if this channel orientation will be processed (-1= not set, 0= no processing, 1= process)
+    int channel_set[2]; // source_id's of other two sources that make a 3-comp channel set with orthogonal orientations (e.g. ZNE, Z12)
 }
 StationParameters;
 
@@ -356,6 +359,7 @@ int isPhaseTypeToUse(TimedomainProcessingData* deData, int phase_id, int numPhas
 
 void freeStationParameters(StationParameters* psta_params);
 void initStationParameters(StationParameters* psta_params);
+int associate3CompChannelSet(StationParameters* station_params, int n_sources, int source_id);
 void initAssociateLocateParameters(double upweight_picks_sn_cutoff_init, double upweight_picks_dist_max, double upweight_picks_dist_full, int use_amplitude_attenuation_init);
 int addStationParametersToSortedList(StationParameters* pnew_sta_params, StationParameters*** psorted_sta_params_list, int* pnum_sorted_sta_params);
 void removeStationParametersFromSortedList(StationParameters* psta_params, StationParameters*** psorted_sta_params_list, int* pnum_sorted_sta_params);

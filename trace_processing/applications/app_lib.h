@@ -36,8 +36,8 @@ extern "C" {
     EXTERN_TXT int num_sourcename_ignore;
     EXTERN_TXT char sourcename_ignore[MAX_NUM_SOURCENAME_IGNORE][64];
 
-#define DEFAULT_DATA_INPUT_COMPONENT_ACCEPT_Z 1 // accept Z component (only)
-    EXTERN_TXT int data_input_filter_component_accept_z;
+#define DEFAULT_DATA_INPUT_COMPONENT_ACCEPT "Z" // accept Z component (only)
+    EXTERN_TXT char data_input_filter_component_accept[SETTINGS_MAX_STR_LEN];
 #define DEFAULT_DATA_INPUT_IGNORE_DUPLICATE_NET_STA 1 // ignore duplicate net_sta
     EXTERN_TXT int data_input_filter_ignore_duplicate_net_sta;
 #define DEFAULT_DATA_INPUT_IGNORE_DUPLICATE_STA 1 // ignore duplicate net_sta

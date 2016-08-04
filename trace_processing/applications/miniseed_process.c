@@ -30,6 +30,7 @@ static void term_handler(int sig);
 
 #include "../ran1/ran1.h"
 #include "app_lib.h"
+#include "../miniseed_utils/miniseed_utils.h"
 #include "miniseed_process.h"
 #include "mseedrtstream_lib.h"
 
@@ -88,8 +89,6 @@ static void record_handler(char *record, int write_reclen, void *srcname) {
 //static int local_num_de_data = 0;
 
 int main(int argc, char **argv) {
-
-    int n;
 
     MSRecord *msr = NULL;
     int64_t psamples;
@@ -224,7 +223,7 @@ int main(int argc, char **argv) {
     strcpy(srcname_last, "$$$@@@&&&");
 
     // loop over input files/records
-    char inputfile_name[STANDARD_STRLEN];
+    char inputfile_name[STANDARD_STRLEN] = "";
 #ifdef USE_MSEEDRTSTREAM
     // Loop through record list and process records
     Record *rec = recmap.first;
@@ -286,7 +285,7 @@ int main(int argc, char **argv) {
                 continue;
             }
 
-            // skip this record if source name does not begin with requested source name
+            // skip this record if source name does not begin with a requested source name, if specified
             static char last_srcename_accept[1024];
             if (sourcename[0] != '\0') {
                 if (strcmp(srcname, last_srcename_accept) != 0) {
@@ -317,11 +316,14 @@ int main(int argc, char **argv) {
             }
 
 
+            // skip if not requested component orientation // 20160802 AJL - modified
             // skip if not vertical component  // 20120130 AJL - added
             //if (strrchr(msr->channel, 'Z') != msr->channel + 2) {
-            if (data_input_filter_component_accept_z && strrchr(msr->channel, 'Z') != msr->channel + 2) { // 20130509 AJL - can disable this check
+            //if (data_input_filter_component_accept && strrchr(msr->channel, 'Z') != msr->channel + 2) { // 20130509 AJL - can disable this check
+            // 20160802 AJL - changed to comma separated list of channels to accept
+            if (strrchr(data_input_filter_component_accept, msr->channel[2]) == NULL) {
                 if (verbose > 1)
-                    ms_log(1, "Info: Channel in %s (%s) not Z - Ignored!\n", srcname, msr->channel);
+                    ms_log(1, "Info: Channel orientation in %s (%s) not in %s - Ignored!\n", srcname, msr->channel, data_input_filter_component_accept);
                 msr_free(&msr);
                 continue;
             }
@@ -334,70 +336,83 @@ int main(int argc, char **argv) {
                 continue;
             }
 
-            // check for sourcename in list
-            for (n = 0; n < num_sources_total; n++) {
-                // if perfect match, OK
-                if (strcmp(sourcename_list[n], srcname) == 0) {
-                    // confirm agreement of sample rates
-                    // 20160608 AJL  if (source_samplerate_list[n] == msr_nomsamprate(msr)) {
-                    if (fabs(source_samplerate_list[n] - msr_nomsamprate(msr)) / source_samplerate_list[n] < 0.01) {   // 20160608 AJL - changed to 1% accuracy
-                        break;
-                    } else {
-                        // different sample rate !!! NOTE: this should not happen but does,
-                        //    try: java -Xmx768m net.alomax.seisgram2k.SeisGram2K -seedlink "rtserve.iris.washington.edu:18000#AT_SVW2:BHZ#7200"
-                        ms_log(1, "Warning: conflicting sample rates: %f in ignored %s vs. %f in active %s: this should not happen!\n",
-                                msr_nomsamprate(msr), srcname, source_samplerate_list[n], sourcename_list[n]);
-                        //duplicate = 4;
-                        stationParameters[n].error = stationParameters[n].error | ERROR_DIFFERENT_SAMPLE_RATES;
-                        stationParameters[n].count_conflicting_dt++;
-                        msr_free(&msr);
-                        msr = NULL;
-                        n = -1;
-                        break;
+            int isource;
+
+            // 20160803 AJL - following if moved outside loop
+            if (strstr(srcnames_duplicate, srcname) != NULL) { // already flagged as duplicate
+                isource = -1;
+            } else {
+                // check for sourcename in list
+                for (isource = 0; isource < num_sources_total; isource++) {
+                    // if perfect match, OK
+                    if (strcmp(sourcename_list[isource], srcname) == 0) {
+                        // confirm agreement of sample rates
+                        // 20160608 AJL  if (source_samplerate_list[isource] == msr_samprate(msr)) {
+                        if (fabs(source_samplerate_list[isource] - msr_samprate(msr)) / source_samplerate_list[isource] < 0.01) { // 20160608 AJL - changed to 1% accuracy
+                            break;
+                        } else {
+                            // different sample rate !!! NOTE: this should not happen but does,
+                            //    try: java -Xmx768m net.alomax.seisgram2k.SeisGram2K -seedlink "rtserve.iris.washington.edu:18000#AT_SVW2:BHZ#7200"
+                            ms_log(1, "Warning: conflicting sample rates: %f in ignored %s vs. %f in active %s: this should not happen!\n",
+                                    msr_samprate(msr), srcname, source_samplerate_list[isource], sourcename_list[isource]);
+                            //duplicate = 4;
+                            stationParameters[isource].error = stationParameters[isource].error | ERROR_DIFFERENT_SAMPLE_RATES;
+                            stationParameters[isource].count_conflicting_dt++;
+                            msr_free(&msr);
+                            msr = NULL;
+                            isource = -1;
+                            break;
+                        }
                     }
-                }
-                if (strstr(srcnames_duplicate, srcname) != NULL) { // already flagged as duplicate
-                    n = -1;
-                    break;
-                }
-                if (data_input_filter_ignore_duplicate_net_sta) { // 20130529 AJL - can disable these check with properties file ([DataInput] filter.ignore_duplicate_net_sta)
-                    // check for match of network, station only
-                    strcat(strcat(strcpy(net_sta, msr->network), "_"), msr->station);
-                    if (strstr(sourcename_list[n], net_sta) != NULL) {
-                        if (strcmp(srcname_last, srcname) != 0)
-                            ms_log(1, "Info: Duplicate net_sta %s in %s - Ignored!\n", net_sta, srcname);
-                        strcpy(srcname_last, srcname);
-                        n = -1;
-                        strcat(srcnames_duplicate, "$");
-                        strcat(srcnames_duplicate, srcname);
+                    /* 20160803 AJL - moved outside this loop
+                    if (strstr(srcnames_duplicate, srcname) != NULL) { // already flagged as duplicate
+                        isource = -1;
                         break;
-                    }
-                }
-                if (data_input_filter_ignore_duplicate_sta) { // 20130529 AJL - can disable these check with properties file ([DataInput] filter.ignore_duplicate_sta)
-                    // check for match of station only
-                    strcat(strcpy(net_sta, "_"), msr->station);
-                    if (strstr(sourcename_list[n], net_sta) != NULL) {
-                        if (strcmp(srcname_last, srcname) != 0)
-                            ms_log(1, "Info: Duplicate sta %s in %s - Ignored!\n", net_sta, srcname);
-                        strcpy(srcname_last, srcname);
-                        n = -1;
-                        strcat(srcnames_duplicate, "$");
-                        strcat(srcnames_duplicate, srcname);
-                        break;
+                    } */
+                    // 20160802 AJL - only apply net, sta check if same orientation (last char of srcname)
+                    // check on orientation is done by filter.component.accept properties file parameter, see data_input_filter_component_accept above
+                    if (sourcename_list[isource][strlen(sourcename_list[isource]) - 1] == srcname[strlen(srcname) - 1]) {
+                        if (data_input_filter_ignore_duplicate_net_sta) { // 20130529 AJL - can disable these check with properties file ([DataInput] filter.ignore_duplicate_net_sta)
+                            // check for match of network, station only
+                            strcat(strcat(strcat(strcpy(net_sta, msr->network), "_"), msr->station), "_");
+                            if (strstr(sourcename_list[isource], net_sta) != NULL) {
+                                if (strcmp(srcname_last, srcname) != 0)
+                                    ms_log(1, "Info: Duplicate net_sta %s in %s - Ignored!\n", net_sta, srcname);
+                                strcpy(srcname_last, srcname);
+                                isource = -1;
+                                strcat(srcnames_duplicate, "$");
+                                strcat(srcnames_duplicate, srcname);
+                                break;
+                            }
+                        }
+                        if (data_input_filter_ignore_duplicate_sta) { // 20130529 AJL - can disable these check with properties file ([DataInput] filter.ignore_duplicate_sta)
+                            // check for match of station only
+                            //strcat(strcpy(net_sta, "_"), msr->station);
+                            strcat(strcat(strcpy(net_sta, "_"), msr->station), "_");
+                            if (strstr(sourcename_list[isource], net_sta) != NULL) {
+                                if (strcmp(srcname_last, srcname) != 0)
+                                    ms_log(1, "Info: Duplicate sta %s in %s - Ignored!\n", msr->station, srcname);
+                                strcpy(srcname_last, srcname);
+                                isource = -1;
+                                strcat(srcnames_duplicate, "$");
+                                strcat(srcnames_duplicate, srcname);
+                                break;
+                            }
+                        }
                     }
                 }
             }
-            if (n < 0) { // duplicate net_sta or sample rate mismatch
+            if (isource < 0) { // duplicate net_sta or sample rate mismatch
                 msr_free(&msr);
                 continue;
             }
-            source_id = n;
+            source_id = isource;
             // not found, new source name
             int is_new_source = 0;
             if (source_id == num_sources_total) {
                 if (num_sources_total < MAX_NUM_SOURCES) { // sourcename not in list
-                    strcpy(sourcename_list[n], srcname);
-                    source_samplerate_list[n] = msr_nomsamprate(msr);
+                    strcpy(sourcename_list[isource], srcname);
+                    source_samplerate_list[isource] = msr_samprate(msr);
                     num_sources_total++;
                     source_id = num_sources_total - 1;
                     // open output file for this source
@@ -496,10 +511,10 @@ int main(int argc, char **argv) {
             int num_de_data;
             td_getTimedomainProcessingDataList(&data_list, &num_de_data);
             if (verbose) {
-                for (n = 0; n < num_de_data; n++) {
+                for (int n = 0; n < num_de_data; n++) {
                     TimedomainProcessingData* deData = data_list[n];
                     if (deData->flag_complete_t50 == 1) {
-                        // flag that data has been initially processed here
+                        // flag that data has had initial processing here
                         deData->flag_complete_t50 = 2;
                         // save copy of deData
                         /*
@@ -700,7 +715,7 @@ int main(int argc, char **argv) {
     }
 
     // make sure everything is cleaned up
-    for (n = 0; n < num_sources_total; n++) {
+    for (int n = 0; n < num_sources_total; n++) {
         if (write_traces && n < n_write_trace_data)
             fclose(outstream_trace_data[n]);
     }
@@ -748,9 +763,10 @@ void msp_process(MSRecord *msr, int source_id, int is_new_source, char* msr_net,
 
     double deltaTime = 1.0 / msr->samprate;
 
-    // make sure data is in a float array
+    // get msr data in a float array, float array is newly allocated, must be freed later
+    data_float = msu_getDataAsFloat(msr, &flag_clipped);
     //printf("DEBUG: msr->sampletype %c\n", msr->sampletype);
-    if (msr->sampletype == 'f') {
+    /*if (msr->sampletype == 'f') {
         data_float = (float *) msr->datasamples;
     } else if (msr->sampletype == 'd') { // 20140407 AJL - added 'd' type
         data_double = (double *) msr->datasamples;
@@ -784,7 +800,7 @@ void msp_process(MSRecord *msr, int source_id, int is_new_source, char* msr_net,
             }
             idata_last = idata;
         }
-    }
+    }*/
     // remove mean of first packet from data
     // 20140401 AJL - added to avoid large data offsets giving very low S/N for integrated traces
     if (is_new_source) {
@@ -835,13 +851,17 @@ void msp_process(MSRecord *msr, int source_id, int is_new_source, char* msr_net,
 
     // make sure data is in original array type
     if (msr->sampletype == 'f') {
+        free(msr->datasamples);
         msr->datasamples = (void *) data_float;
     } else if (msr->sampletype == 'd') { // 20140407 AJL - added 'd' type
+        data_double = (double *) msr->datasamples;
         for (i = 0; i < msr->numsamples; i++)
-            data_double[i] = (int) data_float[i];
+            data_double[i] = (double) data_float[i];
+        // 20160804 AJL - bug fix  data_double[i] = (int) data_float[i];
         free(data_float);
         msr->datasamples = (void *) data_double;
     } else if (msr->sampletype == 'i') {
+        data_int = (int32_t *) msr->datasamples;
         for (i = 0; i < msr->numsamples; i++)
             data_int[i] = (int) data_float[i];
         free(data_float);

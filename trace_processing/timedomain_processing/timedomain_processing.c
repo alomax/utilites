@@ -82,6 +82,8 @@ static int num_internet_station_sources = 0;
 
 static int num_pick_channels = -1;
 static char pick_channel_list[MAX_NUM_PICK_CHANNEL_LIST][32];
+static int num_process_orientations = -1;
+static char process_orientation_list[MAX_NUM_PROCESS_ORIENTATION_LIST][32];
 static PickParams rawPickParams[MAX_NUM_PICK_CHANNEL_LIST];
 static PickParams hfPickParams[MAX_NUM_PICK_CHANNEL_LIST];
 
@@ -278,6 +280,8 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
         // set misc station parameters
         stationParameters[source_id].deltaTime = deltaTime;
         stationParameters[source_id].n_int_tseries = n_int_tseries;
+        // find and store references to other channel orientations for this net/sta/chan
+        associate3CompChannelSet(stationParameters, num_sources_total, source_id);
     }
 
     lat = stationParameters[source_id].lat;
@@ -314,6 +318,36 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
     }
     //20140223 AJL  }
 
+
+
+    // if channel orientation not to be picked and processed, return
+    if (stationParameters[source_id].process_this_channel_orientation == 0) {
+        // no further processing for this channel, cleanup not needed since no filtering done
+        return (0);
+    }
+    if (stationParameters[source_id].process_this_channel_orientation == -1) {
+        // check if channel is in process_orientation_list, if list exists
+        char orientation[2];
+        strcpy(orientation, channel + 2);
+        if (num_process_orientations > 0) {
+            for (n = 0; n < num_process_orientations; n++) {
+                //printf("DEBUG: n=%d/%d, orientation=%s, in: <%s> \n", n, num_process_orientations, orientation, process_orientation_list[n]);
+                if (strstr(process_orientation_list[n], orientation) != NULL) {
+                    // orientation is in list, use for pick, processing
+                    stationParameters[source_id].process_this_channel_orientation = 1;
+                    break;
+                }
+            }
+            if (n >= num_process_orientations) {
+                // orientation is not in list, do not use for pick, processing
+                //printf("DEBUG: %.2s_%.5s_%.2s_%.3s orient=%s: SKIPPED for pick/process\n", network, station, location, channel, orientation);
+                stationParameters[source_id].process_this_channel_orientation = 0;
+                // no further processing for this channel, cleanup not needed since no filtering done
+                return (0);
+            }
+            //printf("DEBUG: %.2s_%.5s_%.2s_%.3s orient=%s: USED for pick/process\n", network, station, location, channel, orientation);
+        }
+    }
 
     //
     if (flag_clipped || flag_non_contiguous) { // 20111230 AJL - added
@@ -385,7 +419,7 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
     double tUpEvent_brb = 2.0;
 
     // set channel index for pick parameters
-    // check if phase is in phase type to use list, if list exists
+    // check if channel is in pick_channel_list, if list exists
     int n_pick_channel = 0;
     if (num_pick_channels > 0) {
         for (n = 0; n < num_pick_channels; n++) {
@@ -630,7 +664,8 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
                                 (*pnum_new_loc_picks)--;
                             }
                             deData_raw->use_for_location = 0;
-                            deData->use_for_location_twin_data = deData;
+                            // 20160803 AJL - bug fix  deData->use_for_location_twin_data = deData;
+                            deData->use_for_location_twin_data = deData_raw;
                             deData_raw->use_for_location_twin_data = deData;
                             break; // 20150423 AJL - bug fix, prevent double twinning and loosing pointer
                         }
@@ -1890,6 +1925,24 @@ int td_process_timedomain_processing_init(Settings *settings, char* outpath, cha
     }
 
 
+    // comma separated list of channel orientations to be picked and processed
+    //  default: all channel orientations picked and processed
+    //  Note: superseeds channel orientations in pick.channel.list
+    if (settings_get(app_prop_settings, "TimedomainProcessing", "process.orientation.list", out_buf, SETTINGS_MAX_STR_LEN)) {
+        num_process_orientations = 0;
+        printf("Info: property set: [TimedomainProcessing] process.orientation.list %s -> ", out_buf);
+        char *str_pos = strtok(out_buf, ", ");
+        while (str_pos != NULL && num_process_orientations < MAX_NUM_PROCESS_ORIENTATION_LIST) {
+            *process_orientation_list[num_process_orientations] = '\0';
+            strcpy(process_orientation_list[num_process_orientations], str_pos);
+            printf(" <%s>,", process_orientation_list[num_process_orientations]);
+            num_process_orientations++;
+            str_pos = strtok(NULL, ",");
+        }
+        printf("\n"); // DEBUG
+    }
+
+
     // flag to use hf data (high-frequency) for picking.
     pickOnHFStream = 1;
     if ((int_param = settings_get_int(app_prop_settings, "TimedomainProcessing", "pick.hf.enable")) != INT_INVALID)
@@ -2260,6 +2313,7 @@ int td_set_station_coordinates(int source_id, char* network, char* station, char
                 //        network, station, lat, stationParameters[source_id].lat, stationParameters[source_id].lat, stationParameters[source_id].lat);
                 FILE* fp_geog = fopen(geogfile_name, "a");
                 if (fp_geog != NULL) {
+
                     fprintf(fp_geog, "%s %s %lf %lf %lf %d %d %d\n",
                             network, station, stationParameters[source_id].lat, stationParameters[source_id].lon, stationParameters[source_id].elev,
                             data_year, data_month, data_mday);
@@ -2359,7 +2413,8 @@ int td_set_station_corrections(int source_id, char* network, char* station, char
             }
             fclose(fp_sta_corr);
         } else {
-            printf("ERROR: opening station corrections file: %s", sta_corr_filename);
+            printf("ERROR: opening station corrections file: %s\n", sta_corr_filename);
+
             return (-1);
         }
         //stationParameters[source_id].geogfile_checked_time = file_stats.st_mtime;
@@ -2454,6 +2509,7 @@ int td_set_channel_gain(int source_id, char* network, char* station, char* locat
                 //        network, station, chan_resp[source_id].gain, chan_resp[source_id].frequency, chan_resp[source_id].responseType);
                 FILE* fp_gain = fopen(gainfile_name, "a");
                 if (fp_gain != NULL) {
+
                     fprintf(fp_gain, "%s %s %s %s %d %d %e %f %d\n", network, station, location, channel, data_year, data_doy,
                             chan_resp[source_id].gain, chan_resp[source_id].frequency, chan_resp[source_id].responseType);
                     fclose(fp_gain);
@@ -2511,6 +2567,7 @@ int td_get_gain_internet_query(int source_id, char* net, char* sta, char* loc, c
         chan_resp[source_id].have_gain = 1;
 
         if (responseType != ERROR_TYPE)
+
             return (0);
 
         chan_resp[source_id].have_gain = 0;
@@ -2609,6 +2666,7 @@ void td_process_timedomain_processing_cleanup() {
     }
     if (waveform_export_miniseed_list != NULL)
         free(waveform_export_miniseed_list);
+
     if (num_waveform_export_miniseed_list != NULL)
         free(num_waveform_export_miniseed_list);
 
@@ -2665,6 +2723,7 @@ void td_process_free_timedomain_processing_data(int source_id) {
 
             removeTimedomainProcessingDataFromDataList(deData, &data_list, &num_de_data);
             free_TimedomainProcessingData(deData);
+            data_list[ndata] = NULL; // 20160802 AJL - memory bug fix?
         }
     }
 

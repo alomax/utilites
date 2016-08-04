@@ -328,7 +328,6 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
     static char srcname_copy[64];
     static char duplicate_name_copy[64];
 
-    int n;
     int source_id = 0;
 
 
@@ -397,7 +396,8 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
 
         // skip this record if no data samples
         if (verbose > 2)
-            printf("DEBUG: sl_msr->fsdh.num_samples %d  sl_msr->numsamples %d  sl_msr->unpackerr %d\n", sl_msr->fsdh.num_samples, sl_msr->numsamples, sl_msr->unpackerr);
+            printf("DEBUG: sl_msr->fsdh.num_samples %d  sl_msr->numsamples %d  sl_msr->unpackerr %d\n",
+                sl_msr->fsdh.num_samples, sl_msr->numsamples, sl_msr->unpackerr);
         if (sl_msr->fsdh.num_samples < 1) {
             sl_msr_free(&sl_msr);
             sl_msr = NULL;
@@ -427,56 +427,71 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
             }
         }
 
+        // skip if not requested component orientation // 20160802 AJL - modified
+        // 20160802 AJL - changed to comma separated list of channels to accept
+        if (strrchr(data_input_filter_component_accept, msr_chan[2]) == NULL) {
+            if (verbose > 1)
+                sl_log(0, 1, "Info: Channel orientation in %s (%s) not in %s - Ignored!\n", srcname, msr_chan, data_input_filter_component_accept);
+            sl_msr_free(&sl_msr);
+            sl_msr = NULL;
+            return;
+        }
+
 
         // check for sourcename in list
+        int isource;
         if (verbose > 2)
             printf("DEBUG: num_sources %d\n", num_sources_total);
         int duplicate = 0;
         if (strstr(srcnames_duplicate, srcname) != NULL) { // already flagged as duplicate
             duplicate = 3;
         } else {
-            for (n = 0; n < num_sources_total; n++) {
+            for (isource = 0; isource < num_sources_total; isource++) {
                 // if perfect match, OK
-                if (strcmp(sourcename_list[n], srcname) == 0) {
+                if (strcmp(sourcename_list[isource], srcname) == 0) {
                     // confirm agreement of sample rates
-                    // 20160608 AJL  if (source_samplerate_list[n] == sl_msr_dnomsamprate(sl_msr)) {
-                    if (fabs(source_samplerate_list[n] - sl_msr_dnomsamprate(sl_msr)) / source_samplerate_list[n] < 0.01) { // 20160608 AJL - changed to 1% accuracy
+                    // 20160608 AJL  if (source_samplerate_list[isource] == sl_msr_dnomsamprate(sl_msr)) {
+                    if (fabs(source_samplerate_list[isource] - sl_msr_dnomsamprate(sl_msr)) / source_samplerate_list[isource] < 0.01) { // 20160608 AJL - changed to 1% accuracy
                         break;
                     } else {
                         // different sample rate !!! NOTE: this should not happen but does,
                         //    try: java -Xmx768m net.alomax.seisgram2k.SeisGram2K -seedlink "rtserve.iris.washington.edu:18000#AT_SVW2:BHZ#7200"
                         sl_log(0, 1, "Warning: conflicting sample rates: %f in ignored %s vs. %f in active %s: this should not happen!\n",
-                                sl_msr_dnomsamprate(sl_msr), srcname, source_samplerate_list[n], sourcename_list[n]);
+                                sl_msr_dnomsamprate(sl_msr), srcname, source_samplerate_list[isource], sourcename_list[isource]);
                         //duplicate = 4;
-                        stationParameters[n].error = stationParameters[n].error | ERROR_DIFFERENT_SAMPLE_RATES;
-                        stationParameters[n].count_conflicting_dt++;
+                        stationParameters[isource].error = stationParameters[isource].error | ERROR_DIFFERENT_SAMPLE_RATES;
+                        stationParameters[isource].count_conflicting_dt++;
                         sl_msr_free(&sl_msr);
                         sl_msr = NULL;
                         return;
                         //break;
                     }
                 }
-                if (data_input_filter_ignore_duplicate_net_sta) { // 20130529 AJL - can disable these check with properties file ([DataInput] filter.ignore_duplicate_net_sta)
-                    // check for match of network, station only
-                    sprintf(net_sta, "%.2s_%.5s_", msr_net, msr_sta);
-                    //strcat(strcat(strcpy(net_sta, msr_net), "_"), msr_sta);
-                    if (verbose > 2)
-                        printf("DEBUG: srcname %s,  net_sta %s,  n %d, sourcename_list[n] %s,\n", srcname, net_sta, n, sourcename_list[n]);
-                    if (strstr(sourcename_list[n], net_sta) != NULL) {
-                        duplicate = 1;
-                        break;
+                // 20160802 AJL - only apply net, sta check if same orientation (last char of srcname)
+                // check on orientation is done by filter.component.accept properties file parameter, see data_input_filter_component_accept above
+                if (sourcename_list[isource][strlen(sourcename_list[isource]) - 1] == srcname[strlen(srcname) - 1]) {
+                    if (data_input_filter_ignore_duplicate_net_sta) { // 20130529 AJL - can disable these check with properties file ([DataInput] filter.ignore_duplicate_net_sta)
+                        // check for match of network, station only
+                        sprintf(net_sta, "%.2s_%.5s_", msr_net, msr_sta);
+                        //strcat(strcat(strcpy(net_sta, msr_net), "_"), msr_sta);
+                        if (verbose > 2)
+                            printf("DEBUG: srcname %s,  net_sta %s,  n %d, sourcename_list[isource] %s,\n", srcname, net_sta, isource, sourcename_list[isource]);
+                        if (strstr(sourcename_list[isource], net_sta) != NULL) {
+                            duplicate = 1;
+                            break;
+                        }
                     }
-                }
-                if (data_input_filter_ignore_duplicate_sta) { // 20130529 AJL - can disable these check with properties file ([DataInput] filter.ignore_duplicate_sta)
-                    // check for possible match of station only
-                    sprintf(net_sta, "_%.5s_", msr_sta);
-                    if (strstr(sourcename_list[n], net_sta) != NULL) {
-                        duplicate = 2;
-                        break;
+                    if (data_input_filter_ignore_duplicate_sta) { // 20130529 AJL - can disable these check with properties file ([DataInput] filter.ignore_duplicate_sta)
+                        // check for possible match of station only
+                        sprintf(net_sta, "_%.5s_", msr_sta);
+                        if (strstr(sourcename_list[isource], net_sta) != NULL) {
+                            duplicate = 2;
+                            break;
+                        }
                     }
                 }
             }
-            source_id = n;
+            source_id = isource;
         }
         // act on duplicate net_sta
         if (duplicate) {
@@ -535,7 +550,7 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
                 return;
             }
         }
-        // act on not found
+        // not found, new source name
         if (source_id == num_sources_total) {
             if (num_sources_total < MAX_NUM_SOURCES) { // sourcename not in list
                 strcpy(sourcename_list[source_id], srcname);
@@ -622,7 +637,8 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
             return;
         }
         if (verbose > 2)
-            printf("DEBUG: sl_msr->fsdh.num_samples %d  sl_msr->numsamples %d  sl_msr->unpackerr %d\n", sl_msr->fsdh.num_samples, sl_msr->numsamples, sl_msr->unpackerr);
+            printf("DEBUG: sl_msr->fsdh.num_samples %d  sl_msr->numsamples %d  sl_msr->unpackerr %d\n",
+                sl_msr->fsdh.num_samples, sl_msr->numsamples, sl_msr->unpackerr);
 
 
         // increment record and sample count
@@ -686,7 +702,7 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
         td_getTimedomainProcessingDataList(&data_list, &num_de_data);
 
         // check for completed timedomain-processing data
-        for (n = 0; n < num_de_data; n++) {
+        for (int n = 0; n < num_de_data; n++) {
             TimedomainProcessingData* deData = data_list[n];
             if (deData->flag_complete_t50 == 1) {
                 // flag that data has been initially processed here
@@ -730,7 +746,7 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
 
             }
             if (deData->flag_complete_mwp == 1) {
-                // flag that data has been initially processed here
+                // flag that data has had initial processing here
                 deData->flag_complete_mwp = 2;
                 // display results
                 if (verbose > 1) {
@@ -825,7 +841,7 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
                     }
                 }
                 // reset last_data_before_report_error list so warning message above will be produced at least once in a report interval
-                for (n = 0; n < MAX_NUM_SOURCES; n++) {
+                for (int n = 0; n < MAX_NUM_SOURCES; n++) {
                     source_packet_error_reported[n] = 0;
                 }
                 // reset new loc picks since last associate/locate counter
