@@ -18,7 +18,8 @@
 #include <sys/stat.h>
 
 //#include "../geometry/geometry.h"
-//#include "../alomax_matrix/alomax_matrix.h"
+#include "../alomax_matrix/alomax_matrix.h"
+#include "../alomax_matrix/polarization.h"
 //#include "../matrix_statistics/matrix_statistics.h"
 //#include "../statistics/statistics.h"
 #include "../picker/PickData.h"
@@ -34,6 +35,7 @@
 #include "../picker/FilterPicker5.h"
 #include "../response/response_lib.h"
 #include "../miniseed_utils/miniseed_utils.h"
+#include "../statistics/statistics.h"
 
 
 // time domain processing memory
@@ -210,25 +212,25 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
     //double data_start_time = (double) mktime(&tm_time); // assumes mktime returns seconds
     double data_start_time = (double) timegm(&tm_time) + (dsec - (double) ((int) dsec)); // assumes timegm returns seconds
     int flag_non_contiguous = 0; // 20111230 AJL - added
-    if (stationParameters[source_id].last_data_end_time > 0.0) {
-        double tdiff = data_start_time - stationParameters[source_id].last_data_end_time;
+    if (channelParameters[source_id].last_data_end_time > 0.0) {
+        double tdiff = data_start_time - channelParameters[source_id].last_data_end_time;
         // 20150211 AJL - separated early and late case - early packets are now ignored in case next packet is contiguous
         if (tdiff < -1.5) { // 1 sec tolerance - early
             printf("Warning: %.2s_%.5s_%.2s_%.3s dt=%f: data packet start time = %lf not contiguous: %fs earlier than last data end time = %lf, ignoring packet\n",
-                    network, station, location, channel, deltaTime, data_start_time, tdiff, stationParameters[source_id].last_data_end_time);
-            stationParameters[source_id].error = stationParameters[source_id].error | ERROR_DATA_NON_CONTIGUOUS;
-            stationParameters[source_id].count_non_contiguous++;
+                    network, station, location, channel, deltaTime, data_start_time, tdiff, channelParameters[source_id].last_data_end_time);
+            channelParameters[source_id].error = channelParameters[source_id].error | ERROR_DATA_NON_CONTIGUOUS;
+            channelParameters[source_id].count_non_contiguous++;
             return (-1);
         }
         if (tdiff > 1.5) { // 1 sec tolerance - late
             printf("Warning: %.2s_%.5s_%.2s_%.3s dt=%f: data packet start time = %lf not contiguous: %fs later than last data end time = %lf, assuming gap\n",
-                    network, station, location, channel, deltaTime, data_start_time, tdiff, stationParameters[source_id].last_data_end_time);
-            stationParameters[source_id].error = stationParameters[source_id].error | ERROR_DATA_NON_CONTIGUOUS;
-            stationParameters[source_id].count_non_contiguous++;
+                    network, station, location, channel, deltaTime, data_start_time, tdiff, channelParameters[source_id].last_data_end_time);
+            channelParameters[source_id].error = channelParameters[source_id].error | ERROR_DATA_NON_CONTIGUOUS;
+            channelParameters[source_id].count_non_contiguous++;
             flag_non_contiguous = 1;
         }
     }
-    stationParameters[source_id].last_data_end_time = data_start_time + (double) numsamples * deltaTime;
+    channelParameters[source_id].last_data_end_time = data_start_time + (double) numsamples * deltaTime;
 
     // waveform export
     if (waveform_export_enable) {
@@ -265,37 +267,41 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
     double lat = 0.0;
     double lon = 0.0;
     double elev = 0.0;
+    double azimuth = -1.0;
+    double dip = -999.0;
     double station_quality_weight = 0.0;
-    //printf("DEBUG: Check ws station: %s %s  time(NULL) %ld >? stationParameters[source_id].internet_station_query_checked_time %ld (diff=%f)\n",
-    //        network, station, time(NULL), stationParameters[source_id].internet_station_query_checked_time,
-    //        difftime(time(NULL), stationParameters[source_id].internet_station_query_checked_time) / (24 * 3600));
-    int icheck_ws_station_coords = difftime(time(NULL), stationParameters[source_id].internet_station_query_checked_time) > (WEB_SERIVCE_METADATA_CHECK_INTERVAL * 24 * 3600);
-    if (!stationParameters[source_id].have_coords || icheck_ws_station_coords) {
+    //printf("DEBUG: Check ws station: %s %s  time(NULL) %ld >? channelParameters[source_id].internet_station_query_checked_time %ld (diff=%f)\n",
+    //        network, station, time(NULL), channelParameters[source_id].internet_station_query_checked_time,
+    //        difftime(time(NULL), channelParameters[source_id].internet_station_query_checked_time) / (24 * 3600));
+    int icheck_ws_station_coords = difftime(time(NULL), channelParameters[source_id].internet_station_query_checked_time) > (WEB_SERIVCE_METADATA_CHECK_INTERVAL * 24 * 3600);
+    if (!channelParameters[source_id].have_coords || icheck_ws_station_coords) {
         td_set_station_coordinates(source_id, network, station, location, channel, year, month, mday, verbose, icheck_ws_station_coords);
-        if (!stationParameters[source_id].have_coords) {
+        if (!channelParameters[source_id].have_coords) {
             if (verbose)
                 printf("ERROR: sensor coordinates not found: %s %s, please add sensor data to file: %s\n", network, station, geogfile_name);
             return (-1);
         }
         // set misc station parameters
-        stationParameters[source_id].deltaTime = deltaTime;
-        stationParameters[source_id].n_int_tseries = n_int_tseries;
+        channelParameters[source_id].deltaTime = deltaTime;
+        channelParameters[source_id].n_int_tseries = n_int_tseries;
         // find and store references to other channel orientations for this net/sta/chan
-        associate3CompChannelSet(stationParameters, num_sources_total, source_id);
+        associate3CompChannelSet(channelParameters, num_sources_total, source_id);
     }
 
-    lat = stationParameters[source_id].lat;
-    lon = stationParameters[source_id].lon;
-    elev = stationParameters[source_id].elev;
-    station_quality_weight = stationParameters[source_id].qualityWeight;
-    stationParameters[source_id].staActiveInReportInterval = 1;
-    stationParameters[source_id].data_latency = data_latency;
+    lat = channelParameters[source_id].lat;
+    lon = channelParameters[source_id].lon;
+    elev = channelParameters[source_id].elev;
+    azimuth = channelParameters[source_id].azimuth;
+    dip = channelParameters[source_id].dip;
+    station_quality_weight = channelParameters[source_id].qualityWeight;
+    channelParameters[source_id].staActiveInReportInterval = 1;
+    channelParameters[source_id].data_latency = data_latency;
 
     if (use_station_corrections) {
 
         // check for station corrections
         int icheck_sta_corr = 0; // TODO: maybe add periodic check for updated station residuals, not necessary if add automatic update of residuals for each event located
-        if (!stationParameters[source_id].sta_corr_checked || icheck_sta_corr) {
+        if (!channelParameters[source_id].sta_corr_checked || icheck_sta_corr) {
             td_set_station_corrections(source_id, network, station, location, channel, year, month, mday, verbose, icheck_sta_corr);
         }
     }
@@ -321,11 +327,11 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
 
 
     // if channel orientation not to be picked and processed, return
-    if (stationParameters[source_id].process_this_channel_orientation == 0) {
+    if (channelParameters[source_id].process_this_channel_orientation == 0) {
         // no further processing for this channel, cleanup not needed since no filtering done
         return (0);
     }
-    if (stationParameters[source_id].process_this_channel_orientation == -1) {
+    if (channelParameters[source_id].process_this_channel_orientation == -1) {
         // check if channel is in process_orientation_list, if list exists
         char orientation[2];
         strcpy(orientation, channel + 2);
@@ -334,14 +340,14 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
                 //printf("DEBUG: n=%d/%d, orientation=%s, in: <%s> \n", n, num_process_orientations, orientation, process_orientation_list[n]);
                 if (strstr(process_orientation_list[n], orientation) != NULL) {
                     // orientation is in list, use for pick, processing
-                    stationParameters[source_id].process_this_channel_orientation = 1;
+                    channelParameters[source_id].process_this_channel_orientation = 1;
                     break;
                 }
             }
             if (n >= num_process_orientations) {
                 // orientation is not in list, do not use for pick, processing
                 //printf("DEBUG: %.2s_%.5s_%.2s_%.3s orient=%s: SKIPPED for pick/process\n", network, station, location, channel, orientation);
-                stationParameters[source_id].process_this_channel_orientation = 0;
+                channelParameters[source_id].process_this_channel_orientation = 0;
                 // no further processing for this channel, cleanup not needed since no filtering done
                 return (0);
             }
@@ -400,7 +406,7 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
         if (filter_bp_bu_co_1_5_n_4(deltaTime, data_float_hf, numsamples, &pmem_filter_hf[source_id], 1) == NULL) {
             if (verbose)
                 printf("ERROR: deltaTime not supported by filter_bp_bu_co_1_5_n_4: deltaTime=%f\n", deltaTime);
-            stationParameters[source_id].error = stationParameters[source_id].error | ERROR_DT_NOT_SUPPORTED_BY_FILTER;
+            channelParameters[source_id].error = channelParameters[source_id].error | ERROR_DT_NOT_SUPPORTED_BY_FILTER;
             td_process_free_timedomain_memory(source_id);
             return_value = -1;
             goto cleanup;
@@ -462,7 +468,7 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
             }
             // save picks to list
             int init_ellapsed_index_count = (int) (0.5 + dindex); // count at beginning of current record
-            TimedomainProcessingData* deData = new_TimedomainProcessingData(sladdr, n_int_tseries, source_id, station, location, channel, network, deltaTime, lat, lon, elev, station_quality_weight,
+            TimedomainProcessingData* deData = new_TimedomainProcessingData(sladdr, n_int_tseries, source_id, station, location, channel, network, deltaTime, lat, lon, elev, azimuth, dip, station_quality_weight,
                     ppick, STREAM_RAW, init_ellapsed_index_count, year, month, mday, hour, min, dsec + dindex * deltaTime, flag_do_mwpd, waveform_export_enable);
             double time_dec_sec = (double) deData->t_time_t + deData->t_decsec;
             if (!pickOnHFStream) {
@@ -591,7 +597,7 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
             }
             // save picks to list
             int init_ellapsed_index_count = (int) (0.5 + dindex); // count at beginning of current record
-            TimedomainProcessingData* deData = new_TimedomainProcessingData(sladdr, n_int_tseries, source_id, station, location, channel, network, deltaTime, lat, lon, elev, station_quality_weight, ppick, STREAM_HF, init_ellapsed_index_count,
+            TimedomainProcessingData* deData = new_TimedomainProcessingData(sladdr, n_int_tseries, source_id, station, location, channel, network, deltaTime, lat, lon, elev, azimuth, dip, station_quality_weight, ppick, STREAM_HF, init_ellapsed_index_count,
                     year, month, mday, hour, min, dsec + dindex * deltaTime, flag_do_mwpd, waveform_export_enable);
             double time_dec_sec = (double) deData->t_time_t + deData->t_decsec;
             //if (!pickOnRawStream) {
@@ -730,7 +736,7 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
         if (filter_hp_bu_co_0_005_n_2(deltaTime, data_float_brb_hp, numsamples, &pmem_filter_hp[source_id], 1) == NULL) {
             if (verbose)
                 printf("ERROR: deltaTime not supported by filter_hp_bu_co_0_005_n_2: deltaTime=%f\n", deltaTime);
-            stationParameters[source_id].error = stationParameters[source_id].error | ERROR_DT_NOT_SUPPORTED_BY_FILTER;
+            channelParameters[source_id].error = channelParameters[source_id].error | ERROR_DT_NOT_SUPPORTED_BY_FILTER;
             td_process_free_timedomain_memory(source_id);
             return_value = -1;
             goto cleanup;
@@ -829,7 +835,7 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
             if (verbose)
                 printf("ERROR: deltaTime not supported by filter_bp_bu_co_0_333_5_n_4: deltaTime=%f\n", deltaTime);
             //printf("ERROR: deltaTime not supported by filter_bp_bu_co_1_5_n_4: deltaTime=%f\n", deltaTime);
-            stationParameters[source_id].error = stationParameters[source_id].error | ERROR_DT_NOT_SUPPORTED_BY_FILTER;
+            channelParameters[source_id].error = channelParameters[source_id].error | ERROR_DT_NOT_SUPPORTED_BY_FILTER;
             return_value = -1;
             td_process_free_timedomain_memory(source_id);
             goto cleanup;
@@ -885,7 +891,7 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
         if (filter_lp_bu_co_5_n_6(deltaTime, data_float_tauc, numsamples, &pmem_filter_lp[source_id], 1) == NULL) {
             if (verbose)
                 printf("ERROR: deltaTime not supported by filter_lp_bu_co_5_n_6: deltaTime=%f\n", deltaTime);
-            stationParameters[source_id].error = stationParameters[source_id].error | ERROR_DT_NOT_SUPPORTED_BY_FILTER;
+            channelParameters[source_id].error = channelParameters[source_id].error | ERROR_DT_NOT_SUPPORTED_BY_FILTER;
             return_value = -1;
             td_process_free_timedomain_memory(source_id);
             goto cleanup;
@@ -918,6 +924,11 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
     for (ndata = 0; ndata < num_de_data; ndata++) {
 
         TimedomainProcessingData* deData = data_list[ndata];
+
+        // 20160811 AJL - debug
+        if (deData == NULL) {
+            printf("DEBUG: td_process_timedomain_processing(): deData == NULL: deData: %ld, ndata %d, num_de_data %d\n", (long) deData, ndata, num_de_data);
+        }
 
         if (deData->source_id != source_id)
             continue;
@@ -1943,6 +1954,29 @@ int td_process_timedomain_processing_init(Settings *settings, char* outpath, cha
     }
 
 
+    // polarization
+    // flag to use P polarization azimuth for location
+    polarization_enable = 0;
+    if ((int_param = settings_get_int(app_prop_settings, "TimedomainProcessing", "polarization.enable")) != INT_INVALID)
+        polarization_enable = int_param;
+    printf("Info: property set: [TimedomainProcessing] polarization.enable %d\n", polarization_enable);
+    //
+    polarization_window_start_delay_after_P = POLARIZATION_START_DELAY_AFTER_P;
+    if ((double_param = settings_get_double(app_prop_settings, "TimedomainProcessing", "polarization.window.start_delay_after_P")) != DBL_INVALID)
+        polarization_window_start_delay_after_P = double_param;
+    printf("Info: property set: [TimedomainProcessing] polarization.window.start_delay_after_P %f\n", polarization_window_start_delay_after_P);
+    //
+    polarization_window_length_max = POLARIZATION_WINDOW__LENGTH_MAX;
+    if ((double_param = settings_get_double(app_prop_settings, "TimedomainProcessing", "polarization.window.length.max")) != DBL_INVALID)
+        polarization_window_length_max = double_param;
+    printf("Info: property set: [TimedomainProcessing] polarization.window.length.max %f\n", polarization_window_length_max);
+    //
+    polarization_window_length_min = POLARIZATION_WINDOW__LENGTH_MIN;
+    if ((double_param = settings_get_double(app_prop_settings, "TimedomainProcessing", "polarization.window.length.min")) != DBL_INVALID)
+        polarization_window_length_min = double_param;
+    printf("Info: property set: [TimedomainProcessing] polarization.window.length.min %f\n", polarization_window_length_min);
+
+
     // flag to use hf data (high-frequency) for picking.
     pickOnHFStream = 1;
     if ((int_param = settings_get_int(app_prop_settings, "TimedomainProcessing", "pick.hf.enable")) != INT_INVALID)
@@ -2138,11 +2172,11 @@ int td_process_timedomain_processing_init(Settings *settings, char* outpath, cha
     int nsta;
 
     // station coordinates, station corrections
-    stationParameters = calloc(MAX_NUM_SOURCES, sizeof (StationParameters));
+    channelParameters = calloc(MAX_NUM_SOURCES, sizeof (ChannelParameters));
     for (nsta = 0; nsta < MAX_NUM_SOURCES; nsta++) {
-        initStationParameters(stationParameters + nsta);
+        initChannelParameters(channelParameters + nsta);
     }
-    num_sorted_sta_params = 0;
+    num_sorted_chan_params = 0;
 
     // store name
     geogfile_name = geogfile;
@@ -2238,85 +2272,102 @@ int td_process_timedomain_processing_init(Settings *settings, char* outpath, cha
  * td_set_station_coordinates:
  *
  * Find coordinates for a specified station.
- * Sets lat/lon/elev if station found and returns 0.  Returns -1 if station not found.
+ * Sets lat/lon/elev/azimuth/dip if station found and returns 0.  Returns -1 if station not found.
  ***************************************************************************/
 int td_set_station_coordinates(int source_id, char* network, char* station, char* location, char* channel, int data_year, int data_month, int data_mday,
         int verbose, int icheck_ws_station_coords) {
 
     char net[32];
     char sta[32];
+    char loc[32] = "N/A";
+    char chan[32] = "N/A";
     double lat = 0.0;
     double lon = 0.0;
     double elev = 0.0;
+    double azimuth = -1.0;
+    double dip = -999.0;
 
     // check if geog file modified later than station checked time, and then if station is available
     if (geogfile_name != NULL) {
         // check if file modified
         struct stat file_stats;
         stat(geogfile_name, &file_stats);
-        //printf("DEBUG: Check geogfile: %s %s  stationParameters[source_id].geogfile_checked_time %ld <? file_stats.st_mtime %ld\n",
-        //        network, station, stationParameters[source_id].geogfile_checked_time, file_stats.st_mtime);
-        if (stationParameters[source_id].geogfile_checked_time < file_stats.st_mtime) { // not yet checked or was modified since last check
+        //printf("DEBUG: Check geogfile: %s %s  channelParameters[source_id].geogfile_checked_time %ld <? file_stats.st_mtime %ld\n",
+        //        network, station, channelParameters[source_id].geogfile_checked_time, file_stats.st_mtime);
+        if (channelParameters[source_id].geogfile_checked_time < file_stats.st_mtime) { // not yet checked or was modified since last check
             //printf("DEBUG: Check geogfile: time: %ld, file: %ld > sta: %ld,  reading from modified file: %s for %s\n",
-            //        time(NULL), file_stats.st_mtime, stationParameters[source_id].geogfile_checked_time, geogfile_name, station);
+            //        time(NULL), file_stats.st_mtime, channelParameters[source_id].geogfile_checked_time, geogfile_name, station);
             FILE* fp_geog = fopen(geogfile_name, "r");
             if (fp_geog != NULL) {
                 static char line[1024];
                 while ((fgets(line, sizeof (line), fp_geog)) != NULL) {
-                    if (sscanf(line, "%s %s %lf %lf %lf", net, sta, &lat, &lon, &elev) == 5) {
+                    // 20160805 AJL - added azimuth and dip
+                    int nscan;
+                    if ((nscan = sscanf(line, "%s %s %lf %lf %lf %*d %*d %*d %s %s %lf %lf",
+                            net, sta, &lat, &lon, &elev, loc, chan, &azimuth, &dip)) >= 5) {
                         if ((strcmp(net, network) == 0) && (strcmp(sta, station) == 0)) { // found
-                            if (verbose)
-                                printf("Info: %s %s sensor coordinates (%lf %lf %lf) read from geog file: %s\n", network, station, lat, lon, elev, geogfile_name);
-                            strcpy(stationParameters[source_id].network, network);
-                            strcpy(stationParameters[source_id].station, station);
-                            strcpy(stationParameters[source_id].location, location);
-                            strcpy(stationParameters[source_id].channel, channel);
-                            stationParameters[source_id].lat = lat;
-                            stationParameters[source_id].lon = lon;
-                            stationParameters[source_id].elev = elev;
-                            stationParameters[source_id].have_coords = 1;
-                            // add to sorted station params list
-                            addStationParametersToSortedList(stationParameters + source_id, &sorted_sta_params_list, &num_sorted_sta_params);
-                            // 20140106 AJL - bug fix
-                            //fclose(fp_geog);
-                            //return (0);
-                            icheck_ws_station_coords = 0; // probably not necessary
-                            stationParameters[source_id].internet_station_query_checked_time = file_stats.st_mtime;
-                            //printf("DEBUG: Found geogfile: %s %s  lat %f  stationParameters[source_id].lat %f  stationParameters[source_id].lat %f  stationParameters[source_id].lat %f\n",
-                            //        network, station, lat, stationParameters[source_id].lat, stationParameters[source_id].lat, stationParameters[source_id].lat);
-                            //break;    // 20140107 AJL - no break so last (latest) matching entry in file will be used
+                            if (nscan <= 5 || ((strcmp(loc, location) == 0) && (strcmp(chan, channel) == 0))) { // check loc and chan if available
+                                if (verbose)
+                                    printf("Info: %s %s %s %s sensor coordinates (%lf %lf %lf), az/dip (%lf %lf) read from geog file: %s\n",
+                                        network, station, loc, chan, lat, lon, elev, azimuth, dip, geogfile_name);
+                                strcpy(channelParameters[source_id].network, network);
+                                strcpy(channelParameters[source_id].station, station);
+                                strcpy(channelParameters[source_id].location, location);
+                                strcpy(channelParameters[source_id].channel, channel);
+                                channelParameters[source_id].lat = lat;
+                                channelParameters[source_id].lon = lon;
+                                channelParameters[source_id].elev = elev;
+                                channelParameters[source_id].azimuth = azimuth;
+                                channelParameters[source_id].dip = dip;
+                                channelParameters[source_id].have_coords = 1;
+                                // add to sorted station params list
+                                addChannelParametersToSortedList(channelParameters + source_id, &sorted_chan_params_list, &num_sorted_chan_params);
+                                // 20140106 AJL - bug fix
+                                //fclose(fp_geog);
+                                //return (0);
+                                icheck_ws_station_coords = 0; // probably not necessary
+                                channelParameters[source_id].internet_station_query_checked_time = file_stats.st_mtime;
+                                //printf("DEBUG: Found geogfile: %s %s  lat %f  channelParameters[source_id].lat %f  channelParameters[source_id].lat %f  channelParameters[source_id].lat %f\n",
+                                //        network, station, lat, channelParameters[source_id].lat, channelParameters[source_id].lat, channelParameters[source_id].lat);
+                                //break;    // 20140107 AJL - no break so last (latest) matching entry in file will be used
+                            }
                         }
                     }
                 }
                 fclose(fp_geog);
             }
-            stationParameters[source_id].geogfile_checked_time = file_stats.st_mtime;
+            channelParameters[source_id].geogfile_checked_time = file_stats.st_mtime;
         }
     }
 
 
     // check if available on internet query service
     if (icheck_ws_station_coords) {
-        double lat = stationParameters[source_id].lat;
-        double lon = stationParameters[source_id].lon;
-        double elev = stationParameters[source_id].elev; // meters
-        stationParameters[source_id].internet_station_query_checked_time = time(NULL);
+        double lat = channelParameters[source_id].lat;
+        double lon = channelParameters[source_id].lon;
+        double elev = channelParameters[source_id].elev; // meters
+        double azimuth = channelParameters[source_id].azimuth;
+        double dip = channelParameters[source_id].dip;
+        channelParameters[source_id].internet_station_query_checked_time = time(NULL);
         if (td_get_sta_coords_internet_station_query(source_id, network, station, location, channel, data_year, data_month, data_mday, verbose) == 0) {
-            //printf("DEBUG: write geogfile_name %s: %s %s %lf %lf %lf\n", geogfile_name, network, station, stationParameters[source_id].lat, stationParameters[source_id].lon, stationParameters[source_id].elev);
+            //printf("DEBUG: write geogfile_name %s: %s %s %lf %lf %lf\n", geogfile_name, network, station, channelParameters[source_id].lat, channelParameters[source_id].lon, channelParameters[source_id].elev);
             // found, add to file if values changed
             if (geogfile_name != NULL && (
-                    fabs(lat - stationParameters[source_id].lat) > FLT_EPSILON * stationParameters[source_id].lat
-                    || fabs(lon - stationParameters[source_id].lon) > FLT_EPSILON * stationParameters[source_id].lon
-                    || fabs(elev - stationParameters[source_id].elev) > FLT_EPSILON * stationParameters[source_id].elev
+                    fabs(lat - channelParameters[source_id].lat) > FLT_EPSILON * channelParameters[source_id].lat
+                    || fabs(lon - channelParameters[source_id].lon) > FLT_EPSILON * channelParameters[source_id].lon
+                    || fabs(elev - channelParameters[source_id].elev) > FLT_EPSILON * channelParameters[source_id].elev
+                    || fabs(azimuth - channelParameters[source_id].azimuth) > FLT_EPSILON * channelParameters[source_id].azimuth
+                    || fabs(dip - channelParameters[source_id].dip) > FLT_EPSILON * channelParameters[source_id].dip
                     )) {
-                //printf("DEBUG: Found internet: %s %s  lat %f  stationParameters[source_id].lat %f  stationParameters[source_id].lat %f  stationParameters[source_id].lat %f\n",
-                //        network, station, lat, stationParameters[source_id].lat, stationParameters[source_id].lat, stationParameters[source_id].lat);
+                //printf("DEBUG: Found internet: %s %s  lat %f  channelParameters[source_id].lat %f  channelParameters[source_id].lat %f  channelParameters[source_id].lat %f\n",
+                //        network, station, lat, channelParameters[source_id].lat, channelParameters[source_id].lat, channelParameters[source_id].lat);
                 FILE* fp_geog = fopen(geogfile_name, "a");
                 if (fp_geog != NULL) {
 
-                    fprintf(fp_geog, "%s %s %lf %lf %lf %d %d %d\n",
-                            network, station, stationParameters[source_id].lat, stationParameters[source_id].lon, stationParameters[source_id].elev,
-                            data_year, data_month, data_mday);
+                    // 20160805 AJL - added azimuth and dip
+                    fprintf(fp_geog, "%s %s %lf %lf %lf %d %d %d %s %s %lf %lf\n",
+                            network, station, channelParameters[source_id].lat, channelParameters[source_id].lon, channelParameters[source_id].elev,
+                            data_year, data_month, data_mday, location, channel, channelParameters[source_id].azimuth, channelParameters[source_id].dip);
                     fclose(fp_geog);
                 }
             }
@@ -2354,7 +2405,7 @@ int td_set_station_corrections(int source_id, char* network, char* station, char
     int ifound = -1;
 
     // flag that check for available sta corr has been done
-    stationParameters[source_id].sta_corr_checked = 1;
+    channelParameters[source_id].sta_corr_checked = 1;
 
     // check if sta corr file modified later than station checked time, and then if station is available
     //if (sta_corr_filename != NULL && strlen(sta_corr_filename) > 0) {
@@ -2362,11 +2413,11 @@ int td_set_station_corrections(int source_id, char* network, char* station, char
         // check if file modified
         struct stat file_stats;
         stat(sta_corr_filename, &file_stats);
-        //printf("DEBUG: Check sta_corr_file: %s %s  stationParameters[source_id].geogfile_checked_time %ld <? file_stats.st_mtime %ld\n",
-        //        network, station, stationParameters[source_id].geogfile_checked_time, file_stats.st_mtime);
-        //if (stationParameters[source_id].geogfile_checked_time < file_stats.st_mtime) { // not yet checked or was modified since last check
+        //printf("DEBUG: Check sta_corr_file: %s %s  channelParameters[source_id].geogfile_checked_time %ld <? file_stats.st_mtime %ld\n",
+        //        network, station, channelParameters[source_id].geogfile_checked_time, file_stats.st_mtime);
+        //if (channelParameters[source_id].geogfile_checked_time < file_stats.st_mtime) { // not yet checked or was modified since last check
         //printf("DEBUG: Check sta_corr_file: time: %ld, file: %ld > sta: %ld,  reading from modified file: %s for %s\n",
-        //        time(NULL), file_stats.st_mtime, stationParameters[source_id].geogfile_checked_time, sta_corr_filename, station);
+        //        time(NULL), file_stats.st_mtime, channelParameters[source_id].geogfile_checked_time, sta_corr_filename, station);
         FILE* fp_sta_corr = fopen(sta_corr_filename, "r");
         if (fp_sta_corr != NULL) {
             static char line[1024];
@@ -2387,7 +2438,7 @@ int td_set_station_corrections(int source_id, char* network, char* station, char
                                         network, station, location, channel, phase, num, mean, std_dev, year, month, day, sta_corr_filename);
                                 int phase_id = phase_id_for_name(phase);
                                 if (phase_id >= 0) {
-                                    StaCorrections *sta_corr = &(stationParameters[source_id].sta_corr[phase_id]);
+                                    StaCorrections *sta_corr = &(channelParameters[source_id].sta_corr[phase_id]);
                                     sta_corr->dist_min = dist_min;
                                     sta_corr->dist_max = dist_max; // 20150508 AJL added - polynomial only fit and used between dist max and min
                                     sta_corr->num = num;
@@ -2417,7 +2468,7 @@ int td_set_station_corrections(int source_id, char* network, char* station, char
 
             return (-1);
         }
-        //stationParameters[source_id].geogfile_checked_time = file_stats.st_mtime;
+        //channelParameters[source_id].geogfile_checked_time = file_stats.st_mtime;
         //}
     }
 
@@ -2593,16 +2644,18 @@ int td_get_sta_coords_internet_station_query(int source_id, char* net, char* sta
         double lat = 0.0;
         double lon = 0.0;
         double elev = 0.0;
+        double azimuth = -1.0;
+        double dip = -999.0;
 
         // TODO: implement different internet_station_query_type's
 
         int return_value = -99;
-        if (strcmp(internet_station_query_type[n], "IRIS_WS_STATION") == 0) {
+        if (strcmp(internet_station_query_type[n], "IRIS_WS_STATION") == 0) { // discontinued!
             return_value = get_station_coords_internet_station_query_IRIS_WS_STATION(internet_station_query_host[n], internet_station_query[n],
                     net, sta, year, month, mday, &lat, &lon, &elev);
         } else if (strcmp(internet_station_query_type[n], "FDSN_WS_STATION") == 0) {
             return_value = get_station_coords_internet_station_query_FDSN_WS_STATION(internet_station_query_host[n], internet_station_query[n],
-                    net, sta, loc, chan, year, month, mday, &lat, &lon, &elev);
+                    net, sta, loc, chan, year, month, mday, &lat, &lon, &elev, &azimuth, &dip);
         }
         // 20140310 AJL - bug fix
         //if (return_value < 0)
@@ -2613,17 +2666,19 @@ int td_get_sta_coords_internet_station_query(int source_id, char* net, char* sta
         if (verbose) {
             fprintf(stdout, "%s: lat=%g lon=%g elev=%g\n", internet_station_query_host[n], lat, lon, elev);
         }
-        strcpy(stationParameters[source_id].network, net);
-        strcpy(stationParameters[source_id].station, sta);
-        strcpy(stationParameters[source_id].location, loc);
-        strcpy(stationParameters[source_id].channel, chan);
-        stationParameters[source_id].lat = lat;
-        stationParameters[source_id].lon = lon;
-        stationParameters[source_id].elev = elev;
-        stationParameters[source_id].have_coords = 1;
+        strcpy(channelParameters[source_id].network, net);
+        strcpy(channelParameters[source_id].station, sta);
+        strcpy(channelParameters[source_id].location, loc);
+        strcpy(channelParameters[source_id].channel, chan);
+        channelParameters[source_id].lat = lat;
+        channelParameters[source_id].lon = lon;
+        channelParameters[source_id].elev = elev;
+        channelParameters[source_id].azimuth = azimuth;
+        channelParameters[source_id].dip = dip;
+        channelParameters[source_id].have_coords = 1;
 
         // add to sorted station params list
-        addStationParametersToSortedList(stationParameters + source_id, &sorted_sta_params_list, &num_sorted_sta_params);
+        addChannelParametersToSortedList(channelParameters + source_id, &sorted_chan_params_list, &num_sorted_chan_params);
 
         return (0);
     }
@@ -2641,7 +2696,7 @@ void td_process_timedomain_processing_cleanup() {
 
     free_TimedomainProcessingDataList(data_list, num_de_data);
     free_HypocenterDescList(&hypo_list, &num_hypocenters);
-    free_StationParametersList(&sorted_sta_params_list, &num_sorted_sta_params);
+    free_ChannelParametersList(&sorted_chan_params_list, &num_sorted_chan_params);
 
     int i;
 
@@ -2654,9 +2709,9 @@ void td_process_timedomain_processing_cleanup() {
     unsetenv("TZ");
 
     for (int nsta = 0; nsta < MAX_NUM_SOURCES; nsta++) {
-        freeStationParameters(stationParameters + nsta);
+        freeChannelParameters(channelParameters + nsta);
     }
-    free(stationParameters);
+    free(channelParameters);
     free(chan_resp);
 
     // waveform export memory lists
@@ -2723,7 +2778,7 @@ void td_process_free_timedomain_processing_data(int source_id) {
 
             removeTimedomainProcessingDataFromDataList(deData, &data_list, &num_de_data);
             free_TimedomainProcessingData(deData);
-            data_list[ndata] = NULL; // 20160802 AJL - memory bug fix?
+            //data_list[ndata] = NULL; // 20160802 AJL - memory bug fix?
         }
     }
 
@@ -2739,5 +2794,286 @@ void td_getTimedomainProcessingDataList(TimedomainProcessingData*** pdata_list, 
     *pdata_list = data_list;
     *pnum_de_data = num_de_data;
 
+}
+
+/** check if de data is associated P */
+
+#define DIP_TOLERANCE 2.5 // degrees
+#define AZIMUTH_TOLERANCE 5.0 // degrees
+
+int td_doPolarizationAnalysis(TimedomainProcessingData* deData, int ndata) {
+
+    int DEBUG = 0;
+    //DEBUG = !strcmp(deData->station, "BALB");
+    //DEBUG = !strcmp(deData->station, "ELL");
+
+    deData->polarization.n_analysis_tries++;
+
+    if (DEBUG) printf("DEBUG: td_doPolarizationAnalysis: entry: %d %s_%s_%s_%s dt=%f\n",
+            ndata + 1, deData->network, deData->station, deData->location, deData->channel, deData->deltaTime);
+
+
+    // check if analysis already done or not available or not applicable
+    if (deData->polarization.status == POL_DONE || deData->polarization.status == POL_NA) {
+        if (DEBUG) {
+            if (deData->polarization.status == POL_DONE) {
+                printf("DEBUG: td_doPolarizationAnalysis: return 1 POL_DONE: az %f+/-%f, dip %f+/-%f, n %d\n",
+                        deData->polarization.azimuth, deData->polarization.azimuth_unc, deData->polarization.dip, deData->polarization.dip_unc, deData->polarization.nvalues);
+            } else {
+                printf("DEBUG: td_doPolarizationAnalysis: return 1 POL_NA: n %d\n", deData->polarization.nvalues);
+            }
+        }
+        return (0);
+    }
+
+    int source_id = deData->source_id;
+    ChannelParameters* chan_params = channelParameters + source_id;
+
+    // set polarization not available or not applicable
+    if (chan_params->channel[2] != 'Z') {
+        // only apply polarization analysis for reporting in Z comp channel
+        deData->polarization.status = POL_NA;
+        if (DEBUG) printf("DEBUG: td_doPolarizationAnalysis: return 2  chan_params->channel[2] %c\n", chan_params->channel[2]);
+        return (0);
+    }
+    if (chan_params->channel_set[1] < 0) {
+        // channel_set[1] always set last, so must be available to have 3 comp associated
+        deData->polarization.status = POL_NA;
+        if (DEBUG) printf("DEBUG: td_doPolarizationAnalysis: return 3  chan_params->channel_set[1] %d\n", chan_params->channel_set[1]);
+        return (0);
+    }
+
+    // have vertical comp data with polarization not yet set
+    int polarity_z = 1;
+    if (fabs(chan_params->dip - (-90.0)) < AZIMUTH_TOLERANCE) { // up
+        ;
+    } else if (fabs(chan_params->dip - 90.0) < AZIMUTH_TOLERANCE) { // down
+        polarity_z = -1;
+    } else {
+        // not near  vertical
+        deData->polarization.status = POL_NA;
+        if (DEBUG) printf("DEBUG: td_doPolarizationAnalysis: return not vertical\n");
+        return (0);
+    }
+
+    // check vertical component is up and near vertical
+
+    // determine x, y channels
+    ChannelParameters* chan_params_0 = channelParameters + chan_params->channel_set[0];
+    ChannelParameters* chan_params_1 = channelParameters + chan_params->channel_set[1];
+    // check both horizontal
+    if (fabs(chan_params_0->dip - 0.0) > DIP_TOLERANCE || fabs(chan_params_1->dip - 0.0) > DIP_TOLERANCE) {
+        deData->polarization.status = POL_NA;
+        if (DEBUG) printf("DEBUG: td_doPolarizationAnalysis: return 4: chan_params_0->dip %f\n", chan_params_0->dip);
+        if (DEBUG) printf("DEBUG: td_doPolarizationAnalysis: return 4: chan_params_0->channel %s\n", chan_params_0->channel);
+        if (DEBUG) printf("DEBUG: td_doPolarizationAnalysis: return 4: chan_params_1->channel %s\n", chan_params_1->channel);
+        return (0);
+    }
+    // check azimuth difference near 90 deg
+    int source_id_x; // E like orientation
+    int source_id_y; // N like orientation
+    double az_min, az_max;
+    //printf("DEBUG: td_doPolarizationAnalysis: chan_params_0->azimuth %f, chan_params_1->azimuth %f\n", chan_params_0->azimuth, chan_params_1->azimuth);
+    if (chan_params_0->azimuth <= chan_params_1->azimuth) {
+        az_min = chan_params_0->azimuth;
+        az_max = chan_params_1->azimuth;
+        source_id_y = chan_params->channel_set[0];
+        source_id_x = chan_params->channel_set[1];
+    } else {
+        az_min = chan_params_1->azimuth;
+        az_max = chan_params_0->azimuth;
+        source_id_y = chan_params->channel_set[1];
+        source_id_x = chan_params->channel_set[0];
+    }
+    double azimuth_y = az_min;
+    if (fabs(az_max - az_min - 90.0) < AZIMUTH_TOLERANCE) { // az_max ~ az_min + 90deg
+        ;
+    } else if (fabs(az_max - az_min - 270.0) < AZIMUTH_TOLERANCE) { // az_max ~ az_min + 270deg
+        // x channel has larger azimuth
+        int id_tmp = source_id_x;
+        source_id_x = source_id_y;
+        source_id_y = id_tmp;
+        azimuth_y = az_max;
+    } else {
+        // not orthogonal
+        deData->polarization.status = POL_NA;
+        if (DEBUG) printf("DEBUG: td_doPolarizationAnalysis: return not orthogonal\n");
+        return (0);
+    }
+
+    // check if any required data not available
+    if (waveform_export_miniseed_list[source_id] == NULL
+            || waveform_export_miniseed_list[chan_params->channel_set[0]] == NULL
+            || waveform_export_miniseed_list[chan_params->channel_set[1]] == NULL) {
+        deData->polarization.status = POL_NA;
+        if (DEBUG) printf("DEBUG: td_doPolarizationAnalysis: return 5\n");
+        return (0);
+    }
+
+    double *data_z = NULL;
+    double *data_x = NULL;
+    double *data_y = NULL;
+
+    // get gain corrections
+    // if all zxy gains not available, use 1.0 as approximation (assumes gains are nearly the same for each channel)
+    double gain_z = 1.0;
+    double gain_x = 1.0;
+    double gain_y = 1.0;
+    if (chan_resp[source_id].have_gain && chan_resp[source_id_x].have_gain && chan_resp[source_id_y].have_gain) {
+        // have all gains, use them
+        gain_z = chan_resp[source_id].gain;
+        gain_x = chan_resp[source_id_x].gain;
+        gain_y = chan_resp[source_id_y].gain;
+    }
+
+    // assemble P window data for 3-comp channel set
+    double pick_time = (double) deData->t_time_t + deData->t_decsec;
+    hptime_t start_time = pick_time * (double) HPTMODULUS;
+    hptime_t end_time = (pick_time + polarization_window_start_delay_after_P + polarization_window_length_max + 2.0 * chan_params->deltaTime) * (double) HPTMODULUS;
+    hptime_t start_time_return;
+    hptime_t end_time_return;
+    int num_samples_return;
+    int pick_index = 0;
+    int z_complete = 0;
+    int x_complete = 0;
+    int y_complete = 0;
+    //int verbose = 99; // DEBUG
+    int verbose = 0; // DEBUG
+    // Z, vertical component
+    data_z = mslist_getDataWindowAsDouble(start_time, end_time, waveform_export_miniseed_list[source_id], num_waveform_export_miniseed_list[source_id],
+            verbose, &start_time_return, &end_time_return, &num_samples_return);
+    if (end_time_return >= end_time) {
+        z_complete = 1;
+    }
+    // remove offset given by amp at pick
+    double pick_amp = data_z[pick_index];
+    for (int n = 0; n < num_samples_return; n++) {
+        data_z[n] = (data_z[n] - pick_amp) / gain_z;
+    }
+    int num_samples_max = num_samples_return;
+    // X, (N like) component
+    data_x = mslist_getDataWindowAsDouble(start_time, end_time, waveform_export_miniseed_list[source_id_x], num_waveform_export_miniseed_list[source_id_x],
+            verbose, &start_time_return, &end_time_return, &num_samples_return);
+    if (end_time_return >= end_time) {
+        x_complete = 1;
+    }
+    // remove offset given by amp at pick
+    pick_amp = data_x[pick_index];
+    for (int n = 0; n < num_samples_return; n++) {
+        data_x[n] = (data_x[n] - pick_amp) / gain_x;
+    }
+    num_samples_max = min(num_samples_max, num_samples_return);
+    // Y, (E like) component
+    data_y = mslist_getDataWindowAsDouble(start_time, end_time, waveform_export_miniseed_list[source_id_y], num_waveform_export_miniseed_list[source_id_y],
+            verbose, &start_time_return, &end_time_return, &num_samples_return);
+    if (end_time_return >= end_time) {
+        y_complete = 1;
+    }
+    // remove offset given by amp at pick
+    pick_amp = data_y[pick_index];
+    for (int n = 0; n < num_samples_return; n++) {
+        data_y[n] = (data_y[n] - pick_amp) / gain_y;
+    }
+    num_samples_max = min(num_samples_max, num_samples_return);
+
+    // apply polarization analysis
+    // find max number of windows
+    double window_width = polarization_window_length_min;
+    int nvalues_max = 0;
+    while (window_width < polarization_window_length_max + chan_params->deltaTime) {
+        nvalues_max++;
+        window_width *= 2.0;
+    }
+    double *az_array = calloc(nvalues_max, sizeof (double));
+    double *wt_array = calloc(nvalues_max, sizeof (double));
+    // loop through windows
+    window_width = polarization_window_length_min;
+    double window_width_max = 0.0;
+    int istart = (int) polarization_window_start_delay_after_P / chan_params->deltaTime;
+    int nvalues_stat = 0;
+    //int verbose = DEBUG;
+    do {
+        int nsamp = 1 + (int) (0.5 + window_width / chan_params->deltaTime);
+        if (istart + nsamp < num_samples_max) {
+            PolarizationAnalysis *polar_analysis = polarization_covariance(data_z, data_x, data_y, istart, nsamp, polarity_z, azimuth_y, verbose);
+            if (DEBUG) printf(
+                    "DEBUG: td_doPolarizationAnalysis: %d %s_%s_%s_%s try=%d, dt=%f, w=%f, istart=%d, nsamp=%d: az %f, dip %f, lin %f, plan %f, wt %.2g, zxy %d%d%d %.2g,%.2g,%.2g",
+                    ndata + 1, deData->network, deData->station, deData->location, deData->channel,
+                    deData->polarization.n_analysis_tries, deData->deltaTime, window_width,
+                    istart, nsamp,
+                    polar_analysis->azimuth, polar_analysis->dip, polar_analysis->degree_of_linearity, polar_analysis->degree_of_planarity,
+                    polar_analysis->mean_vect_amp, z_complete, x_complete, y_complete, gain_z, gain_x, gain_y);
+            if (polar_analysis->degree_of_linearity >= POLARIZATION_MIN_DEG_LINEARITY_TO_USE) {
+                az_array[nvalues_stat] = polar_analysis->azimuth;
+                wt_array[nvalues_stat] = polar_analysis->mean_vect_amp;
+                nvalues_stat++;
+                if (DEBUG) printf(" ***");
+            }
+            free(polar_analysis);
+            if (DEBUG) printf("\n");
+            window_width_max = window_width;
+        }
+        window_width *= 2.0;
+    } while (window_width < polarization_window_length_max + chan_params->deltaTime);
+
+    if (nvalues_stat > 1) {
+
+        // unwrap stat values based on first value
+        double az_ref = az_array[0];
+        for (int i = 1; i < nvalues_stat; i++) {
+            if (az_array[i] - az_ref > 180.0) {
+                az_array[i] -= 360.0;
+            } else if (az_array[i] - az_ref < -180.0) {
+                az_array[i] += 360.0;
+            }
+        }
+
+        // get stats
+        double az_mean;
+        // unweighted
+        //double az_var = calcVarianceMean(az_array, nvalues_stat, &az_mean);
+        // weighted
+        double az_var = calcVarianceMeanWeighted(az_array, wt_array, nvalues_stat, &az_mean);
+        double az_std_dev = 0.0;
+        if (az_var > FLT_MIN) {
+            az_std_dev = sqrt(az_var);
+        }
+        free(az_array);
+        free(wt_array);
+        // constrain az to 0-360deg
+        if (az_mean >= 360.0) {
+            az_mean -= 360.0;
+        } else
+            if (az_mean < 0.0) {
+            az_mean += 360.0;
+        }
+        if (DEBUG) printf("DEBUG: td_doPolarizationAnalysis: %d %s_%s_%s_%s nd=%d az=%f +/- %f\n",
+                ndata + 1, deData->network, deData->station, deData->location, deData->channel, nvalues_stat, az_mean, az_std_dev);
+
+        // successfully set polarization
+        if (deData->polarization.n_analysis_tries > POLARIZATION_MAX_NUM_ANALYSIS_TRIES
+                || window_width_max >= polarization_window_length_max || (z_complete && x_complete && y_complete)) {
+            // have all needed data, polarization analysis done
+            deData->polarization.status = POL_DONE;
+        } else {
+            deData->polarization.status = POL_SET;
+        }
+        deData->polarization.nvalues = nvalues_stat;
+        deData->polarization.azimuth = az_mean;
+        deData->polarization.azimuth_unc = az_std_dev;
+
+    } else if (deData->polarization.n_analysis_tries > POLARIZATION_MAX_NUM_ANALYSIS_TRIES
+            || window_width_max >= polarization_window_length_max || (z_complete && x_complete && y_complete)) {
+        // have all needed data, polarization analysis not available
+        deData->polarization.status = POL_NA;
+    }
+
+    free(data_z);
+    free(data_x);
+    free(data_y);
+
+    //if (DEBUG) printf("DEBUG: td_doPolarizationAnalysis: return 99\n");
+
+    return (1);
 }
 

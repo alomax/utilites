@@ -140,9 +140,9 @@ typedef struct {
     int n_amp_max; // maximum index for amp data
     int n_amp; // current index for amp data
     double* vel; // ground velocity amplitude data
-    double peak_amp_vel;    // peak of amplitude in velocity
+    double peak_amp_vel; // peak of amplitude in velocity
     double* disp; // ground velocity amplitude data
-    double peak_amp_disp;    // peak of amplitude in displacement
+    double peak_amp_disp; // peak of amplitude in displacement
     int have_used_memory;
     int ioffset_pick;
 }
@@ -235,6 +235,42 @@ typedef struct {
 }
 WaveformExport;
 
+// polarization
+// 20160810 AJL - added
+#define POL_DONE 2   // set and done (maximum data window lengths were available and processed for all zyx)
+#define POL_SET 1   // set
+#define POL_NA 0    // not set
+#define POL_UNK -1  // not available or not applicable
+
+typedef struct {
+    int status; // flag indicating polarization state: POL_DONE (set and done), POL_SET (set), POL_UNK (not set), POL_NA (not available or not applicable)
+    int n_analysis_tries; // number of times polarization analysis (usually with increasing data windows) was done
+    int nvalues; // number of values used for polarization statistics
+    double azimuth; // mean azimuth (0 -> 360deg E of N)
+    double azimuth_unc; // 1 std-dev azimuth uncertainty
+    double azimuth_calc; // calculated/predicted ray take-off azimuth
+    double weight; // polarization weight (polarization analysis azimuth)
+    double dip; // mean dip (-90deg - down -> 90deg up, following Vidale, 1986)  // NOTE: Not currently set or used.
+    double dip_unc; // 1 std-dev dip uncertainty  // NOTE: Not currently set or used.
+    double dip_calc; // calculated/predicted ray dip  // NOTE: Not currently set or used.
+
+}
+Polarization;
+#define POLARIZATION_MIN_DEG_LINEARITY_TO_USE 0.8
+#define POLARIZATION_BASELINE_UNCERTAINTY 15.0  // baseline (minimum) uncertainty in degrees of a polarization reading (e.g. due to unmodelled 3D structure, ...)
+//#define POLARIZATION_BASELINE_UNCERTAINTY 30.0  // baseline (minimum) uncertainty in degrees of a polarization reading (e.g. due to unmodelled 3D structure, ...)
+#define POLARIZATION_MAX_NUM_ANALYSIS_TRIES 10  // maximum number of times to apply polarization analysis
+// polarization application thresholds
+#define POLARIZATION_MAX_DISTANCE_USE 90.0  // maximum GC arc in degrees to use a polarization reading
+#define POLARIZATION_DISTANCE_WEIGHT_DIST_MIN 10.0   // distance at which weight decreases with 1/dist, at closer distance weight = 1
+#define SIGNAL_TO_NOISE_RATIO_BRB_HP_MIN_POLARIZATION 10.0  // 20160812 AJL
+// 20160912 AJL  #define POLARIZATION_MAX_DISTANCE_USE 30.0  // maximum GC arc in degrees to use a polarization reading
+// 20160912 AJL  #define POLARIZATION_DISTANCE_WEIGHT_DIST_MIN 5.0   // distance at which weight decreases with 1/dist, at closer distance weight = 1
+// 20160912 AJL  #define SIGNAL_TO_NOISE_RATIO_BRB_HP_MIN_POLARIZATION 20.0  // 20160812 AJL
+// 20160911 AJL  #define POLARIZATION_MAX_DISTANCE_USE 90.0  // maximum GC arc in degrees to use a polarization reading
+// 20160911 AJL  #define POLARIZATION_DISTANCE_WEIGHT_DIST_MIN 10.0   // distance at which weight decreases with 1/dist, at closer distance weight = 1
+// 20160911 AJL  #define SIGNAL_TO_NOISE_RATIO_BRB_HP_MIN_POLARIZATION 6.0  // 20160812 AJL
+
 // data
 
 //typedef struct timedomainProcessingData* TimedomainProcessingDataPtr;
@@ -251,8 +287,10 @@ typedef struct timedomainProcessingData {
     double lat; // latitude -90/90 deg
     double lon; // latitude -180/180 deg
     double elev; // elevation (m)
+    double azimuth; // Azimuth of the sensor in degrees from north, clockwise
+    double dip; // Dip of the instrument in degrees, down from horizontal
     double station_quality_weight;
-    PickData* pickData; // inital pick
+    PickData* pickData; // initial pick
     int pick_stream; // pick stream, e.g. STREAM_HF or STREAM_RAW
     int use_for_location; // flags data to be used for location - allows picking of hf and raw streams without using picks from both streams for location
     int can_use_as_location_P; // flags data can be used as definitive location P for statistics, magnitudes, duration, etc.
@@ -315,8 +353,8 @@ typedef struct timedomainProcessingData {
     double brb_polarity_delay; // peak duration used for polarity measure
     // event association
     //int num_assoc;
-    int is_associated;  // flag indicating if this data is associated to an event (0 = NO; n>0 = YES, n is event index starting from 1)
-    int is_full_assoc_loc;  // flag indicating how this data was associated to an event:
+    int is_associated; // flag indicating if this data is associated to an event (0 = NO; n>0 = YES, n is event index starting from 1)
+    int is_full_assoc_loc; // flag indicating how this data was associated to an event:
     //          0 = with association only w/o re-location (location.c->octtreeGlobalAssociationLocation_full())
     //          1 = with full association location (location.c->octtreeGlobalAssociationLocation_reassociateOnly())
     //          -1 = not associated
@@ -333,12 +371,14 @@ typedef struct timedomainProcessingData {
     // derived values
     double ttime_P;
     double ttime_S;
-    double ttime_SminusP;  // 20151117 AJL - added so can check in timedomain_processing.c->td_process_timedomain_processing() that s/n window does not pass S time
+    double ttime_SminusP; // 20151117 AJL - added so can check in timedomain_processing.c->td_process_timedomain_processing() that s/n window does not pass S time
     WaveformExport* waveform_export;
     // amplitude attenuation
-    double amplitude_error_ratio;     // ratio between a_ref rms amplitude and that predicted for event (see location.c -> calcLinearRegressionPowerRelation)
+    double amplitude_error_ratio; // ratio between a_ref rms amplitude and that predicted for event (see location.c -> calcLinearRegressionPowerRelation)
     // station corrections  // 20150716 AJL - added to support output of used sta correction in pick csv file
     double sta_corr;
+    // polarization     // 20160805 AJL - added
+    Polarization polarization;
 }
 TimedomainProcessingData;
 
@@ -347,7 +387,7 @@ TimedomainProcessingData;
 
 TimedomainProcessingData* init_TimedomainProcessingData(double deltaTime, int flag_do_mwpd, int waveform_export_enable);
 TimedomainProcessingData* new_TimedomainProcessingData(char* sladdr, int n_int_tseries, int source_id, char* station, char* location, char* channel,
-        char* network, double deltaTime, double lat, double lon, double elev, double station_quality_weight, PickData* pickData, int pick_stream, int init_ellapsed_index_count,
+        char* network, double deltaTime, double lat, double lon, double elev, double azimuth, double dip, double station_quality_weight, PickData* pickData, int pick_stream, int init_ellapsed_index_count,
         int year, int month, int mday, int hour, int min, double dsec, int flag_do_mwpd, int waveform_export_enable);
 TimedomainProcessingData* copy_TimedomainProcessingData(TimedomainProcessingData* deData);
 void free_TimedomainProcessingData(TimedomainProcessingData* deData);
@@ -375,3 +415,4 @@ int is_associated_location_P(TimedomainProcessingData* deData);
 int is_associated_phase(TimedomainProcessingData* deData);
 
 char* pick_stream_name(TimedomainProcessingData* deData);
+

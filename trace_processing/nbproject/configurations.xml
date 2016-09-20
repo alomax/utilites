@@ -9,6 +9,11 @@
         <itemPath>../alomax_matrix/alomax_matrix.h</itemPath>
         <itemPath>../alomax_matrix/alomax_matrix_svd.c</itemPath>
         <itemPath>../alomax_matrix/alomax_matrix_svd.h</itemPath>
+        <itemPath>../alomax_matrix/eigv.c</itemPath>
+        <itemPath>../alomax_matrix/eigv.h</itemPath>
+        <itemPath>../alomax_matrix/polarization.c</itemPath>
+        <itemPath>../alomax_matrix/polarization.h</itemPath>
+        <itemPath>../alomax_matrix/test_real_symmetric_eigen.c</itemPath>
       </logicalFolder>
       <logicalFolder name="feregion" displayName="feregion" projectFiles="true">
         <itemPath>../feregion/fe_names.h</itemPath>
@@ -22,6 +27,14 @@
         <itemPath>../feregion/feregion.h</itemPath>
       </logicalFolder>
       <logicalFolder name="fmamp" displayName="fmamp" projectFiles="true">
+        <logicalFolder name="alomax_matrix"
+                       displayName="alomax_matrix"
+                       projectFiles="true">
+          <itemPath>../fmamp/alomax_matrix/alomax_matrix.c</itemPath>
+          <itemPath>../fmamp/alomax_matrix/alomax_matrix.h</itemPath>
+          <itemPath>../fmamp/alomax_matrix/alomax_matrix_svd.h</itemPath>
+          <itemPath>../fmamp/alomax_matrix/eigv.h</itemPath>
+        </logicalFolder>
         <logicalFolder name="geometry" displayName="geometry" projectFiles="true">
           <itemPath>../fmamp/geometry/geometry.h</itemPath>
         </logicalFolder>
@@ -139,6 +152,9 @@
       <df name="alomax_matrix">
         <in>alomax_matrix.c</in>
         <in>alomax_matrix_svd.c</in>
+        <in>eigv.c</in>
+        <in>polarization.c</in>
+        <in>test_real_symmetric_eigen.c</in>
       </df>
       <df name="applications">
         <in>app_lib.c</in>
@@ -289,11 +305,33 @@
         <cTool flags="0">
         </cTool>
       </item>
+      <item path="../alomax_matrix/eigv.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+        </cTool>
+      </item>
+      <item path="../alomax_matrix/polarization.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+        </cTool>
+      </item>
+      <item path="../alomax_matrix/test_real_symmetric_eigen.c"
+            ex="false"
+            tool="0"
+            flavor2="3">
+        <cTool flags="0">
+        </cTool>
+      </item>
       <item path="../feregion/fe_region_test.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
         </cTool>
       </item>
       <item path="../feregion/feregion.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+        </cTool>
+      </item>
+      <item path="../fmamp/alomax_matrix/alomax_matrix.c"
+            ex="false"
+            tool="0"
+            flavor2="3">
         <cTool flags="0">
         </cTool>
       </item>
@@ -445,10 +483,40 @@
       </item>
       <item path="alomax_matrix/alomax_matrix.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
+          <incDir>
+            <pElem>timedomain_processing</pElem>
+          </incDir>
         </cTool>
       </item>
       <item path="alomax_matrix/alomax_matrix_svd.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
+          <incDir>
+            <pElem>timedomain_processing</pElem>
+          </incDir>
+        </cTool>
+      </item>
+      <item path="alomax_matrix/eigv.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+          <incDir>
+            <pElem>applications</pElem>
+          </incDir>
+        </cTool>
+      </item>
+      <item path="alomax_matrix/polarization.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+          <incDir>
+            <pElem>timedomain_processing</pElem>
+          </incDir>
+        </cTool>
+      </item>
+      <item path="alomax_matrix/test_real_symmetric_eigen.c"
+            ex="false"
+            tool="0"
+            flavor2="2">
+        <cTool>
+          <incDir>
+            <pElem>timedomain_processing</pElem>
+          </incDir>
         </cTool>
       </item>
       <item path="applications/app_lib.c" ex="false" tool="0" flavor2="3">
@@ -471,11 +539,9 @@
         <cTool>
           <incDir>
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
-            <pElem>timedomain_processing</pElem>
           </incDir>
           <preprocessorList>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_GROUND_MOTION_DATA</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -620,9 +686,7 @@
       <folder path="0/response">
         <cTool>
           <preprocessorList>
-            <Elem>ALPHA_VERSION</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_GROUND_MOTION_DATA</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -632,6 +696,7 @@
         <cTool>
           <incDir>
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>applications</pElem>
           </incDir>
           <preprocessorList>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
@@ -672,6 +737,13 @@
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
+        </cTool>
+      </folder>
+      <folder path="soft/fmamp/alomax_matrix">
+        <cTool>
+          <incDir>
+            <pElem>../fmamp</pElem>
+          </incDir>
         </cTool>
       </folder>
       <folder path="soft/fmamp/ran1">
@@ -926,8 +998,10 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>ALPHA_VERSION</Elem>
             <Elem>USE_AMPLITUDE_ATTENUATION</Elem>
             <Elem>USE_EVENT_PERSISTENCE</Elem>
+            <Elem>USE_GROUND_MOTION_DATA</Elem>
             <Elem>USE_LOCATION_UPWEIGHT_HIGH_SN_PICKS</Elem>
             <Elem>USE_MAGNITUDE_AMP_ATTEN_CHECK</Elem>
             <Elem>USE_MB_CORRECTION</Elem>
@@ -942,8 +1016,10 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>ALPHA_VERSION</Elem>
             <Elem>USE_AMPLITUDE_ATTENUATION</Elem>
             <Elem>USE_EVENT_PERSISTENCE</Elem>
+            <Elem>USE_GROUND_MOTION_DATA</Elem>
             <Elem>USE_LOCATION_UPWEIGHT_HIGH_SN_PICKS</Elem>
             <Elem>USE_MAGNITUDE_AMP_ATTEN_CHECK</Elem>
             <Elem>USE_MB_CORRECTION</Elem>
@@ -962,16 +1038,10 @@
       </item>
       <item path="settings/settings.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
-          <incDir>
-            <pElem>timedomain_processing</pElem>
-          </incDir>
         </cTool>
       </item>
       <item path="settings/strmap.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
-          <incDir>
-            <pElem>applications</pElem>
-          </incDir>
         </cTool>
       </item>
       <item path="statistics/incbet.c" ex="false" tool="0" flavor2="2">

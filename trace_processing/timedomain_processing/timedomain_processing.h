@@ -17,10 +17,10 @@
 #ifdef ALPHA_VERSION
 #define EARLY_EST_MONITOR_VERSION "1.2.0xALPHA"   // use "N.N.NxDEV" for development version
 #else
-//#define EARLY_EST_MONITOR_VERSION "1.2.0xDEV"   // use "N.N.NxDEV" for development version
-#define EARLY_EST_MONITOR_VERSION "1.2.0"   // use "N.N.NxDEV" for development version
+#define EARLY_EST_MONITOR_VERSION "1.2.1xDEV"   // use "N.N.NxDEV" for development version
+//#define EARLY_EST_MONITOR_VERSION "1.2.0"   // use "N.N.NxDEV" for development version
 #endif
-#define EARLY_EST_MONITOR_VERSION_DATE "2016.08.02"
+#define EARLY_EST_MONITOR_VERSION_DATE "2016.09.16"
 #define EARLY_EST_MONITOR_BANNER_1 "comes with ABSOLUTELY NO WARRANTY."
 #define EARLY_EST_MONITOR_BANNER_2 "WARNING: DISCLAIMER: This is prototype software, it is not fully validated for use in continuous, real-time systems."
 #define EARLY_EST_MONITOR_BANNER_3 "                     This software produces automatic earthquake information that has not been reviewed by a seismologist."
@@ -83,6 +83,15 @@ EXTERN_TXT char sta_corr_filename[STANDARD_STRLEN];
 
 EXTERN_TXT  int use_station_corrections;
 
+// polarization parameters
+EXTERN_TXT int polarization_enable;
+#define POLARIZATION_START_DELAY_AFTER_P 1.0
+EXTERN_TXT double polarization_window_start_delay_after_P;   // seconds
+#define POLARIZATION_WINDOW__LENGTH_MAX 32.0
+EXTERN_TXT double polarization_window_length_max;   // seconds
+#define POLARIZATION_WINDOW__LENGTH_MIN 1.0
+EXTERN_TXT double polarization_window_length_min;   // seconds
+
 
 
 
@@ -96,10 +105,10 @@ EXTERN_TXT int num_hypocenters;
 
 EXTERN_TXT ChannelResponse* chan_resp;
 
-EXTERN_TXT StationParameters* stationParameters;
+EXTERN_TXT ChannelParameters* channelParameters;
 
-EXTERN_TXT StationParameters** sorted_sta_params_list;
-EXTERN_TXT int num_sorted_sta_params;
+EXTERN_TXT ChannelParameters** sorted_chan_params_list;
+EXTERN_TXT int num_sorted_chan_params;
 
 EXTERN_TXT MSRecord*** waveform_export_miniseed_list;
 EXTERN_TXT int* num_waveform_export_miniseed_list;
@@ -184,6 +193,5 @@ void td_process_free_timedomain_processing_data(int source_id);
 void td_getTimedomainProcessingDataList(TimedomainProcessingData*** pdata_list, int* pnum_de_data);
 char *time2sring(time_t time, char* str);
 double td_calculateDuration(T0Data* t0, double deltaTime, double smoothing_window);
-
-
+int td_doPolarizationAnalysis(TimedomainProcessingData* deData, int ndata);
 

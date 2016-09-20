@@ -459,8 +459,8 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
                         sl_log(0, 1, "Warning: conflicting sample rates: %f in ignored %s vs. %f in active %s: this should not happen!\n",
                                 sl_msr_dnomsamprate(sl_msr), srcname, source_samplerate_list[isource], sourcename_list[isource]);
                         //duplicate = 4;
-                        stationParameters[isource].error = stationParameters[isource].error | ERROR_DIFFERENT_SAMPLE_RATES;
-                        stationParameters[isource].count_conflicting_dt++;
+                        channelParameters[isource].error = channelParameters[isource].error | ERROR_DIFFERENT_SAMPLE_RATES;
+                        channelParameters[isource].count_conflicting_dt++;
                         sl_msr_free(&sl_msr);
                         sl_msr = NULL;
                         return;
@@ -528,7 +528,7 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
                             // make active source name in sourcename_list invalid
                             strcpy(sourcename_list[source_id], "XXX");
                             // flag source as inactive_duplicate
-                            stationParameters[source_id].inactive_duplicate = 1;
+                            channelParameters[source_id].inactive_duplicate = 1;
                             // ensures that new source is created, old active memory will remain until clean-up
                             source_id = num_sources_total;
                         } else {
@@ -608,8 +608,8 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
             sl_msr_free(&sl_msr);
             sl_msr = NULL;
             // flag as active, update latency (normally done in timedomain_processing.c->td_process_timedomain_processing())
-            stationParameters[source_id].staActiveInReportInterval = 1;
-            stationParameters[source_id].data_latency = data_latency;
+            channelParameters[source_id].staActiveInReportInterval = 1;
+            channelParameters[source_id].data_latency = data_latency;
             return;
         }
         // check if data is in future -> bad data timing (?)
@@ -697,13 +697,13 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
         sl_msr_free(&sl_msr);
         sl_msr = NULL;
 
-        TimedomainProcessingData** data_list;
-        int num_de_data;
-        td_getTimedomainProcessingDataList(&data_list, &num_de_data);
+        TimedomainProcessingData** de_data_list;
+        int n_de_data;
+        td_getTimedomainProcessingDataList(&de_data_list, &n_de_data);
 
         // check for completed timedomain-processing data
-        for (int n = 0; n < num_de_data; n++) {
-            TimedomainProcessingData* deData = data_list[n];
+        for (int n = 0; n < n_de_data; n++) {
+            TimedomainProcessingData* deData = de_data_list[n];
             if (deData->flag_complete_t50 == 1) {
                 // flag that data has been initially processed here
                 deData->flag_complete_t50 = 2;
@@ -730,7 +730,7 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
                     strcpy(color, "       ");
                 if (verbose)
                     printf("Info: pick %d/%d, %s, elapsed %d, %.4d%.2d%.2d-%.2d:%.2d:%.4f, t50 %.2f, a_ref %.2f, t50/a_ref %.2f, S/N %.2f  %s",
-                        n + 1, num_de_data, sourcename_list[deData->source_id], deData->virtual_pick_index,
+                        n + 1, n_de_data, sourcename_list[deData->source_id], deData->virtual_pick_index,
                         deData->year, deData->month, deData->mday, deData->hour, deData->min, deData->dsec, deData->t50, deData->a_ref, deLevel, deData->a_ref / deData->sn_pick, color);
                 if (deData->flag_clipped)
                     printf(" CLIPPED");
@@ -751,7 +751,7 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
                 // display results
                 if (verbose > 1) {
                     printf("Info: Mwp: %d/%d, %s, elapsed %d, %.4d%.2d%.2d-%.2d:%.2d:%.4f, aP %.2f, Mwp_int %.2e, Mwp_int_int %.2e, Pk1 %.2e, T1 %.2f",
-                            n + 1, num_de_data, sourcename_list[deData->source_id], deData->virtual_pick_index,
+                            n + 1, n_de_data, sourcename_list[deData->source_id], deData->virtual_pick_index,
                             deData->year, deData->month, deData->mday, deData->hour, deData->min, deData->dsec,
                             deData->mwp->amp_at_pick, deData->mwp->int_sum, deData->mwp->int_int_sum_mwp_peak,
                             deData->mwp->peak[deData->mwp->index_mag], deData->mwp->peak_dur[deData->mwp->index_mag]
@@ -1173,14 +1173,15 @@ static int parameter_proc(int argcount, char **argvec) {
     for (nslconn = 0; nslconn < num_slconn; nslconn++) {
 
         // Load the stream list from a file if specified
-        if (streamfile[nslconn][0] != '\0')
+        if (streamfile[nslconn][0] != '\0') {
             sl_read_streamlist(slconn[nslconn], streamfile[nslconn], selectors[nslconn]);
+        }
 
         // Parse the 'multiselect' string following '-S'
-        if (multiselect[0] != '\0') {
+        if (multiselect[nslconn][0] != '\0') {
             if (sl_parse_streamlist(slconn[nslconn], multiselect[nslconn], selectors[nslconn]) == -1)
                 return -1;
-        } else if (streamfile[0] == '\0') { // No 'streams' array, assuming uni-station mode
+        } else if (streamfile[nslconn][0] == '\0') { // No 'streams' array, assuming uni-station mode
             sl_setuniparams(slconn[nslconn], selectors[nslconn], -1, 0);
         }
 

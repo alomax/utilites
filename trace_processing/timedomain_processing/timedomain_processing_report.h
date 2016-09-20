@@ -19,7 +19,6 @@
 // 20150913 AJL - added to support persistence of event hypocenter information for location statistics
 #define EE_TEMP_DIR "./ee_tmp"
 
-// AJL_TEST
 // check for event persistence - keep previous location results for events with insufficient possible new defining picks
 EXTERN_TXT int use_event_persistence;   // set to 1 if event_persistence_min_num_defining_phases > 0
 EXTERN_TXT int event_persistence_min_num_defining_phases;
@@ -28,6 +27,13 @@ EXTERN_TXT double event_persistence_frac_poss_assoc_cutoff;
 #define EVENT_PERSISTENCE_FRAC_POSS_ASSOC_CUTOFF_DEFAULT (1.0 / 20.0)
 EXTERN_TXT double event_persistence_tt_err_fact;
 #define EVENT_PERSISTENCE_TT_ERR_FACTOR_DEFAULT 2.0
+
+// existing event association location
+EXTERN_TXT int use_existing_assoc;   // set to 1 if existing_assoc_min_num_defining_phases > 0
+EXTERN_TXT double existing_assoc_delay_otime_min;
+#define EXISTING_EVENT_ASSOC_DELAY_OTIME_MIN_DEFAULT (60*12) // 12min
+EXTERN_TXT int existing_assoc_min_num_defining_phases;
+#define EXISTING_EVENT_ASSOC_MIN_NUM_DEFINING_PHASES 20
 
 // magnitude corrections
 EXTERN_TXT int use_mwp_distance_correction;

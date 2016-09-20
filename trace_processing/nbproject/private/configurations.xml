@@ -7,6 +7,11 @@
         <in>alomax_matrix.h</in>
         <in>alomax_matrix_svd.c</in>
         <in>alomax_matrix_svd.h</in>
+        <in>eigv.c</in>
+        <in>eigv.h</in>
+        <in>polarization.c</in>
+        <in>polarization.h</in>
+        <in>test_real_symmetric_eigen.c</in>
       </df>
       <df name="applications">
         <in>app_lib.c</in>
@@ -35,6 +40,11 @@
           <in>alomax_matrix.h</in>
           <in>alomax_matrix_svd.c</in>
           <in>alomax_matrix_svd.h</in>
+          <in>eigv.c</in>
+          <in>eigv.h</in>
+          <in>polarization.c</in>
+          <in>polarization.h</in>
+          <in>test_real_symmetric_eigen.c</in>
         </df>
         <df name="geometry">
           <in>geometry.h</in>

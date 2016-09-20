@@ -120,6 +120,12 @@ void init_HypocenterDesc(HypocenterDesc *phypo) {
     phypo->nstaHasBeenActive = -1;
     phypo->nstaIsActive = -1;
 
+    // location sequence number
+    phypo->loc_seq_num = -1;
+
+    // location sequence number
+    phypo->loc_type = LOC_TYPE_UNDEF;
+
 }
 
 /** allocate and initialize a HypocenterDesc object
@@ -164,6 +170,7 @@ int addHypocenterDescToHypoList(HypocenterDesc* pnew_hypo_desc, HypocenterDesc**
     // initialize unique_id unset
     long unique_id = pnew_hypo_desc->unique_id;
     long first_assoc_time = pnew_hypo_desc->first_assoc_time;
+    long loc_seq_num = pnew_hypo_desc->loc_seq_num;
     int has_valid_magnitude = pnew_hypo_desc->has_valid_magnitude;
     int alert_sent_count = pnew_hypo_desc->alert_sent_count;
     int alert_sent_time = pnew_hypo_desc->alert_sent_time;
@@ -184,6 +191,7 @@ int addHypocenterDescToHypoList(HypocenterDesc* pnew_hypo_desc, HypocenterDesc**
                 unique_id = phypo->unique_id;
                 // preserve persistent fields
                 first_assoc_time = phypo->first_assoc_time;
+                loc_seq_num = phypo->loc_seq_num;
                 has_valid_magnitude = phypo->has_valid_magnitude;
                 alert_sent_count = phypo->alert_sent_count;
                 alert_sent_time = phypo->alert_sent_time;
@@ -201,6 +209,7 @@ int addHypocenterDescToHypoList(HypocenterDesc* pnew_hypo_desc, HypocenterDesc**
     }
     pnew_hypo_desc->unique_id = unique_id;
     pnew_hypo_desc->first_assoc_time = first_assoc_time;
+    pnew_hypo_desc->loc_seq_num = loc_seq_num;
     pnew_hypo_desc->has_valid_magnitude = has_valid_magnitude;
     pnew_hypo_desc->alert_sent_count = alert_sent_count;
     pnew_hypo_desc->alert_sent_time = alert_sent_time;
@@ -315,16 +324,18 @@ void setHypocenterQuality(HypocenterDesc* phypo, double min_weight_sum_assoc, do
 
 }
 
-/** initialize deDataTmp
+/** initialize / clear deData association related fields
  */
-void init_deDataTmp(TimedomainProcessingData* deDataTmp) {
+void clear_deData_assoc(TimedomainProcessingData* deDataTmp) {
 
     deDataTmp->is_associated = 0;
     deDataTmp->epicentral_distance = -1.0;
     deDataTmp->epicentral_azimuth = -1.0;
     deDataTmp->residual = -999.0;
     deDataTmp->dist_weight = -1.0;
-    deDataTmp->station_quality_weight = -1.0;
+    deDataTmp->polarization.weight = -1.0;
+    deDataTmp->polarization.azimuth_calc = -1.0;
+    //deDataTmp->station_quality_weight = -1.0;
     deDataTmp->loc_weight = -1.0;
     strcpy(deDataTmp->phase, "X");
     deDataTmp->phase_id = -1;
@@ -503,14 +514,23 @@ void free_ValueDescList(ValueDesc*** pvalue_list, int* pnum_values) {
 
 }
 
+/** set deviation (range) of allowed origin time difference for comparing two event hypocenters
+ */
+#define OTIME_DEVIATION_MIN 1.0 // sec
+double setRefOtimeDeviation(HypocenterDesc* hypo1, HypocenterDesc* hypo2) {
 
+    double ref_ot_dev = hypo1->ot_std_dev + hypo2->ot_std_dev;
+    ref_ot_dev *= 4.0;
+    if (ref_ot_dev < OTIME_DEVIATION_MIN)
+        ref_ot_dev = OTIME_DEVIATION_MIN;
+
+    return(ref_ot_dev);
+
+}
 
 /** compare two HypocenterDesc's to determine if they refer to same event */
 //20110412 AJL
-
-#define OTIME_DEVIATION_MIN 1.0 // sec
 #define EPICENTER_DEVIATION_MIN 10.0 // km
-
 int isSameEvent(HypocenterDesc* hypo1, HypocenterDesc* hypo2) {
 
     // check unique_id
@@ -521,20 +541,17 @@ int isSameEvent(HypocenterDesc* hypo1, HypocenterDesc* hypo2) {
 
     // otime deviation
     double ot_dev = fabs(hypo1->otime - hypo2->otime);
-    double ref_ot_dev = hypo1->ot_std_dev + hypo2->ot_std_dev;
-    //printf("\nDEBUG: ot_dev %f  ref_ot_dev %f\n", ot_dev, ref_ot_dev);
-    ref_ot_dev *= 4.0;
-    if (ref_ot_dev < OTIME_DEVIATION_MIN)
-        ref_ot_dev = OTIME_DEVIATION_MIN;
+    double ref_ot_dev = setRefOtimeDeviation(hypo1, hypo2);
+    printf("DEBUG: ot_dev %f  ref_ot_dev %f\n", ot_dev, ref_ot_dev);
     // lat/lon deviation
     double dist_dev = GCDistance_local(hypo1->lat, hypo1->lon, hypo2->lat, hypo2->lon) * DEG2KM;
     double ref_epi_dev = hypo1->errh + hypo2->errh;
-    //printf("DEBUG: dist_dev %f  ref_epi_dev %f\n", dist_dev, ref_epi_dev);
+    printf("DEBUG: dist_dev %f  ref_epi_dev %f\n", dist_dev, ref_epi_dev);
     ref_epi_dev *= 4.0;
     if (ref_epi_dev < EPICENTER_DEVIATION_MIN)
         ref_epi_dev = EPICENTER_DEVIATION_MIN;
     // check for match within sum of allowable deviation ratios
-    //printf("DEBUG: ot_dev / ref_ot_dev %f  dist_dev / ref_epi_dev %f\n", ot_dev / ref_ot_dev, dist_dev / ref_epi_dev);
+    printf("DEBUG: ot_dev / ref_ot_dev %f  dist_dev / ref_epi_dev %f\n", ot_dev / ref_ot_dev, dist_dev / ref_epi_dev);
     if (
             // 20130308 AJL - change logic from sum to AND
             //ot_dev / ref_ot_dev + dist_dev / ref_epi_dev < 2.0
@@ -594,7 +611,7 @@ static int NumOtimeLimit = 0;
 /** otime limit class */
 
 void setOtimeLimit(OtimeLimit* otime_limit, int use_for_location, int data_id, int pick_stream, double az, double dist,
-        double dist_weight, double quality_weight, double total_weight,
+        double dist_weight, double polarization_weight, double polarization_azimuth_calc, double quality_weight, double total_weight,
         double time, double otime, int polarity, int phase_id, int index, double dist_range, double time_range_uncertainty, double depth, TimedomainProcessingData* deData,
         double sta_corr) {
 
@@ -604,6 +621,8 @@ void setOtimeLimit(OtimeLimit* otime_limit, int use_for_location, int data_id, i
     otime_limit->azimuth = az;
     otime_limit->dist = dist;
     otime_limit->dist_weight = dist_weight;
+    otime_limit->polarization_weight = polarization_weight;
+    otime_limit->polarization_azimuth_calc = polarization_azimuth_calc;
     otime_limit->quality_weight = quality_weight;
     otime_limit->total_weight = total_weight;
     otime_limit->time = time;
@@ -887,7 +906,7 @@ double getMeanDistanceMax(TimedomainProcessingData** pdata_list, int num_de_data
 #define MAX_NUM_LIMIT_CHECK_SAVE 1024 // should be much larger than min number of associated phases to give min_weight_sum_assoc
 static OtimeLimit* OtimeLimitCheckSaved[MAX_NUM_LIMIT_CHECK_SAVE];
 
-int checkWtSumUniqueStationsPhases(double min_weight_sum_assoc, TimedomainProcessingData** pdata_list, double *pweight_sum_assoc_unique) {
+int checkWtSumUniqueStationsPhases(double min_weight_sum_assoc, TimedomainProcessingData** pdata_list, double *pweight_sum_assoc_unique, int *pnassociated_P_work) {
 
     int num_saved = 0;
     double weight_sum_assoc = 0.0;
@@ -899,21 +918,33 @@ int checkWtSumUniqueStationsPhases(double min_weight_sum_assoc, TimedomainProces
                 && otimeLimit_assoc->assoc // if currently associated
                 && otimeLimit_assoc->count_in_loc
                 ) {
+            double time_dec_sec = (double) otimeLimit_assoc->deData->t_time_t + otimeLimit_assoc->deData->t_decsec;
             for (n = 0; n < num_saved; n++) {
                 otimeLimit_saved = OtimeLimitCheckSaved[n];
                 // check if new limit has same station and phase as saved weight
                 if (
                         otimeLimit_assoc->phase_id == otimeLimit_saved->phase_id
-                        && strcmp(pdata_list[otimeLimit_assoc->data_id]->station,
-                        pdata_list[otimeLimit_saved->data_id]->station) == 0
+                        && strcmp(pdata_list[otimeLimit_assoc->data_id]->station, pdata_list[otimeLimit_saved->data_id]->station) == 0
                         ) {
                     // check if new limit has higher weight than saved weight
-                    if (otimeLimit_assoc->total_weight > otimeLimit_saved->total_weight) {
-                        weight_sum_assoc -= otimeLimit_saved->total_weight;
+                    //if (otimeLimit_assoc->total_weight > otimeLimit_saved->total_weight) {
+                    // check if new limit is earlier than saved limit   // 20160816 AJL - changed check so that earliest assoc P used, not highest weight
+                    if (time_dec_sec < ((double) otimeLimit_saved->deData->t_time_t + otimeLimit_saved->deData->t_decsec)) {
                         weight_sum_assoc += otimeLimit_assoc->total_weight;
+                        weight_sum_assoc -= otimeLimit_saved->total_weight;
+                        otimeLimit_saved->total_weight = 0.0; // 20160814 AJL - added to flag duplicate sta/phases not used in weight_sum
+                        otimeLimit_saved->assoc = 0; // 20160814 AJL - Bug fix, added
+                        otimeLimit_saved->count_in_loc = 0; // 20160814 AJL - Bug fix, added
+                        (*pnassociated_P_work)--; // 20160814 AJL - Bug fix, added
                         //if (weight_sum_assoc >= min_weight_sum_assoc)
                         //    return (1);
                         OtimeLimitCheckSaved[n] = otimeLimit_assoc; // replace
+                    } else { // has lower weight
+                        weight_sum_assoc -= otimeLimit_assoc->total_weight;
+                        otimeLimit_assoc->total_weight = 0.0; // 20160814 AJL - added to flag duplicate sta/phases not used in weight_sum
+                        otimeLimit_assoc->assoc = 0; // 20160814 AJL - Bug fix, added
+                        otimeLimit_assoc->count_in_loc = 0; // 20160814 AJL - Bug fix, added
+                        (*pnassociated_P_work)--; // 20160814 AJL - Bug fix, added
                     }
                     break; // found
                 }
@@ -992,7 +1023,7 @@ static double stationDistances_lon = -999.0;
 
 // 20111004 AJL - Modified to handle ValueDesc list
 
-int setStationDistances(double lat, double lon, StationParameters* stationParameters) {
+int setStationDistances(double lat, double lon, ChannelParameters* channelParameters) {
 
     if (lat == stationDistances_lat && lon == stationDistances_lon)
         return (num_sta_dist);
@@ -1001,8 +1032,8 @@ int setStationDistances(double lat, double lon, StationParameters* stationParame
 
     int nsta;
     for (nsta = 0; nsta < num_sources_total; nsta++) {
-        if (stationParameters[nsta].have_coords && !stationParameters[nsta].inactive_duplicate) {
-            StationParameters* coords = stationParameters + nsta;
+        if (channelParameters[nsta].have_coords && !channelParameters[nsta].inactive_duplicate) {
+            ChannelParameters* coords = channelParameters + nsta;
             StationDistances[nsta].value = GCDistance_local(lat, lon, coords->lat, coords->lon);
             addValueDescToValueList(StationDistances + nsta, &sta_dist_list, &num_sta_dist);
         } else {
@@ -1024,9 +1055,9 @@ int setStationDistances(double lat, double lon, StationParameters* stationParame
 
 // 20111004 AJL - Modified to handle ValueDesc list
 
-int countStationsAvailable(double lat, double lon, double distance_max, StationParameters* stationParameters) {
+int countStationsAvailable(double lat, double lon, double distance_max, ChannelParameters* channelParameters) {
 
-    setStationDistances(lat, lon, stationParameters);
+    setStationDistances(lat, lon, channelParameters);
 
     int icount = 0;
 
@@ -1058,7 +1089,7 @@ int countStationsAvailable(double lat, double lon, double distance_max, StationP
 // 20111004 AJL - Modified to handle ValueDesc list
 
 int countAllStationsAvailable(int mode, double limit_distance, ValueDesc** distances, int ndistances, double lat, double lon,
-        StationParameters* stationParameters, double *pdistance_used, int *pNumWithinLimit) {
+        ChannelParameters* channelParameters, double *pdistance_used, int *pNumWithinLimit) {
 
 
     // find required distance (far, close or mean)
@@ -1078,7 +1109,7 @@ int countAllStationsAvailable(int mode, double limit_distance, ValueDesc** dista
         }
         *pdistance_used = distance_max_secondary;
         *pNumWithinLimit = nWithinLimit;
-        return (countStationsAvailable(lat, lon, distance_max_secondary, stationParameters)); // count number at <= distance of second to farthest station associated
+        return (countStationsAvailable(lat, lon, distance_max_secondary, channelParameters)); // count number at <= distance of second to farthest station associated
     } else if (mode == COUNT_CLOSE) { // count number associated at <= limit distance
         nWithinLimit = 0;
         if (ndistances > 1) {
@@ -1097,7 +1128,7 @@ int countAllStationsAvailable(int mode, double limit_distance, ValueDesc** dista
             distance_min = distances[0]->value;
         *pdistance_used = distance_min;
         *pNumWithinLimit = nWithinLimit;
-        return (countStationsAvailable(lat, lon, distance_min, stationParameters)); // count number at <= distance of closest station associated
+        return (countStationsAvailable(lat, lon, distance_min, channelParameters)); // count number at <= distance of closest station associated
     } else if (mode == COUNT_ARITHMETIC_MEAN) {
         double distance_arithmetic_mean = limit_distance;
         double distance_sum = 0.0;
@@ -1118,7 +1149,7 @@ int countAllStationsAvailable(int mode, double limit_distance, ValueDesc** dista
         }
         *pNumWithinLimit = nWithinLimit;
         *pdistance_used = distance_arithmetic_mean;
-        return (countStationsAvailable(lat, lon, distance_arithmetic_mean, stationParameters));
+        return (countStationsAvailable(lat, lon, distance_arithmetic_mean, channelParameters));
     }
 
     return (-999);
@@ -1399,7 +1430,7 @@ int octtree_GenEventScatter(ResultTreeNode* resultTreeRoot, int value_type, int 
     if (num_scatter < 1)
         return (0);
 
-    printf("Info: Generating event scatter sample for %s...", sample_name);
+    printf("Info: Generating event scatter sample for %s, levels: %d-%d...", sample_name, level_min, level_max);
 
 
     /* generate scatter points at uniformly-randomly chosen locations in each leaf node */
@@ -1497,8 +1528,6 @@ int isPhaseTypeToUse(TimedomainProcessingData* deData, int phase_id, int numPhas
 
 ResultTreeNode* ppResultTreeRoot_LAST = NULL;
 
-#define OCTTREE_UNDEF_VALUE -VERY_SMALL_DOUBLE
-#define OCTTREE_TYPE 1
 #define ICOUNT_INCREMENT 99999999
 #define PROB_UNSET -FLT_MAX
 
@@ -1506,10 +1535,11 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
         TimedomainProcessingData** pdata_list, int num_de_data,
         int num_pass, double min_weight_sum_assoc, double critical_node_size_km,
         double gap_primary_critical, double gap_secondary_critical,
-        int last_reassociate, double last_reassociate_otime, double last_reassociate_otime_sigma, int try_assoc_remaining_definitive, int no_reassociate, double distance_weight_dist_min_current,
+        int last_reassociate, double last_reassociate_otime, double last_reassociate_otime_sigma,
+        int try_assoc_remaining_definitive, int no_reassociate, double distance_weight_dist_min_current,
         int numPhaseTypesUse, int phaseTypesUse[], char channelNamesUse[][128], double timeDelayUse[MAX_NUM_TTIME_PHASES][2],
         double reference_phase_ttime_error,
-        StationParameters* stationParameters,
+        ChannelParameters* channelParameters,
         GlobalBestValues *pglobalBestValues,
         /*double *pnode_prob, double *pnode_ot_variance,
         double *pglobal_best_ot_mean, double *pglobal_best_ot_variance, double *pglobal_best_lat, double *pglobal_best_lon, double *pglobal_best_depth,
@@ -1524,7 +1554,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
         time_t time_min, time_t time_max
         ) {
 
-    //printf("0 ============> stationParameters addr %ld\n", (long) stationParameters);
+    //printf("0 ============> channelParameters addr %ld\n", (long) channelParameters);
 
     double max_node_prob = -1.0;
     double max_node_ot_variance = -1.0;
@@ -1546,7 +1576,6 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
     double dist_test_min, dist_test_max;
     double tt_min, tt_max;
     double arrival_time;
-    double dist_weight;
 
     double gcd, gcaz;
     double otime_min, otime_max, otime;
@@ -1655,12 +1684,18 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
             gcd = GCDistanceAzimuth_local(lat, lon, deData->lat, deData->lon, &gcaz);
         }
 
+        // set back azimuth invalid/unset (used for polarization analysis)
+        double gc_back_az = DBL_INVALID;
+        // set polarization distance weight invalid/unset (used for polarization analysis)
+        double polarization_dist_wt = DBL_INVALID;
+
         // set min and max dist
         dist_test_min = gcd - grid_dist_test;
         dist_test_max = gcd + grid_dist_test;
         if (dist_test_min < 0.0) // station inside or near lat/lon cell
             dist_test_min = 0.0;
         // set distance weight
+        double dist_weight;
 #define TRUE_GEOMETRICAL_DECAY_DIST_WIEGHT 1 // AJL 20160405
 #ifdef TRUE_GEOMETRICAL_DECAY_DIST_WIEGHT
         // AJL 20160405
@@ -1700,17 +1735,19 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
         #endif
          */
 
+        // set s/n ratio BRB for later use
+        //double snr_brb = deData->a_ref < 0.0 || deData->sn_pick < FLT_MIN ? 0.0 : deData->a_ref / deData->sn_pick;
+        double snr_brb = deData->sn_brb_signal < 0.0 || deData->sn_brb_pick < FLT_MIN ? 0.0 : deData->sn_brb_signal / deData->sn_brb_pick;
+
         // station quality weight
-        double quality_weight = deData->station_quality_weight;
-        double total_weight_station = dist_weight * quality_weight;
+        double station_quality_weight = deData->station_quality_weight;
+        double total_weight_station = dist_weight * station_quality_weight;
         // enable up-weighting of picks with high S/N for location   // 20141203 AJL - added
         if (upweight_picks_sn_cutoff > 0.0
                 && dist_test_min <= upweight_picks_dist_max // 20151130 AJL - added
                 ) {
-            //double snr = deData->a_ref < 0.0 || deData->sn_pick < FLT_MIN ? 0.0 : deData->a_ref / deData->sn_pick;
-            double snr = deData->sn_brb_signal < 0.0 || deData->sn_brb_pick < FLT_MIN ? 0.0 : deData->sn_brb_signal / deData->sn_brb_pick;
-            if (snr > upweight_picks_sn_cutoff) {
-                double upweight = 1.0 + (snr - upweight_picks_sn_cutoff) / upweight_picks_sn_cutoff;
+            if (snr_brb > upweight_picks_sn_cutoff) {
+                double upweight = 1.0 + (snr_brb - upweight_picks_sn_cutoff) / upweight_picks_sn_cutoff;
                 if (dist_test_min > upweight_picks_dist_full) { // 20151130 AJL - added
                     upweight *= 1.0 - (dist_test_min - upweight_picks_dist_full) / (upweight_picks_dist_max - upweight_picks_dist_full);
                 }
@@ -1829,7 +1866,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
             // This increase association likelihood and avoid false events due to numerous unassociated picks for large events.
             // 20160114 AJL if (try_assoc_remaining_definitive && !deData->is_associated && count_in_location(phase_id, 999.9, 1)) {
             if (try_assoc_remaining_definitive && !deData->is_associated && count_in_location(phase_id, 999.9, deData->use_for_location)) {
-                //printf("DEBUG %s_%s phase_id %d  deData->use_for_location %d  ttime_error/total_weight_phase %f/%f->", stationParameters[deData->source_id].network, stationParameters[deData->source_id].station, phase_id, deData->use_for_location, ttime_error, total_weight_phase);
+                //printf("DEBUG %s_%s phase_id %d  deData->use_for_location %d  ttime_error/total_weight_phase %f/%f->", channelParameters[deData->source_id].network, channelParameters[deData->source_id].station, phase_id, deData->use_for_location, ttime_error, total_weight_phase);
                 ttime_error *= 3.0;
                 total_weight_phase = 0.0; // make sure this definitive phase cannot affect the association for this event
                 //printf("%f/%f\n", ttime_error, total_weight_phase);
@@ -1858,7 +1895,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
             // station correction
             // 20160601 AJL - changed from P only to any phase
             double sta_corr = 0.0;
-            StaCorrections* psta_corr = &(stationParameters[deData->source_id].sta_corr[phase_id]);
+            StaCorrections* psta_corr = &(channelParameters[deData->source_id].sta_corr[phase_id]);
             if (psta_corr->valid) { // based on test: psta_corr->num >= sta_corr_min_num_to_use
                 double corr = 0.0;
                 // 20150508 AJL added - polynomial only fit and used between dist max and min
@@ -1870,7 +1907,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                         corr += dist_pow * psta_corr->poly[i];
                     }
                     /*printf("DEBUG: StaCorrections: %s_%s  %s  corr: %f  gcd: %f  coef: %g %g %g %g\n",
-                            stationParameters[deData->source_id].network, stationParameters[deData->source_id].station,
+                            channelParameters[deData->source_id].network, channelParameters[deData->source_id].station,
                             phase_name_for_id(phase_id), corr, gcd, psta_corr->poly[0], psta_corr->poly[1], psta_corr->poly[2], psta_corr->poly[3]);*/
                 }
                 arrival_time -= corr;
@@ -1892,7 +1929,8 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
             // prevents associating to another event at same hypocenter location but with different otime
             // 20140722 AJL - added to support event persistence
             // 20140722 AJL - TODO: may allow small change in otime during association, is this OK???
-            if (last_reassociate && last_reassociate_otime > 0.0) {
+            // 20160919 AJL if (last_reassociate && last_reassociate_otime > 0.0) {
+            if (last_reassociate_otime > 0.0) {
                 if (last_reassociate_otime - last_reassociate_otime_sigma - reftime > otime_max
                         || last_reassociate_otime + last_reassociate_otime_sigma - reftime < otime_min)
                     continue;
@@ -1926,14 +1964,68 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
             //printf("DEBUG: total_weight_phase=%g total_weight=%g reference_phase_ttime_error=%g time_errors=%g\n", total_weight_phase, total_weight, reference_phase_ttime_error, time_errors);
             //#endif
 
+            // adjust weight for polarization
+            // 20160810 AJL - added
+            double polarization_weight = -1.0;
+            double polarization_azimuth_calc = -1.0;
+            if (polarization_enable
+                    && (deData->polarization.status == POL_DONE || deData->polarization.status == POL_SET)
+                    && is_direct_P(phase_id)) {
+                double az_pol = deData->polarization.azimuth;
+                // get back azimuth station to epicenter
+                // NOTE: assumes 1D model!  TODO: for 3D model must set and use deData->take_off_angle_az before this block
+                if (gc_back_az == DBL_INVALID) {
+                    GCDistanceAzimuth_local(deData->lat, deData->lon, lat, lon, &gc_back_az);
+                }
+                polarization_azimuth_calc = gc_back_az + 180.0; // polarization analysis uses azimuth at station away from epicenter
+                if (polarization_azimuth_calc >= 360.0) {
+                    polarization_azimuth_calc -= 360.0;
+                }
+                // unwrap GC arc azimuth relative to polarization azimuth
+                if (az_pol - polarization_azimuth_calc > 180.0) {
+                    polarization_azimuth_calc += 360.0;
+                } else if (az_pol - polarization_azimuth_calc < -180.0) {
+                    polarization_azimuth_calc -= 360.0;
+                }
+                // set polarization weight only if will be used for location
+                if (total_weight_phase > FLT_MIN && snr_brb >= SIGNAL_TO_NOISE_RATIO_BRB_HP_MIN_POLARIZATION
+                        && gcd <= POLARIZATION_MAX_DISTANCE_USE) {
+
+                    // polarization weight based of prob of GC arc azimuth from cell to station +/-base_unc, given polarization azimuth Normal dist
+                    double az_unc = deData->polarization.azimuth_unc;
+                    // cumulative approach: weight is obs polarization Normal dist pdf: N(az_pol, az_unc) integrated in interval polarization_azimuth_calc-/+base_unc
+                    polarization_weight = cumulDistNormal(polarization_azimuth_calc + POLARIZATION_BASELINE_UNCERTAINTY, az_pol, az_unc)
+                            - cumulDistNormal(polarization_azimuth_calc - POLARIZATION_BASELINE_UNCERTAINTY, az_pol, az_unc);
+                    // relative pdf approach (wt 0->1)
+                    //polarization_weight = realtiveDensityNormal(az_pol - polarization_azimuth_calc, 0.0, az_unc + POLARIZATION_BASELINE_UNCERTAINTY);
+                    // distance weight accounts for widening of azimuthal arc with distance
+                    if (polarization_dist_wt == DBL_INVALID) {
+                        polarization_dist_wt = 1.0;
+                        if (gcd > POLARIZATION_DISTANCE_WEIGHT_DIST_MIN) {
+                            polarization_dist_wt = POLARIZATION_DISTANCE_WEIGHT_DIST_MIN / gcd;
+                        }
+                    }
+                    polarization_weight *= polarization_dist_wt;
+                    total_weight_phase = total_weight_phase + polarization_weight * station_quality_weight;
+                    // /* TEST! DO NOT USE! */ total_weight_phase = 2.0 * polarization_weight;
+                    /*if (last_reassociate && try_assoc_remaining_definitive)
+                        printf("DEBUG: %d %s_%s_%s_%s  %s  gcd: %f  az: %f  az_pol: %f  polarization_azimuth_calc: %f  az_unc: %lf,%lf  az_diff: %f  wt_fact: %f  wt: %f->%f\n",
+                            ndata + 1, channelParameters[deData->source_id].network, channelParameters[deData->source_id].station,
+                            channelParameters[deData->source_id].location, channelParameters[deData->source_id].channel,
+                            phase_name_for_id(phase_id), gcd, gcaz, az_pol, polarization_azimuth_calc,
+                            az_unc, POLARIZATION_BASELINE_UNCERTAINTY, az_pol - polarization_azimuth_calc,
+                            polarization_weight, total_weight_phase - polarization_weight, total_weight_phase);*/
+                }
+            }
+
             // set OtimeLimits
             OtimeLimit *otimeLimitMin = OtimeLimitPool + NumOtimeLimit;
-            setOtimeLimit(otimeLimitMin, deData->use_for_location, ndata, deData->pick_stream, gcaz, gcd, dist_weight,
-                    quality_weight, total_weight_phase, otime_min, otime, 1, phase_id, NumOtimeLimit, dist_range, time_range_uncertainty, depth, deData, sta_corr);
+            setOtimeLimit(otimeLimitMin, deData->use_for_location, ndata, deData->pick_stream, gcaz, gcd, dist_weight, polarization_weight, polarization_azimuth_calc,
+                    station_quality_weight, total_weight_phase, otime_min, otime, 1, phase_id, NumOtimeLimit, dist_range, time_range_uncertainty, depth, deData, sta_corr);
             addOtimeLimitToList(otimeLimitMin, &OtimeLimitList, &NumOtimeLimit); // increments NumOtimeLimit
             OtimeLimit *otimeLimitMax = OtimeLimitPool + NumOtimeLimit;
-            setOtimeLimit(otimeLimitMax, deData->use_for_location, ndata, deData->pick_stream, gcaz, gcd, dist_weight,
-                    quality_weight, total_weight_phase, otime_max, otime, -1, phase_id, NumOtimeLimit, dist_range, time_range_uncertainty, depth, deData, sta_corr);
+            setOtimeLimit(otimeLimitMax, deData->use_for_location, ndata, deData->pick_stream, gcaz, gcd, dist_weight, polarization_weight, polarization_azimuth_calc,
+                    station_quality_weight, total_weight_phase, otime_max, otime, -1, phase_id, NumOtimeLimit, dist_range, time_range_uncertainty, depth, deData, sta_corr);
             addOtimeLimitToList(otimeLimitMax, &OtimeLimitList, &NumOtimeLimit); // increments NumOtimeLimit
             otimeLimitMin->pair = otimeLimitMax;
             otimeLimitMax->pair = otimeLimitMin;
@@ -2090,6 +2182,9 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
             //    break;
         }
 
+        //#define DEBUG_PROB 1
+#define DEBUG_ALL 1
+
         // check quality of stack sum
         //if (nassociated_P_work > 1 && weight_sum > 1.0) {
         double adjusted_weight_sum = weight_sum - 1.0; // do not count first otime in stack for location probability
@@ -2106,6 +2201,19 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                 || adjusted_weight_sum < best_prob
                 )
             continue; // cannot be better than current best_prob
+#endif
+#ifdef DEBUG_PROB
+        if (DEBUG_ALL || last_reassociate) {
+            printf("DEBUG_PROB: ======================================\n");
+            printf("DEBUG_PROB: weight_sum [%f], min_weight_sum_assoc [%f]\n",
+                    weight_sum, min_weight_sum_assoc);
+        }
+#endif
+#ifdef DEBUG_PROB
+        if (DEBUG_ALL || last_reassociate) {
+            printf("DEBUG_PROB: adjusted_weight_sum [%f] = weight_sum - 1.0 [%f]\n",
+                    adjusted_weight_sum, weight_sum - 1.0);
+        }
 #endif
 
         // calculate otime variance factor
@@ -2132,6 +2240,13 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
 #ifdef PURE_OCTREE
         // prob is function of ot variance, assoc weight and cell size; gives higher weight to small cells
         double prob = ot_variance_weight * adjusted_weight_sum / effective_cell_size;
+#ifdef DEBUG_PROB
+        if (DEBUG_ALL || last_reassociate) {
+            printf("DEBUG_PROB: prob [%f] = ot_variance_weight [%f] * adjusted_weight_sum / effective_cell_size [%f]\n",
+                    prob, ot_variance_weight, adjusted_weight_sum / effective_cell_size);
+        }
+#endif
+
         //VOLUMEdouble prob = ot_variance_weight * adjusted_weight_sum;
 #else
         double prob = ot_variance_weight * adjusted_weight_sum;
@@ -2145,6 +2260,12 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
         // include depth weight
         // 20160511 AJL - added to help avoid deep locations where not possible or likely
         prob *= depth_weight;
+#ifdef DEBUG_PROB
+        if (DEBUG_ALL || last_reassociate) {
+            printf("DEBUG_PROB: prob [%f] *= depth_weight [%f]\n",
+                    prob, depth_weight);
+        }
+#endif
 
         // check if best prob for this node
         //if (prob >= best_prob && prob > min_prob_assoc) {    // 20101227
@@ -2207,7 +2328,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
         // check if total weight of unique associated stations/phases is greater than min_weight_sum_assoc
         // 20111221 AJL - added
         double weight_sum_assoc_unique;
-        if (!checkWtSumUniqueStationsPhases(min_weight_sum_assoc, pdata_list, &weight_sum_assoc_unique))
+        if (!checkWtSumUniqueStationsPhases(min_weight_sum_assoc, pdata_list, &weight_sum_assoc_unique, &nassociated_P_work))
             continue;
 
 
@@ -2290,6 +2411,12 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
             }*/
             //
             prob *= amp_att_weight; // 20101230 AJL
+#ifdef DEBUG_PROB
+            if (DEBUG_ALL || last_reassociate) {
+                printf("DEBUG_PROB: prob [%f] *= amp_att_weight [%f]\n",
+                        prob, amp_att_weight);
+            }
+#endif
             if (prob < best_prob) {
                 //if (last_reassociate)
                 //    printf("DEBUG:  REJECTED AMP ATTEN!\n");
@@ -2356,7 +2483,19 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                     double gap_secondary_weight = gap_secondary > GAP_BASE ? (gap_secondary_critical - gap_secondary) / (gap_secondary_critical - GAP_BASE) : 1.0;
                     gap_weight = (gap_primary_weight + gap_secondary_weight) / 2.0; // mean of two gap weights
                 }
+                // 20160817 AJL - give floor to gap weight, allows small gaps
+                gap_weight += 0.5;
+                if (gap_weight > 1.0) {
+                    gap_weight = 1.0;
+                }
+                //
                 prob *= gap_weight; // 20150202 AJL
+#ifdef DEBUG_PROB
+                if (DEBUG_ALL || last_reassociate) {
+                    printf("DEBUG_PROB: prob [%f] *= gap_weight [%f]\n",
+                            prob, gap_weight);
+                }
+#endif
                 if (prob < best_prob) {
                     //if (last_reassociate)
                     //    printf("DEBUG:  REJECTED GAP!\n");
@@ -2368,7 +2507,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
             // check close distance ratio - penalty if (# associated / # available closer than closest associated) < RATIO_NUM_STA_WITHIN_CLOSE_DIST_CRITICAL (3.0)
             double limit_distance = FLT_MAX; // no maximum distance for counting close
             nCountClose = countAllStationsAvailable(COUNT_CLOSE, limit_distance, distance_list, num_distances,
-                    lat, lon, stationParameters, &distanceClose, &numAssociatedClose);
+                    lat, lon, channelParameters, &distanceClose, &numAssociatedClose);
             double n_count_close_ratio_exponent = 0.0;
             double n_count_close_ratio = 0.0;
             if (nCountClose > 0) {
@@ -2379,6 +2518,12 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                 distanceClose_weight = EXP_FUNC(-0.5 * n_count_close_ratio_exponent);
                 //
                 prob *= distanceClose_weight; // 20150202 AJL
+#ifdef DEBUG_PROB
+                if (DEBUG_ALL || last_reassociate) {
+                    printf("DEBUG_PROB: prob [%f] *= distanceClose_weight [%f]\n",
+                            prob, distanceClose_weight);
+                }
+#endif
                 if (prob < best_prob) {
                     //if (last_reassociate)
                     //    printf("DEBUG:  REJECTED COUNT_CLOSE!\n");
@@ -2390,7 +2535,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
             // check far distance ratio - penalty if (# associated / # available farther than depth) < RATIO_NUM_STA_WITHIN_FAR_DIST_CRITICAL (0.3)
             limit_distance = depth * KM2DEG; // minimum distance is depth for counting far and mean
             nCountFar = countAllStationsAvailable(COUNT_FAR, limit_distance, distance_list, num_distances,
-                    lat, lon, stationParameters, &distanceFar, &numAssociatedFar);
+                    lat, lon, channelParameters, &distanceFar, &numAssociatedFar);
             double n_count_far_ratio_exponent = 0.0;
             if (nCountFar > 0) {
                 double n_count_far_ratio = (double) numAssociatedFar / (double) nCountFar;
@@ -2400,6 +2545,12 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                 distanceFar_weight = EXP_FUNC(-0.5 * n_count_far_ratio_exponent);
                 //
                 prob *= distanceFar_weight; // 20101230 AJL
+#ifdef DEBUG_PROB
+                if (DEBUG_ALL || last_reassociate) {
+                    printf("DEBUG_PROB: prob [%f] *= distanceFar_weight [%f]\n",
+                            prob, distanceFar_weight);
+                }
+#endif
                 if (prob < best_prob) {
                     //if (last_reassociate)
                     //    printf("DEBUG:  REJECTED COUNT_FAR!\n");
@@ -2428,6 +2579,13 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
         //if (best_weight_count > *pglobal_best_prob || last_reassociate) {
         //if (!no_reassociate && ((best_prob >= *pglobal_best_prob) || last_reassociate)) {
         if ((best_prob >= pglobalBestValues->best_prob) || last_reassociate) {
+#ifdef DEBUG_PROB
+            if (DEBUG_ALL || last_reassociate) {
+                printf("DEBUG_PROB: if ((best_prob [%f] >= pglobalBestValues->best_prob [%f]) || last_reassociate [%d]\n",
+                        best_prob, pglobalBestValues->best_prob, last_reassociate);
+                printf("DEBUG_PROB: --------------------------------------\n");
+            }
+#endif
             //if (weight_sum > *pglobal_best_weight_sum || last_reassociate) {
 
             //printf("ot_variance_weight %g = time_range_variance %g / ot_variance %g \n", ot_variance_weight, time_range_variance, ot_variance);
@@ -2457,7 +2615,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                     //if (deData->is_associated && deData->is_associated < num_pass)
                     //    continue;
                     deDataTmp = DataTmpPool + j;
-                    init_deDataTmp(deDataTmp);
+                    clear_deData_assoc(deDataTmp);
                 }
                 // find currently associated otime limits and set corresponding deDataTmp
                 nassociated_P = 0;
@@ -2500,6 +2658,8 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                         deDataTmp->epicentral_azimuth = otimeLimit_assoc->azimuth;
                         deDataTmp->residual = residual;
                         deDataTmp->dist_weight = otimeLimit_assoc->dist_weight;
+                        deDataTmp->polarization.weight = otimeLimit_assoc->polarization_weight;
+                        deDataTmp->polarization.azimuth_calc = otimeLimit_assoc->polarization_azimuth_calc;
                         deDataTmp->station_quality_weight = otimeLimit_assoc->quality_weight;
                         strcpy(deDataTmp->phase, phase_name_for_id(otimeLimit_assoc->phase_id));
                         deDataTmp->phase_id = otimeLimit_assoc->phase_id;
@@ -2519,7 +2679,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                             // check for valid a_ref value
                             if (otimeLimit_assoc->have_amp_atten_values) {
                                 double a_ref_calc = linRegressPower.constant * pow(otimeLimit_assoc->dist, linRegressPower.power);
-                                if (a_ref_calc > DBL_MIN) {
+                                if (a_ref_calc > FLT_MIN) {
                                     deDataTmp->amplitude_error_ratio = deData->a_ref / a_ref_calc;
                                 }
                             }
@@ -2533,7 +2693,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
 
             // 20110513 AJL - moved from above
             //numCountDistanceNodeSizeTest = countAllStationsAvailable(COUNT_ARITHMETIC_MEAN, limit_distance, distance_list, num_distances,
-            //        lat, lon, stationParameters, &distanceNodeSizeTest, &numCountDistanceNodeSizeTest);
+            //        lat, lon, channelParameters, &distanceNodeSizeTest, &numCountDistanceNodeSizeTest);
             // 20111005 AJL - New node size test algorithm
             int numCountDistanceNodeSizeTest = 2 * (int) (0.5 + min_weight_sum_assoc);
             int num_within_depth = countStationsWithinDistance(depth * KM2DEG, distance_list, num_distances); // number of associated stations within distance = hypo depth
@@ -2574,7 +2734,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
 
         }
     }
-    //printf("1 ============> stationParameters addr %ld\n", (long) stationParameters);
+    //printf("1 ============> channelParameters addr %ld\n", (long) channelParameters);
 
     // clear OtimeLimitList
     NumOtimeLimit = 0;
@@ -2629,7 +2789,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                     poct_node->value, volume, poct_node->center.y, poct_node->center.x, poct_node->center.z);
         }
         /*static int icount = 0;
-        if ((long) stationParameters == 0 || icount % 1 == 0) {
+        if ((long) channelParameters == 0 || icount % 1 == 0) {
             printf("==========poct_node->value=%lg volume=%lg log_value_volume=%g  x y z = %g %g %g\n",
                     poct_node->value, volume, log_value_volume, poct_node->center.y, poct_node->center.x, poct_node->center.z);
         }
@@ -2728,7 +2888,7 @@ int unassociateOutlierStations(TimedomainProcessingData** pdata_list, int num_de
                 //        pdata_list[j]->network, pdata_list[j]->station, pdata_list[j]->channel, deDataTmp->phase, deDataTmp->epicentral_distance,
                 //        ((double) pdata_list[j]->t_time_t + pdata_list[j]->t_decsec) - best_ot_mean, deDataTmp->loc_weight);
                 num_removed++;
-                init_deDataTmp(deDataTmp);
+                clear_deData_assoc(deDataTmp);
             }
         }
     }
@@ -2845,6 +3005,8 @@ void setDataAssociationInformation(HypocenterDesc *hypocenter, TimedomainProcess
             deData->epicentral_azimuth = deDataTmp->epicentral_azimuth;
             deData->residual = deDataTmp->residual;
             deData->dist_weight = deDataTmp->dist_weight;
+            deData->polarization.weight = deDataTmp->polarization.weight;
+            deData->polarization.azimuth_calc = deDataTmp->polarization.azimuth_calc;
             if (deData->is_full_assoc_loc == 1) {
                 deData->loc_weight = deDataTmp->loc_weight; // location weight non-zero only if data previously associated with full assoc/loc
             } else if (reAssociateOnly) {
@@ -2876,22 +3038,11 @@ void setDataAssociationInformation(HypocenterDesc *hypocenter, TimedomainProcess
             //} else if (deData->is_associated == num_pass && deData->is_associated_grid_level < num_grid_level) {
         } else {
             // clear association for this and later passes
-            deData->is_associated = 0;
+            clear_deData_assoc(deData);
             if (!reAssociateOnly) {
                 deData->is_full_assoc_loc = -1; // remaining data is later passes and necessarily will be full assoc/loc or unassociated
             }
-            deData->epicentral_distance = -1.0;
-            deData->epicentral_azimuth = -1.0;
-            deData->residual = -999.0;
-            deData->dist_weight = -1.0;
-            deData->loc_weight = -1.0;
-            strcpy(deData->phase, "X");
-            deData->phase_id = -1;
-            deData->take_off_angle_inc = -1.0;
-            deData->take_off_angle_az = -1.0;
-            // amplitude attenuation
-            deData->amplitude_error_ratio = -1.0;
-            deData->sta_corr = 0.0;
+
         }
     }
 
@@ -2908,6 +3059,25 @@ void setDataAssociationInformation(HypocenterDesc *hypocenter, TimedomainProcess
     }
 }
 
+Tree3D *setUpOctTree(double lat_min, double lat_max, double lat_step,
+        double lon_min, double lon_max, double lon_step_smallest,
+        double depth_min, double depth_max, double depth_step) {
+
+    int num_lat = (int) ((lat_max - lat_min + lat_step * 0.001) / lat_step);
+    int num_lon_largest = (int) ((lon_max - lon_min + lon_step_smallest * 0.001) / lon_step_smallest);
+    int num_depth = (int) ((depth_max - depth_min + depth_step * 0.001) / depth_step);
+
+    // set up oct-tree x, y, z grid
+    Tree3D *pOctTree;
+    double integral = 0.0;
+    void *pdata = NULL;
+    pOctTree = newTree3D_spherical(OCTTREE_TYPE, num_lon_largest,
+            num_lat, num_depth,
+            lon_min, lat_min, depth_min,
+            lon_step_smallest, lat_step, depth_step, OCTTREE_UNDEF_VALUE, integral, pdata);
+
+    return (pOctTree);
+}
 
 /** oct-tree global search association and location
  *
@@ -2922,13 +3092,13 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
         double nominal_critical_node_size_km, double min_critical_node_size_km, double nominal_min_node_size_km,
         double gap_primary_critical, double gap_secondary_critical,
         double lat_min, double lat_max, double lat_step, double lon_min, double lon_max, double lon_step_smallest,
-        double depth_min, double depth_max, double depth_step,
+        double depth_min, double depth_max, double depth_step, int is_local_search,
         int numPhaseTypesUse, int phaseTypesUse[get_num_ttime_phases()], char channelNamesUse[get_num_ttime_phases()][128], double timeDelayUse[MAX_NUM_TTIME_PHASES][2],
         double reference_phase_ttime_error,
         TimedomainProcessingData** pdata_list, int num_de_data,
         HypocenterDesc *hypocenter,
         float **passoc_scatter_sample, int *p_n_alloc_assoc_scatter_sample, int i_get_scatter_sample, int *pn_scatter_sample, double *p_global_max_nassociated_P_lat_lon,
-        StationParameters * stationParameters,
+        ChannelParameters * channelParameters,
         time_t time_min, time_t time_max
         ) {
 
@@ -2950,6 +3120,13 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
     int try_assoc_remaining_definitive = 0; // if = 1, will check definitive phases (e.g. P, PKP) for association using increased ttime error
     int no_reassociate = 0; // if = 1 will use last reassociate phases only, and will only calculate solution quality and update ResultTree
 
+    // 20160919 AJL - for local search around existing hypo, set allowed otime range around hypocenter->otime
+    if (is_local_search) {
+        last_reassociate_otime = hypocenter->otime; // set to a value > 0.0 to only uses phases that give predicted otime range that includes hypocenter->otime
+        last_reassociate_ot_std_dev = hypocenter->ot_std_dev; // must be >= 0.0 if last_reassociate_otime > 0.0
+        //printf("DEBUG: is_local_search: otime %.1f +- %.2f\n",   last_reassociate_otime, last_reassociate_ot_std_dev);
+    }
+
     // need at least 2 stations for location
     if (num_de_data < 2) {
         return (-1);
@@ -2968,10 +3145,9 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
     if (lat_max > 90.0)
         lat_max = 90.0;
 
-    int num_lat = (int) ((lat_max - lat_min + lat_step * 0.001) / lat_step);
+    /* 20160913 AJL  int num_lat = (int) ((lat_max - lat_min + lat_step * 0.001) / lat_step);
     int num_lon_largest = (int) ((lon_max - lon_min + lon_step_smallest * 0.001) / lon_step_smallest);
     int num_depth = (int) ((depth_max - depth_min + depth_step * 0.001) / depth_step);
-
     // set up oct-tree x, y, z grid
     Tree3D *pOctTree;
     double integral = 0.0;
@@ -2980,6 +3156,10 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
             num_lat, num_depth,
             lon_min, lat_min, depth_min,
             lon_step_smallest, lat_step, depth_step, OCTTREE_UNDEF_VALUE, integral, pdata);
+     */
+    Tree3D *pOctTree = setUpOctTree(lat_min, lat_max, lat_step,
+            lon_min, lon_max, lon_step_smallest,
+            depth_min, depth_max, depth_step);
 
     // initialize array for scatter sample
     if (i_get_scatter_sample && *passoc_scatter_sample != NULL && (*p_n_alloc_assoc_scatter_sample < NUM_ASSOC_SCATTER_SAMPLE)) {
@@ -3012,7 +3192,7 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
         // initialize data
         for (j = 0; j < num_de_data; j++) {
             deDataTmp = DataTmpPool + j;
-            init_deDataTmp(deDataTmp);
+            clear_deData_assoc(deDataTmp);
         }
     }
 
@@ -3057,16 +3237,7 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
         for (n_ot_limit = 0; n_ot_limit < num_de_data; n_ot_limit++) {
             // clear data association fields
             deData = pdata_list[n_ot_limit];
-            deData->is_associated = 0;
-            deData->epicentral_distance = -1.0;
-            deData->epicentral_azimuth = -1.0;
-            deData->residual = -999.0;
-            deData->dist_weight = -1.0;
-            deData->loc_weight = -1.0;
-            strcpy(deData->phase, "X");
-            deData->phase_id = -1;
-            deData->take_off_angle_inc = -1.0;
-            deData->take_off_angle_az = -1.0;
+            clear_deData_assoc(deData);
             // if flagged as use_for_location but will be skipped, check if twin stream pick can  be used for location
             // 20121130 AJL - added
             if (deData->use_for_location && skipData(deData, -999)) {
@@ -3125,53 +3296,55 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
 
     // allocate initial regular grid distance, azimuth and travel-time arrays
     // required initial regular grid distances, azimuths and travel-time arrays are the same for all passes of associate locate
-    int initial_grid_lat_lon_size = pOctTree->numx * pOctTree->numy;
-    if (USE_SAVED_INITIAL_GRIDS && SavedInitialGridDistances == NULL) {
-        printf("Info: Allocation of SavedInitialGridDistances: size: %.1fkB, initial_grid_lat_lon_size: %d\n",
-                (double) (initial_grid_lat_lon_size * sizeof (double)) / 1.0e3, initial_grid_lat_lon_size);
-        SavedInitialGridDistances = (double*) calloc(initial_grid_lat_lon_size * MAX_NUM_SOURCES, sizeof (double));
-        if (SavedInitialGridDistances == NULL)
-            fprintf(stderr, "ERROR: calloc of SavedInitialGridDistances: %s\n", strerror(errno));
-        int n, m;
-        for (n = 0; n < initial_grid_lat_lon_size; n++) {
-            for (m = 0; m < MAX_NUM_SOURCES; m++) {
-                *(SavedInitialGridDistances + n * MAX_NUM_SOURCES + m) = -1.0;
-            }
-        }
-        sizeSavedInitialGridDistances = initial_grid_lat_lon_size;
-    }
-    if (USE_SAVED_INITIAL_GRIDS && SavedInitialGridAzimuths == NULL) {
-        printf("Info: Allocation of SavedInitialGridAzimuths: size: %.1fkB, initial_grid_lat_lon_size: %d\n",
-                (double) (initial_grid_lat_lon_size * sizeof (double)) / 1.0e3, initial_grid_lat_lon_size);
-        SavedInitialGridAzimuths = (double*) calloc(initial_grid_lat_lon_size * MAX_NUM_SOURCES, sizeof (double));
-        if (SavedInitialGridAzimuths == NULL)
-            fprintf(stderr, "ERROR: calloc of SavedInitialGridAzimuths: %s\n", strerror(errno));
-        int n, m;
-        for (n = 0; n < initial_grid_lat_lon_size; n++) {
-            for (m = 0; m < MAX_NUM_SOURCES; m++) {
-                *(SavedInitialGridAzimuths + n * MAX_NUM_SOURCES + m) = -1.0;
-            }
-        }
-        sizeSavedInitialGridAzimuths = initial_grid_lat_lon_size;
-    }
-    int initial_grid_depth_size = pOctTree->numz;
-    if (USE_SAVED_INITIAL_GRIDS && SavedInitialGridTravelTimes == NULL) {
-        printf("Info: Allocation of SavedInitialGridTravelTimes: size: %.1fkB, initial_grid_lat_lon_size: %d, initial_grid_depth_size: %d\n",
-                (double) (initial_grid_lat_lon_size * initial_grid_depth_size * MAX_NUM_SOURCES * 2 * sizeof (double)) / 1.0e3,
-                initial_grid_lat_lon_size, initial_grid_depth_size);
-        SavedInitialGridTravelTimes = (double*) calloc(initial_grid_lat_lon_size * initial_grid_depth_size * MAX_NUM_SOURCES * 2, sizeof (double***));
-        if (SavedInitialGridTravelTimes == NULL)
-            fprintf(stderr, "ERROR: calloc of SavedInitialGridTravelTimes: %s\n", strerror(errno));
-        int n, i, m;
-        for (n = 0; n < initial_grid_lat_lon_size; n++) {
-            for (i = 0; i < initial_grid_depth_size; i++) {
+    if (!is_local_search) {
+        int initial_grid_lat_lon_size = pOctTree->numx * pOctTree->numy;
+        if (USE_SAVED_INITIAL_GRIDS && SavedInitialGridDistances == NULL) {
+            printf("Info: Allocation of SavedInitialGridDistances: size: %.1fkB, initial_grid_lat_lon_size: %d\n",
+                    (double) (initial_grid_lat_lon_size * sizeof (double)) / 1.0e3, initial_grid_lat_lon_size);
+            SavedInitialGridDistances = (double*) calloc(initial_grid_lat_lon_size * MAX_NUM_SOURCES, sizeof (double));
+            if (SavedInitialGridDistances == NULL)
+                fprintf(stderr, "ERROR: calloc of SavedInitialGridDistances: %s\n", strerror(errno));
+            int n, m;
+            for (n = 0; n < initial_grid_lat_lon_size; n++) {
                 for (m = 0; m < MAX_NUM_SOURCES; m++) {
-                    *(SavedInitialGridTravelTimes + n * initial_grid_depth_size * MAX_NUM_SOURCES * 2 + i * MAX_NUM_SOURCES * 2 + m * 2) = -1.0;
+                    *(SavedInitialGridDistances + n * MAX_NUM_SOURCES + m) = -1.0;
                 }
             }
+            sizeSavedInitialGridDistances = initial_grid_lat_lon_size;
         }
-        sizeSavedInitialGridTravelTimeLatLon = initial_grid_lat_lon_size;
-        sizeSavedInitialGridTravelTimeDepth = initial_grid_depth_size;
+        if (USE_SAVED_INITIAL_GRIDS && SavedInitialGridAzimuths == NULL) {
+            printf("Info: Allocation of SavedInitialGridAzimuths: size: %.1fkB, initial_grid_lat_lon_size: %d\n",
+                    (double) (initial_grid_lat_lon_size * sizeof (double)) / 1.0e3, initial_grid_lat_lon_size);
+            SavedInitialGridAzimuths = (double*) calloc(initial_grid_lat_lon_size * MAX_NUM_SOURCES, sizeof (double));
+            if (SavedInitialGridAzimuths == NULL)
+                fprintf(stderr, "ERROR: calloc of SavedInitialGridAzimuths: %s\n", strerror(errno));
+            int n, m;
+            for (n = 0; n < initial_grid_lat_lon_size; n++) {
+                for (m = 0; m < MAX_NUM_SOURCES; m++) {
+                    *(SavedInitialGridAzimuths + n * MAX_NUM_SOURCES + m) = -1.0;
+                }
+            }
+            sizeSavedInitialGridAzimuths = initial_grid_lat_lon_size;
+        }
+        int initial_grid_depth_size = pOctTree->numz;
+        if (USE_SAVED_INITIAL_GRIDS && SavedInitialGridTravelTimes == NULL) {
+            printf("Info: Allocation of SavedInitialGridTravelTimes: size: %.1fkB, initial_grid_lat_lon_size: %d, initial_grid_depth_size: %d\n",
+                    (double) (initial_grid_lat_lon_size * initial_grid_depth_size * MAX_NUM_SOURCES * 2 * sizeof (double)) / 1.0e3,
+                    initial_grid_lat_lon_size, initial_grid_depth_size);
+            SavedInitialGridTravelTimes = (double*) calloc(initial_grid_lat_lon_size * initial_grid_depth_size * MAX_NUM_SOURCES * 2, sizeof (double***));
+            if (SavedInitialGridTravelTimes == NULL)
+                fprintf(stderr, "ERROR: calloc of SavedInitialGridTravelTimes: %s\n", strerror(errno));
+            int n, i, m;
+            for (n = 0; n < initial_grid_lat_lon_size; n++) {
+                for (i = 0; i < initial_grid_depth_size; i++) {
+                    for (m = 0; m < MAX_NUM_SOURCES; m++) {
+                        *(SavedInitialGridTravelTimes + n * initial_grid_depth_size * MAX_NUM_SOURCES * 2 + i * MAX_NUM_SOURCES * 2 + m * 2) = -1.0;
+                    }
+                }
+            }
+            sizeSavedInitialGridTravelTimeLatLon = initial_grid_lat_lon_size;
+            sizeSavedInitialGridTravelTimeDepth = initial_grid_depth_size;
+        }
     }
 
     // DEBUG
@@ -3182,6 +3355,11 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
     int ilat, ilon, idepth;
     int indexLatLonSavedInitialGrid = 0;
     int indexDepthSavedInitialGrid = 0;
+    if (is_local_search) {
+        // 20160912 AJL - for local search around existing hypo, search grid will be shifted from full, initial grid
+        indexLatLonSavedInitialGrid = -1;
+        indexDepthSavedInitialGrid = -1;
+    }
 
     globalBestValues.best_prob = -FLT_MAX;
 
@@ -3201,7 +3379,7 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
                         last_reassociate, last_reassociate_otime, last_reassociate_ot_std_dev, try_assoc_remaining_definitive, no_reassociate, distance_weight_dist_min_current,
                         numPhaseTypesUse, phaseTypesUse, channelNamesUse, timeDelayUse,
                         reference_phase_ttime_error,
-                        stationParameters,
+                        channelParameters,
                         &globalBestValues,
                         // oct-tree node volume
                         &oct_node_volume,
@@ -3241,21 +3419,25 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
                         *p_global_max_nassociated_P_lat_lon = value;
                     //}
                 }
-                indexDepthSavedInitialGrid++;
-                if (USE_SAVED_INITIAL_GRIDS && indexDepthSavedInitialGrid > sizeSavedInitialGridTravelTimeDepth) {
-                    printf("ERROR: indexDepthSavedInitialGrid > sizeSavedInitialGridTravelTimeDepth: this should not happen!\n");
+                if (!is_local_search) {
+                    indexDepthSavedInitialGrid++;
+                    if (USE_SAVED_INITIAL_GRIDS && indexDepthSavedInitialGrid > sizeSavedInitialGridTravelTimeDepth) {
+                        printf("ERROR: indexDepthSavedInitialGrid > sizeSavedInitialGridTravelTimeDepth: this should not happen!\n");
+                    }
                 }
 
             }
-            indexLatLonSavedInitialGrid++;
-            if (USE_SAVED_INITIAL_GRIDS && indexLatLonSavedInitialGrid > sizeSavedInitialGridDistances) {
-                printf("ERROR: indexLatLonSavedInitialGrid > sizeSavedInitialGridDistances: this should not happen!\n");
-            }
-            if (USE_SAVED_INITIAL_GRIDS && indexLatLonSavedInitialGrid > sizeSavedInitialGridAzimuths) {
-                printf("ERROR: indexLatLonSavedInitialGrid > sizeSavedInitialGridAzimuths: this should not happen!\n");
-            }
-            if (USE_SAVED_INITIAL_GRIDS && indexDepthSavedInitialGrid > sizeSavedInitialGridTravelTimeLatLon) {
-                printf("ERROR: indexDepthSavedInitialGrid > sizeSavedInitialGridTravelTimeLatLon: this should not happen!\n");
+            if (!is_local_search) {
+                indexLatLonSavedInitialGrid++;
+                if (USE_SAVED_INITIAL_GRIDS && indexLatLonSavedInitialGrid > sizeSavedInitialGridDistances) {
+                    printf("ERROR: indexLatLonSavedInitialGrid > sizeSavedInitialGridDistances: this should not happen!\n");
+                }
+                if (USE_SAVED_INITIAL_GRIDS && indexLatLonSavedInitialGrid > sizeSavedInitialGridAzimuths) {
+                    printf("ERROR: indexLatLonSavedInitialGrid > sizeSavedInitialGridAzimuths: this should not happen!\n");
+                }
+                if (USE_SAVED_INITIAL_GRIDS && indexDepthSavedInitialGrid > sizeSavedInitialGridTravelTimeLatLon) {
+                    printf("ERROR: indexDepthSavedInitialGrid > sizeSavedInitialGridTravelTimeLatLon: this should not happen!\n");
+                }
             }
             /*
             if (icount_sta) {
@@ -3623,9 +3805,8 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
 
         // subdivide all HighestLeafValue neighbors
 
-        int n_neigh_max = 7;
         double fraction_of_node_size = pparent_oct_node->ds.x / 10.0;
-        for (n_neigh = 0; n_neigh < n_neigh_max; n_neigh++) {
+        for (n_neigh = 0; n_neigh < 7; n_neigh++) {
 
             if (n_neigh == 0) {
                 neighbor_node = pparent_oct_node;
@@ -3652,15 +3833,21 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
                     coords.z = pparent_oct_node->center.z
                             - (pparent_oct_node->ds.z + fraction_of_node_size) / 2.0;
                 }
-                // check for strike wrap-around
-                if (coords.x > 180.0)
-                    coords.x -= 360.0;
-                if (coords.x < -180.0)
-                    coords.x += 360.0;
 
                 // find neighbor node
+                // 20160912 AJL - Bug fix: added check before and after removing wrap-around, to support regional or reduced volume searches that straddle +/-180deg
+                //printf("getLeafNodeContaining A: parent: (%.3f,%.3f,%.3f) (%.3f,%.3f,%.3f) n_neigh %d %.3f,%.3f,%.3f", pparent_oct_node->center.x, pparent_oct_node->center.y, pparent_oct_node->center.z, pparent_oct_node->ds.x, pparent_oct_node->ds.y, pparent_oct_node->ds.z, n_neigh, coords.x, coords.y, coords.z);
                 neighbor_node = getLeafNodeContaining(pOctTree, coords);
-                //printf("getLeafNodeContaining: %.1f,%.1f,%.1f", coords.x, coords.y, coords.z);
+                if (neighbor_node == NULL) {
+                    // check for strike wrap-around
+                    if (coords.x > 180.0)
+                        coords.x -= 360.0;
+                    else if (coords.x < -180.0)
+                        coords.x += 360.0;
+                    neighbor_node = getLeafNodeContaining(pOctTree, coords);
+                }
+                //printf(" -> %.3f,%.3f,%.3f", coords.x, coords.y, coords.z);
+
                 nneighbor_tested++;
                 // outside of octTree volume
                 if (neighbor_node == NULL) {
@@ -3710,7 +3897,7 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
                                 last_reassociate, last_reassociate_otime, last_reassociate_ot_std_dev, try_assoc_remaining_definitive, no_reassociate, distance_weight_dist_min_current,
                                 numPhaseTypesUse, phaseTypesUse, channelNamesUse, timeDelayUse,
                                 reference_phase_ttime_error,
-                                stationParameters,
+                                channelParameters,
                                 &globalBestValues,
                                 // oct-tree node volume
                                 &oct_node_volume,
@@ -3727,6 +3914,8 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
 #ifdef PURE_OCTREE
                         if (is_global_best && presult_node->level >= critical_node_size_level) {
                             best_prob_test_assoc = globalBestValues.best_prob * globalBestValues.effective_cell_size;
+                            //printf("DEBUG: best_prob_test_assoc [%f] = globalBestValues.best_prob [%f] * globalBestValues.effective_cell_size [%f]\n",
+                            //        best_prob_test_assoc, globalBestValues.best_prob, globalBestValues.effective_cell_size);
                             //VOLUMEbest_prob_test_assoc = best_prob;
 #else
                         if (is_global_best) {
@@ -3840,7 +4029,7 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
                 last_reassociate, last_reassociate_otime, last_reassociate_ot_std_dev, try_assoc_remaining_definitive, no_reassociate, distance_weight_dist_min_current,
                 numPhaseTypesUse, phaseTypesUse, channelNamesUse, timeDelayUse,
                 reference_phase_ttime_error,
-                stationParameters,
+                channelParameters,
                 &globalBestValues,
                 // oct-tree node volume
                 &oct_node_volume,
@@ -3989,9 +4178,8 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
 
         // subdivide all HighestLeafValue neighbors
 
-        int n_neigh_max = 7;
         double fraction_of_node_size = pparent_oct_node->ds.x / 10.0;
-        for (n_neigh = 0; n_neigh < n_neigh_max; n_neigh++) {
+        for (n_neigh = 0; n_neigh < 7; n_neigh++) {
 
             if (n_neigh == 0) {
                 neighbor_node = pparent_oct_node;
@@ -4018,15 +4206,21 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
                     coords.z = pparent_oct_node->center.z
                             - (pparent_oct_node->ds.z + fraction_of_node_size) / 2.0;
                 }
-                // check for strike wrap-around
-                if (coords.x > 180.0)
-                    coords.x -= 360.0;
-                if (coords.x < -180.0)
-                    coords.x += 360.0;
 
                 // find neighbor node
+                // 20160912 AJL - Bug fix: added check before and after removing wrap-around, to support regional or reduced volume searches that straddle +/-180deg
+                //printf("getLeafNodeContaining A: parent: (%.3f,%.3f,%.3f) (%.3f,%.3f,%.3f) n_neigh %d %.3f,%.3f,%.3f", pparent_oct_node->center.x, pparent_oct_node->center.y, pparent_oct_node->center.z, pparent_oct_node->ds.x, pparent_oct_node->ds.y, pparent_oct_node->ds.z, n_neigh, coords.x, coords.y, coords.z);
                 neighbor_node = getLeafNodeContaining(pOctTree, coords);
-                //printf("getLeafNodeContaining: %.1f,%.1f,%.1f", coords.x, coords.y, coords.z);
+                if (neighbor_node == NULL) {
+                    // check for strike wrap-around
+                    if (coords.x > 180.0)
+                        coords.x -= 360.0;
+                    else if (coords.x < -180.0)
+                        coords.x += 360.0;
+                    neighbor_node = getLeafNodeContaining(pOctTree, coords);
+                }
+                //printf(" -> %.3f,%.3f,%.3f", coords.x, coords.y, coords.z);
+
                 nneighbor_tested++;
                 // outside of octTree volume
                 if (neighbor_node == NULL) {
@@ -4077,7 +4271,7 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
                                 last_reassociate, last_reassociate_otime, last_reassociate_ot_std_dev, try_assoc_remaining_definitive, no_reassociate, distance_weight_dist_min_current,
                                 numPhaseTypesUse, phaseTypesUse, channelNamesUse, timeDelayUse,
                                 reference_phase_ttime_error,
-                                stationParameters,
+                                channelParameters,
                                 &globalBestValues,
                                 // oct-tree node volume
                                 &oct_node_volume,
@@ -4153,7 +4347,7 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
                 last_reassociate, last_reassociate_otime, last_reassociate_ot_std_dev, try_assoc_remaining_definitive, no_reassociate, distance_weight_dist_min_current,
                 numPhaseTypesUse, phaseTypesUse, channelNamesUse, timeDelayUse,
                 reference_phase_ttime_error,
-                stationParameters,
+                channelParameters,
                 &globalBestValues,
                 // oct-tree node volume
                 &oct_node_volume,
@@ -4177,7 +4371,7 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
                 last_reassociate, last_reassociate_otime, last_reassociate_ot_std_dev, try_assoc_remaining_definitive, no_reassociate, distance_weight_dist_min_current,
                 numPhaseTypesUse, phaseTypesUse, channelNamesUse, timeDelayUse,
                 reference_phase_ttime_error,
-                stationParameters,
+                channelParameters,
                 &globalBestValues,
                 // oct-tree node volume
                 &oct_node_volume,
@@ -4382,7 +4576,7 @@ double octtreeGlobalAssociationLocation_reassociateOnly(int num_pass, double min
         double reference_phase_ttime_error,
         TimedomainProcessingData** pdata_list, int num_de_data,
         HypocenterDesc *hypocenter,
-        StationParameters * stationParameters,
+        ChannelParameters * channelParameters,
         time_t time_min, time_t time_max
         ) {
 
@@ -4419,7 +4613,7 @@ double octtreeGlobalAssociationLocation_reassociateOnly(int num_pass, double min
         // initialize data
         for (j = 0; j < num_de_data; j++) {
             deDataTmp = DataTmpPool + j;
-            init_deDataTmp(deDataTmp);
+            clear_deData_assoc(deDataTmp);
         }
     }
 
@@ -4464,16 +4658,7 @@ double octtreeGlobalAssociationLocation_reassociateOnly(int num_pass, double min
         for (n_ot_limit = 0; n_ot_limit < num_de_data; n_ot_limit++) {
             // clear data association fields
             deData = pdata_list[n_ot_limit];
-            deData->is_associated = 0;
-            deData->epicentral_distance = -1.0;
-            deData->epicentral_azimuth = -1.0;
-            deData->residual = -999.0;
-            deData->dist_weight = -1.0;
-            deData->loc_weight = -1.0;
-            strcpy(deData->phase, "X");
-            deData->phase_id = -1;
-            deData->take_off_angle_inc = -1.0;
-            deData->take_off_angle_az = -1.0;
+            clear_deData_assoc(deData);
             // if flagged as use_for_location but will be skipped, check if twin stream pick can  be used for location
             // 20121130 AJL - added
             if (deData->use_for_location && skipData(deData, -999)) {
@@ -4521,8 +4706,6 @@ double octtreeGlobalAssociationLocation_reassociateOnly(int num_pass, double min
     int indexLatLonSavedInitialGrid = -1;
     int indexDepthSavedInitialGrid = -1;
     double current_critical_node_size_km = hypocenter->global_best_critical_node_size_km;
-    last_reassociate = 1;
-    no_reassociate = 0; // if = 1 will use last reassociate phases only, and will only calculate solution quality and update ResultTree
     //best_weight_sum = FLT_MIN;
     //best_prob = -FLT_MAX;
 
@@ -4534,7 +4717,7 @@ double octtreeGlobalAssociationLocation_reassociateOnly(int num_pass, double min
             last_reassociate, last_reassociate_otime, last_reassociate_ot_std_dev, try_assoc_remaining_definitive, no_reassociate, distance_weight_dist_min_current,
             numPhaseTypesUse, phaseTypesUse, channelNamesUse, timeDelayUse,
             reference_phase_ttime_error,
-            stationParameters,
+            channelParameters,
             &globalBestValues,
             // oct-tree node volume
             &oct_node_volume,
@@ -4558,7 +4741,7 @@ double octtreeGlobalAssociationLocation_reassociateOnly(int num_pass, double min
             last_reassociate, last_reassociate_otime, last_reassociate_ot_std_dev, try_assoc_remaining_definitive, no_reassociate, distance_weight_dist_min_current,
             numPhaseTypesUse, phaseTypesUse, channelNamesUse, timeDelayUse,
             reference_phase_ttime_error,
-            stationParameters,
+            channelParameters,
             &globalBestValues,
             // oct-tree node volume
             &oct_node_volume,
@@ -4605,13 +4788,13 @@ double octtreeGlobalAssociationLocation(int num_pass, double min_weight_sum_asso
         double nominal_critical_node_size_km, double min_critical_node_size_km, double nominal_min_node_size_km,
         double gap_primary_critical, double gap_secondary_critical,
         double lat_min, double lat_max, double lat_step, double lon_min, double lon_max, double lon_step_smallest,
-        double depth_min, double depth_max, double depth_step,
+        double depth_min, double depth_max, double depth_step, int is_local_search,
         int numPhaseTypesUse, int phaseTypesUse[get_num_ttime_phases()], char channelNamesUse[get_num_ttime_phases()][128], double timeDelayUse[MAX_NUM_TTIME_PHASES][2],
         double reference_phase_ttime_error,
         TimedomainProcessingData** pdata_list, int num_de_data,
         HypocenterDesc *hypocenter,
         float **passoc_scatter_sample, int *p_n_alloc_assoc_scatter_sample, int i_get_scatter_sample, int *pn_scatter_sample, double *p_global_max_nassociated_P_lat_lon,
-        StationParameters * stationParameters,
+        ChannelParameters * channelParameters,
         int reassociate_only, time_t time_min, time_t time_max
         ) {
 
@@ -4624,7 +4807,7 @@ double octtreeGlobalAssociationLocation(int num_pass, double min_weight_sum_asso
                 reference_phase_ttime_error,
                 pdata_list, num_de_data,
                 hypocenter,
-                stationParameters, time_min, time_max)
+                channelParameters, time_min, time_max)
                 );
     } else {
         return (
@@ -4632,55 +4815,56 @@ double octtreeGlobalAssociationLocation(int num_pass, double min_weight_sum_asso
                 nominal_critical_node_size_km, min_critical_node_size_km, nominal_min_node_size_km,
                 gap_primary_critical, gap_secondary_critical,
                 lat_min, lat_max, lat_step, lon_min, lon_max, lon_step_smallest,
-                depth_min, depth_max, depth_step,
+                depth_min, depth_max, depth_step, is_local_search,
                 numPhaseTypesUse, phaseTypesUse, channelNamesUse, timeDelayUse,
                 reference_phase_ttime_error,
                 pdata_list, num_de_data,
                 hypocenter,
                 passoc_scatter_sample, p_n_alloc_assoc_scatter_sample, i_get_scatter_sample, pn_scatter_sample, p_global_max_nassociated_P_lat_lon,
-                stationParameters, time_min, time_max)
+                channelParameters, time_min, time_max)
                 );
     }
 }
 
-void freeStationParameters(StationParameters * psta_params) {
+void freeChannelParameters(ChannelParameters * pchan_params) {
 
-    free(psta_params->sta_corr);
+    free(pchan_params->sta_corr);
 
 }
 
-void initStationParameters(StationParameters * psta_params) {
+void initChannelParameters(ChannelParameters * pchan_params) {
 
-    strcpy(psta_params->network, "?");
-    strcpy(psta_params->station, "?");
-    strcpy(psta_params->location, "?");
-    strcpy(psta_params->channel, "?");
-    psta_params->lat = -999.9;
-    psta_params->lon = -999.9;
-    psta_params->elev = 0.0;
-    psta_params->inactive_duplicate = 0;
-    psta_params->staActiveInReportInterval = 0;
-    psta_params->data_latency = 0.0;
-    psta_params->last_data_end_time = -999.0;
-    psta_params->numData = 0;
-    psta_params->numDataAssoc = 0;
-    psta_params->qualityWeight = 1.0;
-    psta_params->geogfile_checked_time = -1; // set earlier than any possible file mod time to force first check
-    psta_params->internet_station_query_checked_time = -1;
-    psta_params->have_coords = 0;
-    psta_params->error = 0;
-    psta_params->count_non_contiguous = 0;
-    psta_params->level_non_contiguous = 0.0;
-    psta_params->count_conflicting_dt = 0;
-    psta_params->level_conflicting_dt = 0.0;
+    strcpy(pchan_params->network, "?");
+    strcpy(pchan_params->station, "?");
+    strcpy(pchan_params->location, "?");
+    strcpy(pchan_params->channel, "?");
+    pchan_params->lat = -999.9;
+    pchan_params->lon = -999.9;
+    pchan_params->elev = 0.0;
+    pchan_params->inactive_duplicate = 0;
+    pchan_params->staActiveInReportInterval = 0;
+    pchan_params->data_latency = 0.0;
+    pchan_params->last_data_end_time = -999.0;
+    pchan_params->numData = 0;
+    pchan_params->numDataAssoc = 0;
+    pchan_params->qualityWeight = 1.0;
+    pchan_params->geogfile_checked_time = -1; // set earlier than any possible file mod time to force first check
+    pchan_params->internet_station_query_checked_time = -1;
+    pchan_params->have_coords = 0;
+    pchan_params->error = 0;
+    pchan_params->count_non_contiguous = 0;
+    pchan_params->level_non_contiguous = 0.0;
+    pchan_params->count_conflicting_dt = 0;
+    pchan_params->level_conflicting_dt = 0.0;
 
     // 20160601 AJL - sta corr changed from P only to any phase
-    psta_params->sta_corr = calloc(get_num_ttime_phases(), sizeof (StaCorrections));
+    pchan_params->sta_corr = calloc(get_num_ttime_phases(), sizeof (StaCorrections));
     for (int n = 0; n < get_num_ttime_phases(); n++) {
-        psta_params->sta_corr[n].valid = 0;
+        pchan_params->sta_corr[n].valid = 0;
     }
-    psta_params->sta_corr_checked = 0;
-    psta_params->process_this_channel_orientation = -1;
+    pchan_params->sta_corr_checked = 0;
+    pchan_params->process_this_channel_orientation = -1;
+    pchan_params->channel_set[0] = pchan_params->channel_set[1] = -1;
 }
 
 /** find and associate source_id for other channel orientations matching this net/sta/chan
@@ -4688,12 +4872,12 @@ void initStationParameters(StationParameters * psta_params) {
  *  returns number of matching channel found and associated
  */
 
-int associate3CompChannelSet(StationParameters* station_params, int n_sources, int source_id) {
+int associate3CompChannelSet(ChannelParameters* channel_params, int n_sources, int source_id) {
 
-    char *network = station_params[source_id].network;
-    char *station = station_params[source_id].station;
-    char *location = station_params[source_id].location;
-    char *channel = station_params[source_id].channel;
+    char *network = channel_params[source_id].network;
+    char *station = channel_params[source_id].station;
+    char *location = channel_params[source_id].location;
+    char *channel = channel_params[source_id].channel;
 
     int first_found = -1;
     int second_found = -1;
@@ -4701,28 +4885,30 @@ int associate3CompChannelSet(StationParameters* station_params, int n_sources, i
 
     for (int n = 0; n < n_sources; n++) {
         if (n != source_id) {
-            if (strcmp(network, station_params[n].network) == 0
-                    && strcmp(station, station_params[n].station) == 0
-                    && strcmp(location, station_params[n].location) == 0
-                    && strncmp(channel, station_params[n].channel, 2) == 0) {
+            if (strcmp(network, channel_params[n].network) == 0
+                    && strcmp(station, channel_params[n].station) == 0
+                    && strcmp(location, channel_params[n].location) == 0
+                    && strncmp(channel, channel_params[n].channel, 2) == 0) {
                 if (first_found < 0) {
                     first_found = n;
-                    station_params[first_found].channel_set[0] = source_id;
-                    station_params[source_id].channel_set[0] = first_found;
+                    channel_params[first_found].channel_set[0] = source_id;
+                    channel_params[source_id].channel_set[0] = first_found;
+                    channel_params[first_found].channel_set[1] = -1;
+                    channel_params[source_id].channel_set[1] = -1;
                     nfound++;
                     printf("DEBUG: associate3CompChannelSet %d %s_%s_%s_%s: first_found: %d %s_%s_%s_%s\n",
                             source_id, network, station, location, channel,
-                            n, station_params[n].network, station_params[n].station, station_params[n].location, station_params[n].channel);
+                            n, channel_params[n].network, channel_params[n].station, channel_params[n].location, channel_params[n].channel);
                 } else {
                     second_found = n;
-                    station_params[first_found].channel_set[1] = second_found;
-                    station_params[source_id].channel_set[1] = second_found;
-                    station_params[second_found].channel_set[0] = first_found;
-                    station_params[second_found].channel_set[1] = source_id;
+                    channel_params[first_found].channel_set[1] = second_found;
+                    channel_params[source_id].channel_set[1] = second_found;
+                    channel_params[second_found].channel_set[0] = first_found;
+                    channel_params[second_found].channel_set[1] = source_id;
                     nfound++;
                     printf("DEBUG: associate3CompChannelSet %d %s_%s_%s_%s: second_found: %d %s_%s_%s_%s\n",
                             source_id, network, station, location, channel,
-                            n, station_params[n].network, station_params[n].station, station_params[n].location, station_params[n].channel);
+                            n, channel_params[n].network, channel_params[n].station, channel_params[n].location, channel_params[n].channel);
                     break;
                 }
             }
@@ -4749,42 +4935,42 @@ void initAssociateLocateParameters(
 }
 
 
-/** add a StationParameters to a sorted StationParameters list
+/** add a ChannelParameters to a sorted ChannelParameters list
  * list will be sorted by network and then station
  */
 
 #define SIZE_INCREMENT_STA_PARAMS 64
 
-int addStationParametersToSortedList(StationParameters* pnew_sta_params, StationParameters*** psorted_sta_params_list, int* pnum_sorted_sta_params) {
+int addChannelParametersToSortedList(ChannelParameters* pnew_chan_params, ChannelParameters*** psorted_chan_params_list, int* pnum_sorted_chan_params) {
 
-    if (*psorted_sta_params_list == NULL) { // list not yet created
-        *psorted_sta_params_list = calloc(SIZE_INCREMENT_STA_PARAMS, sizeof (StationParameters*));
+    if (*psorted_chan_params_list == NULL) { // list not yet created
+        *psorted_chan_params_list = calloc(SIZE_INCREMENT_STA_PARAMS, sizeof (ChannelParameters*));
         // 20130930 AJL - bug fix
-        //} else if (*pnum_sorted_sta_params != 0 && (*pnum_sorted_sta_params % SIZE_INCREMENT_STA_PARAMS) == 0) { // list will be too small
-    } else if (*pnum_sorted_sta_params + 1 > (int) (sizeof (*psorted_sta_params_list) / sizeof (StationParameters*))) { // list will be too small
-        StationParameters** new_sorted_list = NULL;
-        new_sorted_list = calloc(*pnum_sorted_sta_params + SIZE_INCREMENT_STA_PARAMS, sizeof (StationParameters*));
+        //} else if (*pnum_sorted_chan_params != 0 && (*pnum_sorted_chan_params % SIZE_INCREMENT_STA_PARAMS) == 0) { // list will be too small
+    } else if (*pnum_sorted_chan_params + 1 > (int) (sizeof (*psorted_chan_params_list) / sizeof (ChannelParameters*))) { // list will be too small
+        ChannelParameters** new_sorted_list = NULL;
+        new_sorted_list = calloc(*pnum_sorted_chan_params + SIZE_INCREMENT_STA_PARAMS, sizeof (ChannelParameters*));
         int n;
-        for (n = 0; n < *pnum_sorted_sta_params; n++)
-            new_sorted_list[n] = (*psorted_sta_params_list)[n];
-        free(*psorted_sta_params_list);
-        *psorted_sta_params_list = new_sorted_list;
+        for (n = 0; n < *pnum_sorted_chan_params; n++)
+            new_sorted_list[n] = (*psorted_chan_params_list)[n];
+        free(*psorted_chan_params_list);
+        *psorted_chan_params_list = new_sorted_list;
     }
 
     // find sort position
     int nsort = -1;
     int ninsert;
-    for (ninsert = 0; ninsert < *pnum_sorted_sta_params; ninsert++) {
-        if ((nsort = strcmp((*psorted_sta_params_list)[ninsert]->network, pnew_sta_params->network)) > 0)
+    for (ninsert = 0; ninsert < *pnum_sorted_chan_params; ninsert++) {
+        if ((nsort = strcmp((*psorted_chan_params_list)[ninsert]->network, pnew_chan_params->network)) > 0)
             break;
         if (nsort == 0) {
-            if ((nsort = strcmp((*psorted_sta_params_list)[ninsert]->station, pnew_sta_params->station)) > 0)
+            if ((nsort = strcmp((*psorted_chan_params_list)[ninsert]->station, pnew_chan_params->station)) > 0)
                 break;
             if (nsort == 0) {
-                if ((nsort = strcmp((*psorted_sta_params_list)[ninsert]->location, pnew_sta_params->location)) > 0)
+                if ((nsort = strcmp((*psorted_chan_params_list)[ninsert]->location, pnew_chan_params->location)) > 0)
                     break;
                 if (nsort == 0) {
-                    if ((nsort = strcmp((*psorted_sta_params_list)[ninsert]->channel, pnew_sta_params->channel)) >= 0)
+                    if ((nsort = strcmp((*psorted_chan_params_list)[ninsert]->channel, pnew_chan_params->channel)) >= 0)
                         break;
                 }
             }
@@ -4793,63 +4979,63 @@ int addStationParametersToSortedList(StationParameters* pnew_sta_params, Station
 
     if (nsort != 0) { // not identical match, will insert    // 20140114 AJL - bug fix
         // shift higher sort sta params
-        if (ninsert < *pnum_sorted_sta_params) {
+        if (ninsert < *pnum_sorted_chan_params) {
             int m;
-            for (m = *pnum_sorted_sta_params - 1; m >= ninsert; m--)
-                (*psorted_sta_params_list)[m + 1] = (*psorted_sta_params_list)[m];
+            for (m = *pnum_sorted_chan_params - 1; m >= ninsert; m--)
+                (*psorted_chan_params_list)[m + 1] = (*psorted_chan_params_list)[m];
         }
     }
-    // insert reference to StationParameters
-    (*psorted_sta_params_list)[ninsert] = pnew_sta_params;
+    // insert reference to ChannelParameters
+    (*psorted_chan_params_list)[ninsert] = pnew_chan_params;
     if (nsort != 0) { // not identical match, will insert    // 20140114 AJL - bug fix
         (
 
-                *pnum_sorted_sta_params)++;
+                *pnum_sorted_chan_params)++;
     }
 
     return (0);
 
 }
 
-/** remove a StationParameters from a sorted StationParameters list */
+/** remove a ChannelParameters from a sorted ChannelParameters list */
 
-void removeStationParametersFromSortedList(StationParameters* psta_params, StationParameters*** psorted_sta_params_list, int* pnum_sorted_sta_params) {
+void removeChannelParametersFromSortedList(ChannelParameters* pchan_params, ChannelParameters*** psorted_chan_params_list, int* pnum_sorted_chan_params) {
 
     int i = 0;
 
-    while (i < *pnum_sorted_sta_params) {
-        if ((*psorted_sta_params_list)[i] == psta_params)
+    while (i < *pnum_sorted_chan_params) {
+        if ((*psorted_chan_params_list)[i] == pchan_params)
             break;
         i++;
     }
 
-    if (i == *pnum_sorted_sta_params) // not found
+    if (i == *pnum_sorted_chan_params) // not found
         return;
 
-    while (i < *pnum_sorted_sta_params - 1) {
+    while (i < *pnum_sorted_chan_params - 1) {
         (
 
-                *psorted_sta_params_list)[i] = (*psorted_sta_params_list)[i + 1];
+                *psorted_chan_params_list)[i] = (*psorted_chan_params_list)[i + 1];
         i++;
     }
 
-    (*psorted_sta_params_list)[*pnum_sorted_sta_params - 1] = NULL;
+    (*psorted_chan_params_list)[*pnum_sorted_chan_params - 1] = NULL;
 
-    (*pnum_sorted_sta_params)--;
+    (*pnum_sorted_chan_params)--;
 
 }
 
-/** clean up sorted StationParameters list memory */
+/** clean up sorted ChannelParameters list memory */
 
-void free_StationParametersList(StationParameters*** psorted_sta_params_list, int* pnum_sorted_sta_params) {
+void free_ChannelParametersList(ChannelParameters*** psorted_chan_params_list, int* pnum_sorted_chan_params) {
 
-    if (*psorted_sta_params_list == NULL || *pnum_sorted_sta_params < 1)
+    if (*psorted_chan_params_list == NULL || *pnum_sorted_chan_params < 1)
         return;
 
-    free(*psorted_sta_params_list);
-    *psorted_sta_params_list = NULL;
+    free(*psorted_chan_params_list);
+    *psorted_chan_params_list = NULL;
 
-    *pnum_sorted_sta_params = 0;
+    *pnum_sorted_chan_params = 0;
 
 }
 

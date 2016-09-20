@@ -356,8 +356,8 @@ int main(int argc, char **argv) {
                             ms_log(1, "Warning: conflicting sample rates: %f in ignored %s vs. %f in active %s: this should not happen!\n",
                                     msr_samprate(msr), srcname, source_samplerate_list[isource], sourcename_list[isource]);
                             //duplicate = 4;
-                            stationParameters[isource].error = stationParameters[isource].error | ERROR_DIFFERENT_SAMPLE_RATES;
-                            stationParameters[isource].count_conflicting_dt++;
+                            channelParameters[isource].error = channelParameters[isource].error | ERROR_DIFFERENT_SAMPLE_RATES;
+                            channelParameters[isource].count_conflicting_dt++;
                             msr_free(&msr);
                             msr = NULL;
                             isource = -1;
@@ -434,7 +434,7 @@ int main(int argc, char **argv) {
             double dsec;
             time_t start_time_t = hptime_t2time_t(msr_starttime(msr), &dsec);
             //if (time_min < 0 || start_time_t < time_min) {
-            if (time_min < 0 // if report_end_delay < 0 use strictly first packet start time as time min // 20110411 AJL - to prevent processing past report end, allows realistic simulation of T0, Mwpd integrals, etc.
+            if (time_min < 0 // if report_start < 0 use strictly first packet start time as time min // 20110411 AJL - to prevent processing past report end, allows realistic simulation of T0, Mwpd integrals, etc.
                     || (report_start < 0 && report_end_delay > 0 && start_time_t < time_min)) {
                 time_min = start_time_t;
                 ms_hptime2seedtimestr(msr->starttime, timestr, 1);
@@ -455,10 +455,22 @@ int main(int argc, char **argv) {
             totalsamps += msr->samplecnt;
 
             // skip record if past time max // 20110411 AJL - to prevent processing past report end, allows realistic simulation of T0, Mwpd integrals, etc.
-            time_t packet_end_time = start_time_t + (int) (msr->numsamples / msr->samprate);
+            // 20160816 AJL - change from rejecting if packet_end_time > time_max to truncating exactly to time_max
+            /* time_t packet_end_time = start_time_t + (int) (msr->numsamples / msr->samprate);
             if ((report_start >= 0 || report_end_delay < 0) && packet_end_time > time_max) {
                 msr_free(&msr);
                 continue;
+            }*/
+            int msr_numsamples_use = msr->numsamples;
+            if (report_start >= 0 || report_end_delay < 0) {
+                if (start_time_t >= time_max) {
+                    msr_free(&msr);
+                    continue;
+                }
+                time_t packet_end_time = start_time_t + (int) (msr->numsamples / msr->samprate);
+                if (packet_end_time > time_max) {
+                    msr_numsamples_use = (int) (time_max - start_time_t) * msr->samprate;
+                }
             }
 
             // write trace data
@@ -488,7 +500,7 @@ int main(int argc, char **argv) {
             if (strlen(loc_str) < 2)
                 strcpy(loc_str, "--");
             //printf("DEBUG: %s record length = %lds\n", net_sta, hptime_t2time_t(msr_endtime(msr), &dsec) - hptime_t2time_t(msr_starttime(msr), &dsec));
-            msp_process(msr, source_id, is_new_source, msr->network, msr->station, loc_str, msr->channel, (flag) details, (flag) verbose);
+            msp_process(msr, source_id, is_new_source, msr->network, msr->station, loc_str, msr->channel, msr_numsamples_use, (flag) details, (flag) verbose);
             strcat(msr->location, "X");
             //strcpy(msr->channel, "X");
             msr_normalize_header(msr, verbose - 2);
@@ -507,12 +519,12 @@ int main(int argc, char **argv) {
             msr_free(&msr);
 
             // check for completed timedomain-processing data
-            TimedomainProcessingData** data_list;
-            int num_de_data;
-            td_getTimedomainProcessingDataList(&data_list, &num_de_data);
+            TimedomainProcessingData** de_data_list;
+            int n_de_data;
+            td_getTimedomainProcessingDataList(&de_data_list, &n_de_data);
             if (verbose) {
-                for (int n = 0; n < num_de_data; n++) {
-                    TimedomainProcessingData* deData = data_list[n];
+                for (int n = 0; n < n_de_data; n++) {
+                    TimedomainProcessingData* deData = de_data_list[n];
                     if (deData->flag_complete_t50 == 1) {
                         // flag that data has had initial processing here
                         deData->flag_complete_t50 = 2;
@@ -538,7 +550,7 @@ int main(int argc, char **argv) {
                         else
                             strcpy(color, "       ");
                         printf("Info: pick %d/%d, %s, elapsed %d, %.4d%.2d%.2d-%.2d:%.2d:%.4f, t50 %.2f, a_ref %.2f, t50/a_ref %.2f, S/N %.2f  %s",
-                                n + 1, num_de_data, sourcename_list[deData->source_id], deData->virtual_pick_index,
+                                n + 1, n_de_data, sourcename_list[deData->source_id], deData->virtual_pick_index,
                                 deData->year, deData->month, deData->mday, deData->hour, deData->min, deData->dsec, deData->t50, deData->a_ref, deLevel, deData->a_ref / deData->sn_pick, color);
                         if (deData->flag_clipped)
                             printf(" Ignored:CLIPPED");
@@ -559,7 +571,7 @@ int main(int argc, char **argv) {
                         // display results
                         if (verbose > 1) {
                             printf("Info: Mwp: %d/%d, %s, elapsed %d, %.4d%.2d%.2d-%.2d:%.2d:%.4f, aP %.2f, Mwp_int %.2e, Mwp_int_int %.2e, Pk1 %.2e, T1 %.2f",
-                                    n + 1, num_de_data, sourcename_list[deData->source_id], deData->virtual_pick_index,
+                                    n + 1, n_de_data, sourcename_list[deData->source_id], deData->virtual_pick_index,
                                     deData->year, deData->month, deData->mday, deData->hour, deData->min, deData->dsec,
                                     deData->mwp->amp_at_pick, deData->mwp->int_sum, deData->mwp->int_int_sum_mwp_peak,
                                     deData->mwp->peak[deData->mwp->index_mag], deData->mwp->peak_dur[deData->mwp->index_mag]
@@ -743,7 +755,7 @@ int main(int argc, char **argv) {
  *
  * TODO: add doc.
  ***************************************************************************/
-void msp_process(MSRecord *msr, int source_id, int is_new_source, char* msr_net, char* msr_sta, char* msr_loc, char* msr_chan, flag details, flag verbose) {
+void msp_process(MSRecord *msr, int source_id, int is_new_source, char* msr_net, char* msr_sta, char* msr_loc, char* msr_chan, int msr_numsamples_use, flag details, flag verbose) {
 
     static char source_name[64];
     int i;
@@ -838,7 +850,8 @@ void msp_process(MSRecord *msr, int source_id, int is_new_source, char* msr_net,
     double data_latency = 0.0;
     int num_new_loc_picks = 0;
     double count_new_use_loc_picks_cutoff_time = -FLT_MAX;
-    if (td_process_timedomain_processing(msr, NULL, source_id, source_name, deltaTime, &data_float, (int) msr->numsamples,
+    int numsamples = msr_numsamples_use;
+    if (td_process_timedomain_processing(msr, NULL, source_id, source_name, deltaTime, &data_float, numsamples,
             msr_net, msr_sta, msr_loc, msr_chan, btime.year, btime.day, month, mday, btime.hour, btime.min, dsec,
             (int) verbose, flag_clipped,
             data_latency, PACKAGE,

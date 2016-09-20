@@ -20,6 +20,7 @@
 
 #include "timedomain_processing_data.h"
 #include "ttimes.h"
+#include "location.h"
 //#include "location.h"
 
 /** timedomain-processing memory class */
@@ -163,6 +164,7 @@ TimedomainProcessingData* init_TimedomainProcessingData(double deltaTime, int fl
     deData->epicentral_azimuth = -1.0;
     deData->residual = -999.0;
     deData->dist_weight = -1.0;
+    deData->polarization.weight = -1.0;
     deData->station_quality_weight = -1.0;
     deData->loc_weight = -1.0;
     strcpy(deData->phase, "X");
@@ -178,11 +180,14 @@ TimedomainProcessingData* init_TimedomainProcessingData(double deltaTime, int fl
     // waveform export bookkeeping
     deData->waveform_export = NULL;
     if (waveform_export_enable) {
-        deData->waveform_export = (WaveformExport*) calloc(1, sizeof (WaveformExport));
-        deData->waveform_export->filename[0] = '\0';
-        deData->waveform_export->start_time_written = -1;
-        deData->waveform_export->end_time_written = -1;
-        deData->waveform_export->hypo_unique_id = -1;
+                // 20160808 AJL - add support for 3-comp write
+        deData->waveform_export = (WaveformExport*) calloc(3, sizeof (WaveformExport));
+        for (int n = 0; n < 3; n++) {
+        deData->waveform_export[n].filename[0] = '\0';
+        deData->waveform_export[n].start_time_written = -1;
+        deData->waveform_export[n].end_time_written = -1;
+        deData->waveform_export[n].hypo_unique_id = -1;
+        }
     }
 
     // amplitude attenuation
@@ -192,6 +197,9 @@ TimedomainProcessingData* init_TimedomainProcessingData(double deltaTime, int fl
     // station corrections  // 20150716 AJL - added to support output of used sta correction in pick csv file
     deData->sta_corr = 0.0;
 
+    // polarization
+    deData->polarization.status = POL_UNK;
+    deData->polarization.n_analysis_tries = 0;
 
     return (deData);
 
@@ -200,7 +208,7 @@ TimedomainProcessingData* init_TimedomainProcessingData(double deltaTime, int fl
 /** set data values */
 
 TimedomainProcessingData* new_TimedomainProcessingData(char* sladdr, int n_int_tseries, int source_id, char* station, char* location, char* channel,
-        char* network, double deltaTime, double lat, double lon, double elev, double station_quality_weight, PickData* pickData, int pick_stream, int init_ellapsed_index_count,
+        char* network, double deltaTime, double lat, double lon, double elev, double azimuth, double dip, double station_quality_weight, PickData* pickData, int pick_stream, int init_ellapsed_index_count,
         int year, int month, int mday, int hour, int min, double dsec, int flag_do_mwpd, int waveform_export_enable) {
 
     TimedomainProcessingData* deData = init_TimedomainProcessingData(deltaTime, flag_do_mwpd, waveform_export_enable);
@@ -217,6 +225,8 @@ TimedomainProcessingData* new_TimedomainProcessingData(char* sladdr, int n_int_t
     deData->lat = lat;
     deData->lon = lon;
     deData->elev = elev;
+    deData->azimuth = azimuth;
+    deData->dip = dip;
     deData->station_quality_weight = station_quality_weight;
     *(deData->pickData) = *pickData; // make local copy of pickData
     deData->pick_stream = pick_stream;
@@ -427,7 +437,7 @@ void free_TimedomainProcessingDataList(TimedomainProcessingData** data_list, int
     int n;
     for (n = 0; n < num_data; n++) {
         free_TimedomainProcessingData(*(data_list + n));
-        *(data_list + n) = NULL;      // 20160802 AJL - memory bug fix?
+        *(data_list + n) = NULL; // 20160802 AJL - memory bug fix?
     }
 
     free(data_list);
@@ -474,7 +484,7 @@ int fprintf_TimedomainProcessingData(TimedomainProcessingData* deData, FILE* pfi
 
     fprintf(pfile, "%d ", deData->source_id); //	int source_id;
     fprintf(pfile, "%s %s %s %s ", deData->station, deData->location, deData->channel, deData->network);
-    fprintf(pfile, "%f %f %f ", deData->lat, deData->lon, deData->elev);
+    fprintf(pfile, "%f %f %f  %f %f ", deData->lat, deData->lon, deData->elev, deData->azimuth, deData->dip);
 
     fprintf(pfile, " ");
     fprintf_PickData(deData->pickData, pfile); //  PickData* pickData;   // initial pick

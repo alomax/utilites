@@ -501,6 +501,9 @@ void writeXMLArrival(xmlTextWriterPtr writer, HypocenterDesc* phypo, TimedomainP
     writeXMLPick(writer, "pick", deData, ndata);
 
     // Early-est
+    writeXMLDValue(writer, "ee:polarizationAzimuth", deData->polarization.azimuth);
+    writeXMLDValue(writer, "ee:polarizationAzimuthUnc", deData->polarization.azimuth_unc);
+    writeXMLDValue(writer, "ee:polarizationWeight", deData->polarization.weight);
     writeXMLDValue(writer, "ee:totalWeight", deData->loc_weight);
     writeXMLDValue(writer, "ee:distanceWeight", deData->dist_weight);
     writeXMLDValue(writer, "ee:staQualityWeight", deData->station_quality_weight);

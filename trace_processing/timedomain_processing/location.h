@@ -162,8 +162,18 @@ typedef struct {
     // 20141212 AJL - added
     int nstaHasBeenActive; // number of stations for which data has been received in past
     int nstaIsActive; // number of stations for which data has been received and data_latency < report_interval
+    // 20160902 AJL - added
+    int loc_seq_num;    // sequence number of (re-)association/locations for this event // 20160905 AJL - added
+    // 20160914 AJL - added
+    int loc_type;    // type of association/location // 20160905 AJL - added
 }
 HypocenterDesc;
+// === there are three cases for association: reassociate only (hypo preserved and fixed), relocate existing (search locally around hypo), full association location
+#define LOC_TYPE_UNDEF 0
+#define LOC_TYPE_FULL 1
+#define LOC_TYPE_RELOC_EXISTING 2
+#define LOC_TYPE_REASSOC_ONLY 3
+
 
 //
 void init_HypocenterDesc(HypocenterDesc *phypo);
@@ -182,7 +192,7 @@ typedef struct {
     int year;
     int doy;
     double frequency;
-    double gain;
+    double gain;    // counts/(m/s)
     int responseType;
     time_t gainfile_checked_time;
     time_t internet_gain_query_checked_time;
@@ -227,6 +237,8 @@ typedef struct {
     double lat;
     double lon;
     double elev; // meters
+    double azimuth; // Azimuth of the sensor in degrees from north, clockwise
+    double dip; // Dip of the instrument in degrees, down from horizontal
     int inactive_duplicate;
     int staActiveInReportInterval; // station data has been received in last report interval REPORT_INTERVAL
     double data_latency;
@@ -250,7 +262,7 @@ typedef struct {
     int process_this_channel_orientation; // flag indicating if this channel orientation will be processed (-1= not set, 0= no processing, 1= process)
     int channel_set[2]; // source_id's of other two sources that make a 3-comp channel set with orthogonal orientations (e.g. ZNE, Z12)
 }
-StationParameters;
+ChannelParameters;
 
 typedef struct Otime_Limit {
     int data_id;
@@ -259,8 +271,10 @@ typedef struct Otime_Limit {
     double azimuth; // degrees CW from N
     double dist; // great-circle distance
     double dist_weight; // distance weight
+    double polarization_weight; // polarization weight (polarization analysis azimuth)
+    double polarization_azimuth_calc;   // calculated/predicted ray take-off azimuth
     double quality_weight; // quality weight, e.g. function of number of unassociated data
-    double total_weight; // quality weight, e.g. function of number of unassociated data
+    double total_weight; // total weight for association
     double time; // time of limit
     double otime; // estimated origin time
     int polarity; // = +1 if start time of otime limit, -1 if end time
@@ -329,41 +343,49 @@ OtimeLimit;
 
 #define MAX_NUM_DIVIDE_EXTRA 4096
 
+#define OCTTREE_UNDEF_VALUE -VERY_SMALL_DOUBLE
+#define OCTTREE_TYPE 1
 
+Tree3D *setUpOctTree(double lat_min, double lat_max, double lat_step,
+        double lon_min, double lon_max, double lon_step_smallest,
+        double depth_min, double depth_max, double depth_step);
 double octtreeGlobalAssociationLocation(int num_pass, double min_weight_sum_assoc, int max_num_nodes,
         double nominal_critical_node_size_km, double min_critical_node_size_km, double nominal_min_node_size_km,
         double gap_primary_critical, double gap_secondary_critical,
         double lat_min, double lat_max, double lat_step, double lon_min, double lon_max, double lon_step_smallest,
-        double depth_min, double depth_max, double depth_step,
+        double depth_min, double depth_max, double depth_step, int is_local_search,
         int numPhaseTypesUse, int phaseTypesUse[get_num_ttime_phases()], char channelNamesUse[get_num_ttime_phases()][128], double timeDelayUse[MAX_NUM_TTIME_PHASES][2],
         double reference_phase_ttime_error,
         TimedomainProcessingData** pdata_list, int num_de_data,
         HypocenterDesc *hypocenter,
         float **pscatter_sample, int *p_n_alloc_scatter_sample, int i_get_scatter_sample, int *pn_scatter_sample, double *p_global_max_nassociated_P_lat_lon,
-        StationParameters * stationParameters,
+        ChannelParameters * channelParameters,
         int reassociate_only, time_t time_min, time_t time_max
         );
 void setOtimeLimit(OtimeLimit* otime_limit, int use_for_location, int data_id, int pick_stream, double az, double dist,
-        double dist_weight, double quality_weight, double total_weight,
+        double dist_weight, double polarization_weight, double polarization_azimuth_calc, double quality_weight, double total_weight,
         double time, double otime, int polarity, int phase_id, int index, double dist_range, double time_range_uncertainty, double depth, TimedomainProcessingData* deData,
         double sta_corr);
 void addOtimeLimitToList(OtimeLimit* otimeLimit, OtimeLimit*** potime_limit_list, int* pnum_otime_limit);
 void free_OtimeLimitList(OtimeLimit*** otime_limit_list, int* pnum_otime_limit);
 void clear_OtimeLimitList(int* pnum_otime_limit);
 void free_OtimeLimit(OtimeLimit* otime_limit);
-int countStationsAvailable(double lat, double lon, double distance_max, StationParameters* stationParameters);
+int countStationsAvailable(double lat, double lon, double distance_max, ChannelParameters* channelParameters);
 int count_in_location(int phase_id, double weight, int use_for_location);
 int skipData(TimedomainProcessingData *deData, int num_pass);
 int isPhaseTypeToUse(TimedomainProcessingData* deData, int phase_id, int numPhaseTypesUse, int phaseTypesUse[], char channelNamesUse[][128],
         double timeDelayUse[MAX_NUM_TTIME_PHASES][2], TimedomainProcessingData** pdata_list, int ndata_test);
 
-void freeStationParameters(StationParameters* psta_params);
-void initStationParameters(StationParameters* psta_params);
-int associate3CompChannelSet(StationParameters* station_params, int n_sources, int source_id);
+double setRefOtimeDeviation(HypocenterDesc* hypo1, HypocenterDesc* hypo2);
+int isSameEvent(HypocenterDesc* hypo1, HypocenterDesc* hypo2);
+
+void freeChannelParameters(ChannelParameters* pchan_params);
+void initChannelParameters(ChannelParameters* pchan_params);
+int associate3CompChannelSet(ChannelParameters* channel_params, int n_sources, int source_id);
 void initAssociateLocateParameters(double upweight_picks_sn_cutoff_init, double upweight_picks_dist_max, double upweight_picks_dist_full, int use_amplitude_attenuation_init);
-int addStationParametersToSortedList(StationParameters* pnew_sta_params, StationParameters*** psorted_sta_params_list, int* pnum_sorted_sta_params);
-void removeStationParametersFromSortedList(StationParameters* psta_params, StationParameters*** psorted_sta_params_list, int* pnum_sorted_sta_params);
-void free_StationParametersList(StationParameters*** psorted_sta_params_list, int* pnum_sorted_sta_params);
+int addChannelParametersToSortedList(ChannelParameters* pnew_chan_params, ChannelParameters*** psorted_chan_params_list, int* pnum_sorted_chan_params);
+void removeChannelParametersFromSortedList(ChannelParameters* pchan_params, ChannelParameters*** psorted_chan_params_list, int* pnum_sorted_chan_params);
+void free_ChannelParametersList(ChannelParameters*** psorted_chan_params_list, int* pnum_sorted_chan_params);
 void setHypocenterQuality(HypocenterDesc* phypo, double min_weight_sum_assoc, double critical_errh, double critical_errz);
 
 // values (e.g. distance, azimuth =====================================================================================

@@ -131,7 +131,7 @@ export LIB_OBJS = ../timedomain_processing/timedomain_processing.o ../timedomain
 ../timedomain_processing/ttimes.o ../timedomain_processing/location.o ../timedomain_processing/loc2xml.o \
 ../vector/vector.o \
 ../statistics/statistics.o \
-../alomax_matrix/alomax_matrix.o ../alomax_matrix/alomax_matrix_svd.o ../matrix_statistics/matrix_statistics.o \
+../alomax_matrix/alomax_matrix.o ../alomax_matrix/alomax_matrix_svd.o ../alomax_matrix/polarization.o ../alomax_matrix/eigv.o ../matrix_statistics/matrix_statistics.o \
 ../picker/PickData.o ../picker/FilterPicker5_Memory.o  ../picker/FilterPicker5.o \
 ../net/net_lib.o ../response/response_lib.o ../math/complex.o ../octtree/octtree.o ../ran1/ran1.o ../feregion/feregion.o \
 ../settings/settings.o ../settings/strmap.o ../miniseed_utils/miniseed_utils.o
