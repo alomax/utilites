@@ -203,6 +203,9 @@ int addHypocenterDescToHypoList(HypocenterDesc* pnew_hypo_desc, HypocenterDesc**
 
     if (unique_id <= 0) { // new hypocenter
         unique_id = (long) (1000.0 * pnew_hypo_desc->otime); // 1/1000 sec precision
+        if (unique_id < 0) { // events pre-1970
+            unique_id += 31556995200000L; // 2970.01.01 00:00:00
+        }
         time_t current_time = time(&current_time);
         first_assoc_time = (long) current_time;
         new_hypocenter = 1;
@@ -517,6 +520,7 @@ void free_ValueDescList(ValueDesc*** pvalue_list, int* pnum_values) {
 /** set deviation (range) of allowed origin time difference for comparing two event hypocenters
  */
 #define OTIME_DEVIATION_MIN 1.0 // sec
+
 double setRefOtimeDeviation(HypocenterDesc* hypo1, HypocenterDesc* hypo2) {
 
     double ref_ot_dev = hypo1->ot_std_dev + hypo2->ot_std_dev;
@@ -524,13 +528,14 @@ double setRefOtimeDeviation(HypocenterDesc* hypo1, HypocenterDesc* hypo2) {
     if (ref_ot_dev < OTIME_DEVIATION_MIN)
         ref_ot_dev = OTIME_DEVIATION_MIN;
 
-    return(ref_ot_dev);
+    return (ref_ot_dev);
 
 }
 
 /** compare two HypocenterDesc's to determine if they refer to same event */
 //20110412 AJL
 #define EPICENTER_DEVIATION_MIN 10.0 // km
+
 int isSameEvent(HypocenterDesc* hypo1, HypocenterDesc* hypo2) {
 
     // check unique_id
@@ -542,16 +547,16 @@ int isSameEvent(HypocenterDesc* hypo1, HypocenterDesc* hypo2) {
     // otime deviation
     double ot_dev = fabs(hypo1->otime - hypo2->otime);
     double ref_ot_dev = setRefOtimeDeviation(hypo1, hypo2);
-    printf("DEBUG: ot_dev %f  ref_ot_dev %f\n", ot_dev, ref_ot_dev);
+    //printf("DEBUG: ot_dev %f  ref_ot_dev %f\n", ot_dev, ref_ot_dev);
     // lat/lon deviation
     double dist_dev = GCDistance_local(hypo1->lat, hypo1->lon, hypo2->lat, hypo2->lon) * DEG2KM;
     double ref_epi_dev = hypo1->errh + hypo2->errh;
-    printf("DEBUG: dist_dev %f  ref_epi_dev %f\n", dist_dev, ref_epi_dev);
+    //printf("DEBUG: dist_dev %f  ref_epi_dev %f\n", dist_dev, ref_epi_dev);
     ref_epi_dev *= 4.0;
     if (ref_epi_dev < EPICENTER_DEVIATION_MIN)
         ref_epi_dev = EPICENTER_DEVIATION_MIN;
     // check for match within sum of allowable deviation ratios
-    printf("DEBUG: ot_dev / ref_ot_dev %f  dist_dev / ref_epi_dev %f\n", ot_dev / ref_ot_dev, dist_dev / ref_epi_dev);
+    //printf("DEBUG: ot_dev / ref_ot_dev %f  dist_dev / ref_epi_dev %f\n", ot_dev / ref_ot_dev, dist_dev / ref_epi_dev);
     if (
             // 20130308 AJL - change logic from sum to AND
             //ot_dev / ref_ot_dev + dist_dev / ref_epi_dev < 2.0
@@ -1662,12 +1667,16 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
             printf("@@@@@@ %s,last_reassociate %d, deData->is_associated %d\n", deData->station, last_reassociate, deData->is_associated);
         }*/
 
-        if (skipData(deData, num_pass))
+        if (skipData(deData, num_pass)) {
+            //printf("SKIP 1\n");
             continue;
+        }
 
         // skip if not re-associating, and not associated in this pass
-        if (no_reassociate && !(deData->is_associated && deData->is_associated == num_pass))
+        if (no_reassociate && !(deData->is_associated && deData->is_associated == num_pass)) {
+            //printf("SKIP 2\n");
             continue;
+        }
 
         // get distance and azimuth
         if (USE_SAVED_INITIAL_GRIDS && indexLatLonSavedInitialGrid >= 0) {
@@ -1742,6 +1751,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
         // station quality weight
         double station_quality_weight = deData->station_quality_weight;
         double total_weight_station = dist_weight * station_quality_weight;
+        //printf("DEBUG: total_weight_station %f, dist_weight %f, station_quality_weight %f\n", total_weight_station, dist_weight, station_quality_weight);
         // enable up-weighting of picks with high S/N for location   // 20141203 AJL - added
         if (upweight_picks_sn_cutoff > 0.0
                 && dist_test_min <= upweight_picks_dist_max // 20151130 AJL - added
@@ -1778,8 +1788,10 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
         for (phase_id = 0; phase_id < get_num_ttime_phases(); phase_id++) {
 
             // skip if re-associating and before last reassociation pass and phase not counted in location
-            if (!last_reassociate && !count_in_location(phase_id, 999.9, deData->use_for_location))
+            if (!last_reassociate && !count_in_location(phase_id, 999.9, deData->use_for_location)) {
+                //printf("SKIP 3\n");
                 continue;
+            }
             // skip if pick period too large
             /* 20110205 AJL - disabled this check - causes PKP phases to be skipped on large events (Mindanao_2010_MED)
             if (0 && !is_direct_P(phase_id) && deData->pickData->period > MAX_PICK_PERIOD_ASSOC_LOCATE) {
@@ -1793,6 +1805,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
             // check if phase is in phase type to use list, if list exists
             if (numPhaseTypesUse > 0) {
                 if (!isPhaseTypeToUse(deData, phase_id, numPhaseTypesUse, phaseTypesUse, channelNamesUse, timeDelayUse, pdata_list, ndata)) {
+                    //printf("SKIP 4\n");
                     continue;
                 }
             }
@@ -1804,6 +1817,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                         + indexDepthSavedInitialGrid * MAX_NUM_SOURCES * 2 + deData->source_id * 2;
                 if (*ttvalue == DBL_INVALID) { // not available
                     DEBUG_n_not_available++;
+                    //printf("SKIP 5\n");
                     continue;
                 }
                 if (*ttvalue < 0.0) { // not initialized
@@ -1811,6 +1825,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                         // not available
                         *ttvalue = DBL_INVALID;
                         DEBUG_n_not_available++;
+                        //printf("SKIP 6\n");
                         continue;
                     }
                     *ttvalue = tt_min;
@@ -1823,6 +1838,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                 }
             } else {
                 if (GetTTminMax(phase_id, dist_test_min, dist_test_max, depth, grid_depth_test, &tt_min, &tt_max) < 0) {
+                    //printf("SKIP 7 phase_id %d %s, dist_test_min %f, dist_test_max %f, depth %f, grid_depth_test %f\n", phase_id, phase_name_for_id(phase_id), dist_test_min, dist_test_max, depth, grid_depth_test);
                     continue;
                 }
             }
@@ -1854,6 +1870,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
             }*/
 
             double total_weight_phase = total_weight_station;
+            //printf("DEBUG: total_weight_phase %f\n", total_weight_phase);
 
             // AJL 20100312 - added tt error
             double ttime_error = get_phase_ttime_error(phase_id);
@@ -1869,7 +1886,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                 //printf("DEBUG %s_%s phase_id %d  deData->use_for_location %d  ttime_error/total_weight_phase %f/%f->", channelParameters[deData->source_id].network, channelParameters[deData->source_id].station, phase_id, deData->use_for_location, ttime_error, total_weight_phase);
                 ttime_error *= 3.0;
                 total_weight_phase = 0.0; // make sure this definitive phase cannot affect the association for this event
-                //printf("%f/%f\n", ttime_error, total_weight_phase);
+                //printf("DEBUG: %f/%f\n", ttime_error, total_weight_phase);
             } // */
 
             // AJL 20100312 - added tt error
@@ -1933,22 +1950,27 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
             if (last_reassociate_otime > 0.0) {
                 if (last_reassociate_otime - last_reassociate_otime_sigma - reftime > otime_max
                         || last_reassociate_otime + last_reassociate_otime_sigma - reftime < otime_min)
+                    //printf("SKIP 8\n");
                     continue;
             }
 
             // check if earliest direct P and flag if direct arrival
             if (is_direct_P(phase_id) && have_direct_P) {
                 // skip phase if already found related times for earlier direct phase
-                if (otime > direct_P_otime) // later direct P phase (e.g. Pg)
+                if (otime > direct_P_otime) { // later direct P phase (e.g. Pg)
+                    //printf("SKIP 9\n");
                     continue;
+                }
                 removeOtimeLimitFromList(otimeLimitMin_P, &OtimeLimitList, &NumOtimeLimit); // increments NumOtimeLimit
                 removeOtimeLimitFromList(otimeLimitMax_P, &OtimeLimitList, &NumOtimeLimit); // increments NumOtimeLimit
             }
             // check if earliest direct S and flag if direct arrival
             if (is_direct_S(phase_id) && have_direct_S) {
                 // skip phase if already found related times for earlier direct phase
-                if (otime > direct_S_otime) // later direct S phase (e.g. Sg)
+                if (otime > direct_S_otime) { // later direct S phase (e.g. Sg)
+                    //printf("SKIP 10\n");
                     continue;
+                }
                 removeOtimeLimitFromList(otimeLimitMin_S, &OtimeLimitList, &NumOtimeLimit); // increments NumOtimeLimit
                 removeOtimeLimitFromList(otimeLimitMax_S, &OtimeLimitList, &NumOtimeLimit); // increments NumOtimeLimit
             }
@@ -1957,12 +1979,14 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
             double dist_range = (otime_max - otime_min) * velocity;
 
             // include ratio of reference phase ttime error to this phase ttime errors for phase weighting
-            // 20130307 AJL - added to allow use of non P phases for location
-            //#ifdef TTIMES_REGIONAL
-            //total_weight_phase = total_weight_phase * (reference_phase_ttime_error / get_phase_ttime_error(phase_id));
-            total_weight_phase = total_weight_phase * (reference_phase_ttime_error / time_errors);
-            //printf("DEBUG: total_weight_phase=%g total_weight=%g reference_phase_ttime_error=%g time_errors=%g\n", total_weight_phase, total_weight, reference_phase_ttime_error, time_errors);
-            //#endif
+            if (reference_phase_ttime_error > 0.0) { // 20161010 AJL - added to allow disabling this weighting, e.g. for early instrumental data with large pick uncertainty
+                // 20130307 AJL - added to allow use of non P phases for location
+                //#ifdef TTIMES_REGIONAL
+                //total_weight_phase = total_weight_phase * (reference_phase_ttime_error / get_phase_ttime_error(phase_id));
+                total_weight_phase = total_weight_phase * (reference_phase_ttime_error / time_errors);
+                //printf("DEBUG: total_weight_phase=%g reference_phase_ttime_error=%g time_errors=%g\n", total_weight_phase, reference_phase_ttime_error, time_errors);
+                //#endif
+            }
 
             // adjust weight for polarization
             // 20160810 AJL - added
@@ -2100,6 +2124,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
     }
     // parse otime limits in time order to scan stack (histogram) of weighted origin times
     int location_count_changed = 0;
+    //printf("DEBUG: NumOtimeLimit %d\n", NumOtimeLimit);
     for (n_ot_limit = 0; n_ot_limit < NumOtimeLimit; n_ot_limit++) {
         otimeLimit = *(OtimeLimitList + n_ot_limit);
         data_id = otimeLimit->data_id;
@@ -2144,7 +2169,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                     phase_name_for_id(otimeLimit->phase_id),
                     weight_sum, nassociated_P_work, deData->flag_a_ref_not_ok, otimeLimit->data_id,
                     pdata_list[otimeLimit->data_id]->station, phase_name_for_id(otimeLimit->phase_id), otimeLimit->dist, otimeLimit->total_weight,
-                    otimeLimit->time, otimeLimit->pair->time, otimeLimit->pair->time - otimeLimit->time, otimeLimit->otime);*/
+                    otimeLimit->time, otimeLimit->pair->time, otimeLimit->pair->time - otimeLimit->time, otimeLimit->otime);//*/
         } else { // leave otime limit for this datum
             otimeLimit->assoc = otimeLimit->pair->assoc = 0;
             if (otimeLimit->count_in_loc) {
@@ -2175,7 +2200,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                     phase_name_for_id(otimeLimit->phase_id),
                     weight_sum, nassociated_P_work, deData->flag_a_ref_not_ok, otimeLimit->data_id,
                     pdata_list[otimeLimit->data_id]->station, phase_name_for_id(otimeLimit->phase_id), otimeLimit->dist, otimeLimit->total_weight,
-                    otimeLimit->time, otimeLimit->pair->time, otimeLimit->pair->time - otimeLimit->time, otimeLimit->otime);*/
+                    otimeLimit->time, otimeLimit->pair->time, otimeLimit->pair->time - otimeLimit->time, otimeLimit->otime);//*/
             // check if not enough data remaining to get more stations than best
             // i.e. nassociated_P_work + max_new_possible < best_nassociated_P_work
             //if (nassociated_P_work + (NumOtimeLimit - n_ot_limit - 1) / 2 < best_nassociated_P_work)
@@ -2194,8 +2219,10 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
 #ifdef PURE_OCTREE
         if (!location_count_changed || nassociated_P_work <= 1 || weight_sum < min_weight_sum_assoc // 20101217
                 //|| adjusted_weight_sum < best_prob
-                )
+                ) {
+            //printf("DEBUG: REJECT 1: !location_count_changed %d || nassociated_P_work %d <= 1 || weight_sum %f < min_weight_sum_assoc %f\n", location_count_changed, nassociated_P_work, weight_sum, min_weight_sum_assoc);
             continue; // cannot be better than current best_prob
+        }
 #else
         if (!location_count_changed || nassociated_P_work <= 1 || weight_sum < min_weight_sum_assoc // 20101217
                 || adjusted_weight_sum < best_prob
@@ -2254,6 +2281,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
         if (isnan(prob)) { // 20101230 AJL
             printf("DEBUG: ===> prob NaN!!! [ot_variance_weight * adjusted_weight_sum] volume=%lg   x y x = %g %g %g\n",
                     volume, poct_node->center.y, poct_node->center.x, poct_node->center.z);
+            //printf("DEBUG: REJECT 2\n");
             continue;
         }
 
@@ -2269,8 +2297,10 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
 
         // check if best prob for this node
         //if (prob >= best_prob && prob > min_prob_assoc) {    // 20101227
-        if (prob < best_prob) // 20101227
+        if (prob < best_prob) {// 20101227
+            //printf("DEBUG: REJECT 3\n");
             continue; // cannot be better than current best_prob
+        }
 
         // perform a number of checks to further weight the hypocenter probability
 
@@ -2316,7 +2346,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                 prob *= weight_product; // 20101230 AJL
                 if (prob < best_prob) {
                     //if (last_reassociate)
-                    //   printf("DEBUG:  REJECTED!\n");
+                    //   printf("DEBUG: REJECT!\n");
                     continue;
                 }
                 //if (last_reassociate)
@@ -2325,13 +2355,17 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
         }*/
 
 
+        // check ===============================================================================================
         // check if total weight of unique associated stations/phases is greater than min_weight_sum_assoc
         // 20111221 AJL - added
         double weight_sum_assoc_unique;
-        if (!checkWtSumUniqueStationsPhases(min_weight_sum_assoc, pdata_list, &weight_sum_assoc_unique, &nassociated_P_work))
+        if (!checkWtSumUniqueStationsPhases(min_weight_sum_assoc, pdata_list, &weight_sum_assoc_unique, &nassociated_P_work)) {
+            //printf("DEBUG: REJECT 4\n");
             continue;
+        }
 
 
+        // check ===============================================================================================
         // check amplitude attenuation
         // 20140122 AJL -
         LinRegressPower linRegressPower;
@@ -2419,7 +2453,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
 #endif
             if (prob < best_prob) {
                 //if (last_reassociate)
-                //    printf("DEBUG:  REJECTED AMP ATTEN!\n");
+                //printf("DEBUG: REJECT AMP ATTEN!\n");
                 continue; // cannot be better than current best_prob
             }
         }
@@ -2468,11 +2502,12 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
                 prob *= gap_weight; // 20150202 AJL
                 if (prob < best_prob) {
                     //if (last_reassociate)
-                    //    printf("DEBUG:  REJECTED GAP!\n");
+                    //    printf("DEBUG: REJECT GAP!\n");
                     continue; // cannot be better than current best_prob
                 }
             }
              */
+            // check ===============================================================================================
             // 20150730 - new gap algorithm: weight goes to zero at critical gap angles
 #define GAP_BASE 180.0
             if (gap_primary > GAP_BASE || gap_secondary > GAP_BASE) {
@@ -2498,12 +2533,13 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
 #endif
                 if (prob < best_prob) {
                     //if (last_reassociate)
-                    //    printf("DEBUG:  REJECTED GAP!\n");
+                    //printf("DEBUG: REJECT GAP!\n");
                     continue; // cannot be better than current best_prob
                 }
             }
 
 
+            // check ===============================================================================================
             // check close distance ratio - penalty if (# associated / # available closer than closest associated) < RATIO_NUM_STA_WITHIN_CLOSE_DIST_CRITICAL (3.0)
             double limit_distance = FLT_MAX; // no maximum distance for counting close
             nCountClose = countAllStationsAvailable(COUNT_CLOSE, limit_distance, distance_list, num_distances,
@@ -2526,12 +2562,13 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
 #endif
                 if (prob < best_prob) {
                     //if (last_reassociate)
-                    //    printf("DEBUG:  REJECTED COUNT_CLOSE!\n");
+                    //printf("DEBUG: REJECT COUNT_CLOSE!\n");
                     continue; // cannot be better than current best_prob
                 }
                 //printf("DEBUG: n_count_close_ratio %g = nassociated_P_within_dist_wt_dist_max %d / nCountClose %d\n", n_count_close_ratio, nassociated_P_within_dist_wt_dist_max, nCountClose);
             }
 
+            // check ===============================================================================================
             // check far distance ratio - penalty if (# associated / # available farther than depth) < RATIO_NUM_STA_WITHIN_FAR_DIST_CRITICAL (0.3)
             limit_distance = depth * KM2DEG; // minimum distance is depth for counting far and mean
             nCountFar = countAllStationsAvailable(COUNT_FAR, limit_distance, distance_list, num_distances,
@@ -2553,7 +2590,7 @@ int octtree_core(ResultTreeNode** ppResultTreeRoot, OctNode* poct_node, int inde
 #endif
                 if (prob < best_prob) {
                     //if (last_reassociate)
-                    //    printf("DEBUG:  REJECTED COUNT_FAR!\n");
+                    //printf("DEBUG: REJECT COUNT_FAR!\n");
                     continue; // cannot be better than current best_prob
                 }
             }
@@ -3289,6 +3326,7 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
     globalBestValues.node_prob = 0.0;
     globalBestValues.node_ot_variance = 0.0;
     double oct_node_volume;
+    OctNode* poct_node_global_best = NULL;
 
 
 
@@ -3371,6 +3409,7 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
                 poct_node = pOctTree->nodeArray[ilon][ilat][idepth];
                 if (poct_node == NULL) // case of Tree3D_spherical
                     continue;
+                poct_node_global_best = poct_node;
 
                 // $$$ NOTE: this block must be identical to block $$$ below
                 is_global_best = octtree_core(&pResultTreeRoot, poct_node, indexLatLonSavedInitialGrid, indexDepthSavedInitialGrid, pdata_list, num_de_data,
@@ -3401,6 +3440,9 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
                     fflush(stdout);
                 }
                 //*/
+                if (is_global_best) {
+                    poct_node_global_best = poct_node;
+                }
                 nSamples++;
 
                 // save indicator of solution probability
@@ -3457,8 +3499,9 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
     //printf("DEBUG: n_not_available %d, n_set, %d, n_read %d\n", DEBUG_n_not_available, DEBUG_n_set, DEBUG_n_read);
 
 
-    printf("Info: Completed initial grid search (level %d; node_size_y=%gkm),   nSamples=%d/%d/%d, dt=%.3fs\n",
-            0, smallest_node_size_divide_y, nSamples - last_info_nsamples, nSamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC);
+    printf("Info: Completed initial grid search (level %d; node_size_y=%gkm),   nSamples=%d/%d/%d, dt=%.3fs,  best=%.1f/%.1f/%.1f\n",
+            0, smallest_node_size_divide_y, nSamples - last_info_nsamples, nSamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC,
+            poct_node_global_best->center.y, poct_node_global_best->center.x, poct_node_global_best->center.z);
     last_info_nsamples = nSamples;
     info_nsamples_start_time = clock();
 
@@ -3520,8 +3563,6 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
     }
 
     //int stop_on_min_node_size = 0;
-
-    OctNode* poct_node_global_best = NULL;
 
     ResultTreeNode* presult_node;
     OctNode* pparent_oct_node;
@@ -3653,8 +3694,9 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
         // get best leaf node for subdivision
         presult_node = getHighestLeafValue(pResultTreeRoot);
         if (presult_node != NULL && presult_node->level >= max_num_level_assoc) {
-            printf("Info: Oct-tree assoc: Min node size reached, terminating OctTree search (level %d; node_size_y=%gkm).   nSamples=%d/%d/%d, dt=%.3fs\n",
-                    highest_level_divided_w_assoc + 1, smallest_node_size_y_km, nSamples - last_info_nsamples, nSamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC);
+            printf("Info: Oct-tree assoc: Min node size reached, terminating OctTree search (level %d; node_size_y=%gkm).   nSamples=%d/%d/%d, dt=%.3fs,  best=%.1f/%.1f/%.1f\n",
+                    highest_level_divided_w_assoc + 1, smallest_node_size_y_km, nSamples - last_info_nsamples, nSamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC,
+                    poct_node_global_best->center.y, poct_node_global_best->center.x, poct_node_global_best->center.z);
             last_info_nsamples = nSamples;
             info_nsamples_start_time = clock();
             break;
@@ -3957,8 +3999,9 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
         if (nSamples >= max_num_nodes) {
             // 20150907 AJL - TEST if (nSamples >= (3 * max_num_nodes) / 4) {
 #ifdef PURE_OCTREE
-            printf("Info: Oct-tree assoc: Reached maximum number nodes (level %d; node_size_y=%gkm).   nSamples=%d/%d/%d, dt=%.3fs\n",
-                    highest_level_divided_w_assoc, smallest_node_size_divide_y, nSamples, nSamples + last_info_nsamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC);
+            printf("Info: Oct-tree assoc: Reached maximum number nodes (level %d; node_size_y=%gkm).   nSamples=%d/%d/%d, dt=%.3fs,  best=%.1f/%.1f/%.1f\n",
+                    highest_level_divided_w_assoc, smallest_node_size_divide_y, nSamples, nSamples + last_info_nsamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC,
+                    poct_node_global_best->center.y, poct_node_global_best->center.x, poct_node_global_best->center.z);
 #else
             printf("Info: Oct-tree assoc: Reached maximum number nodes dividing level %d (size=%gkm).   nSamples=%d/%d/%d, dt=%.3fs\n",
                     highest_level_divided_w_assoc, smallest_node_size_divide_y, nSamples, nSamples + last_info_nsamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC);
@@ -3971,8 +4014,9 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
 
     // check if global best not found during divide
     if (!found_global_best_during_divide) {
-        printf("Info: Oct-tree assoc: Global best not found during divide, rejecting location.   nSamples=%d/%d/%d, dt=%.3fs\n",
-                nSamples - last_info_nsamples, nSamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC);
+        printf("Info: Oct-tree assoc: Global best not found during divide, rejecting location.   nSamples=%d/%d/%d, dt=%.3fs,  best=%.1f/%.1f/%.1f\n",
+                nSamples - last_info_nsamples, nSamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC,
+                poct_node_global_best->center.y, poct_node_global_best->center.x, poct_node_global_best->center.z);
         // free oct-tree structures - IMPORTANT!
         freeOctTreeStructures(pResultTreeRoot, pOctTree);
         return (0.0);
@@ -3994,8 +4038,9 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
 #ifdef PURE_OCTREE
     // check if probability to associate reached
     if (best_prob_test_assoc < min_prob_assoc) {
-        printf("Info: Oct-tree assoc: Minimum probability associate not reached not reached during divide, rejecting location.   nSamples=%d/%d/%d, dt=%.3fs\n",
-                nSamples - last_info_nsamples, nSamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC);
+        printf("Info: Oct-tree assoc: Minimum probability associate not reached not reached during divide, rejecting location.   nSamples=%d/%d/%d, dt=%.3fs,  best=%.1f/%.1f/%.1f\n",
+                nSamples - last_info_nsamples, nSamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC,
+                poct_node_global_best->center.y, poct_node_global_best->center.x, poct_node_global_best->center.z);
         // free oct-tree structures - IMPORTANT!
         freeOctTreeStructures(pResultTreeRoot, pOctTree);
         return (0.0);
@@ -4129,15 +4174,17 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
         //printf("DEBUG: getHighestLeafValue (level %d; node_size_y=%gkm).   nSamples=%d/%d/%d, dt=%.3fs\n", presult_node->level, presult_node->volume, nSamplesExtra, nSamplesExtra + last_info_nsamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC);
         // check if null node
         if (presult_node == NULL) {
-            printf("Info: Oct-tree loc: : No nodes with finite probability or no more nodes (level %d; node_size_y=%gkm).   nSamples=%d/%d/%d, dt=%.3fs\n",
-                    highest_level_divided_w_loc, smallest_node_size_y_km, nSamplesExtra, nSamplesExtra + last_info_nsamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC);
+            printf("Info: Oct-tree loc: : No nodes with finite probability or no more nodes (level %d; node_size_y=%gkm).   nSamples=%d/%d/%d, dt=%.3fs,  best=%.1f/%.1f/%.1f\n",
+                    highest_level_divided_w_loc, smallest_node_size_y_km, nSamplesExtra, nSamplesExtra + last_info_nsamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC,
+                    poct_node_global_best->center.y, poct_node_global_best->center.x, poct_node_global_best->center.z);
             last_info_nsamples += nSamplesExtra;
             info_nsamples_start_time = clock();
             break;
         }
         if (presult_node->level > max_num_level_loc) {
-            printf("Info: Oct-tree loc: Min node size reached, terminating OctTree search (level %d; node_size_y=%gkm).   nSamples=%d/%d/%d, dt=%.3fs\n",
-                    highest_level_divided_w_loc + 1, smallest_node_size_y_km, nSamplesExtra, nSamplesExtra + last_info_nsamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC);
+            printf("Info: Oct-tree loc: Min node size reached, terminating OctTree search (level %d; node_size_y=%gkm).   nSamples=%d/%d/%d, dt=%.3fs,  best=%.1f/%.1f/%.1f\n",
+                    highest_level_divided_w_loc + 1, smallest_node_size_y_km, nSamplesExtra, nSamplesExtra + last_info_nsamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC,
+                    poct_node_global_best->center.y, poct_node_global_best->center.x, poct_node_global_best->center.z);
             last_info_nsamples += nSamplesExtra;
             info_nsamples_start_time = clock();
             break;
@@ -4319,8 +4366,9 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
 
     if (nSamplesExtra >= max_num_divide_extra) {
 #ifdef PURE_OCTREE
-        printf("Info: Oct-tree loc: Reached maximum number nodes (level %d; node_size_y=%gkm).   nSamples=%d/%d/%d, dt=%.3fs\n",
-                highest_level_divided_w_loc, smallest_node_size_divide_y, nSamplesExtra, nSamplesExtra + last_info_nsamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC);
+        printf("Info: Oct-tree loc: Reached maximum number nodes (level %d; node_size_y=%gkm).   nSamples=%d/%d/%d, dt=%.3fs,  best=%.1f/%.1f/%.1f\n",
+                highest_level_divided_w_loc, smallest_node_size_divide_y, nSamplesExtra, nSamplesExtra + last_info_nsamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC,
+                poct_node_global_best->center.y, poct_node_global_best->center.x, poct_node_global_best->center.z);
 #else
         printf("Info: Oct-tree loc: Reached maximum number nodes dividing level %d (size=%gkm).   nSamples=%d/%d/%d, dt=%.3fs\n",
                 current_level_divide, smallest_node_size_divide_y, nSamplesExtra, nSamplesExtra + last_info_nsamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC);
@@ -4403,8 +4451,9 @@ double octtreeGlobalAssociationLocation_full(int num_pass, double min_weight_sum
         setDataAssociationInformation(hypocenter, pdata_list, num_de_data, num_pass, definitive, reAssociateOnly, best_depth_step, poct_node, current_critical_node_size_km);
 
     } else {
-        printf("Error: Oct-tree assoc: Null global best node, rejecting location: this should not happen!   nSamples=%d/%d/%d, dt=%.3fs\n",
-                nSamples - last_info_nsamples, nSamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC);
+        printf("Error: Oct-tree assoc: Null global best node, rejecting location: this should not happen!   nSamples=%d/%d/%d, dt=%.3fs,  best=%.1f/%.1f/%.1f\n",
+                nSamples - last_info_nsamples, nSamples, max_num_nodes, (double) (clock() - info_nsamples_start_time) / CLOCKS_PER_SEC,
+                poct_node_global_best->center.y, poct_node_global_best->center.x, poct_node_global_best->center.z);
         // free oct-tree structures - IMPORTANT!
         freeOctTreeStructures(pResultTreeRoot, pOctTree);
         return (0.0);
@@ -4896,9 +4945,9 @@ int associate3CompChannelSet(ChannelParameters* channel_params, int n_sources, i
                     channel_params[first_found].channel_set[1] = -1;
                     channel_params[source_id].channel_set[1] = -1;
                     nfound++;
-                    printf("DEBUG: associate3CompChannelSet %d %s_%s_%s_%s: first_found: %d %s_%s_%s_%s\n",
+                    /*printf("DEBUG: associate3CompChannelSet %d %s_%s_%s_%s: first_found: %d %s_%s_%s_%s\n",
                             source_id, network, station, location, channel,
-                            n, channel_params[n].network, channel_params[n].station, channel_params[n].location, channel_params[n].channel);
+                            n, channel_params[n].network, channel_params[n].station, channel_params[n].location, channel_params[n].channel);//*/
                 } else {
                     second_found = n;
                     channel_params[first_found].channel_set[1] = second_found;
@@ -4906,17 +4955,16 @@ int associate3CompChannelSet(ChannelParameters* channel_params, int n_sources, i
                     channel_params[second_found].channel_set[0] = first_found;
                     channel_params[second_found].channel_set[1] = source_id;
                     nfound++;
-                    printf("DEBUG: associate3CompChannelSet %d %s_%s_%s_%s: second_found: %d %s_%s_%s_%s\n",
+                    /*printf("DEBUG: associate3CompChannelSet %d %s_%s_%s_%s: second_found: %d %s_%s_%s_%s\n",
                             source_id, network, station, location, channel,
-                            n, channel_params[n].network, channel_params[n].station, channel_params[n].location, channel_params[n].channel);
+                            n, channel_params[n].network, channel_params[n].station, channel_params[n].location, channel_params[n].channel);//*/
                     break;
                 }
             }
         }
     }
 
-    printf("DEBUG: associate3CompChannelSet %d %s_%s_%s_%s: nfound: %d\n",
-            source_id, network, station, location, channel, nfound);
+    //printf("DEBUG: associate3CompChannelSet %d %s_%s_%s_%s: nfound: %d\n", source_id, network, station, location, channel, nfound);
     return (nfound);
 
 }

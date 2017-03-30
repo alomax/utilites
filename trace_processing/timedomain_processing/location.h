@@ -144,6 +144,9 @@ typedef struct {
     statistic_level mbLevelStatistics;
     statistic_level t0LevelStatistics;
     statistic_level mwpdLevelStatistics;
+#ifdef USE_MWP_MO_POS_NEG
+    statistic_level mwpdMoPosNegLevelStatistics;
+#endif
     message_trigger_theshold messageTriggerThreshold;
     // flags
     int hyp_assoc_index; // 0...n index when associated,   event not associated if hyp_assoc_index<0

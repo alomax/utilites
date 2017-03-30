@@ -35,7 +35,7 @@
 #define MED_ERROR 6.0*ERROR_FACTOR
 // 20120209 AJL #define LARGE_ERROR 10.0*ERROR_FACTOR  // 20111215 AJL added to avoid later phases being used as P to give location of false events
 //#define LARGE_ERROR MED_ERROR  // 20120209 AJL disable large since often hides P phases from real events
-#define LARGE_ERROR 10.0*ERROR_FACTOR  // 20120209 AJL re-enable disable large since now only applies to Pdiff and Sdiff
+#define LARGE_ERROR 10.0*ERROR_FACTOR  // 20120209 AJL re-enable large since now only applies to Pdiff and Sdiff
 //#define P_ERROR 1.0
 #define P_ERROR 2.0     // 20110130 AJL changed to help associate more real P arrivals
 //#define P_ERROR 4.0     // 20111228 AJL changed to help associate regional P arrivals
@@ -58,7 +58,7 @@ static double phase_ttime_error[NUM_TTIME_PHASES] = {
     SMALL_ERROR, //"PKPPKPab",
     SMALL_ERROR, //"PKPPKPbc",
     SMALL_ERROR, //PKPPKPdf",
-    SMALL_ERROR, //PP",
+    LARGE_ERROR, //PP",  // 20170303 AJL - changed from SMALL_ERROR to LARGE_ERROR (minimax phase)
     SMALL_ERROR, //S",
     LARGE_ERROR, //Sdiff",
     MED_ERROR, //SP",   // 20141218 AJL - added
@@ -69,7 +69,7 @@ static double phase_ttime_error[NUM_TTIME_PHASES] = {
     SMALL_ERROR, //pP",
     SMALL_ERROR, //sP",
     SMALL_ERROR, //PcP",
-    SMALL_ERROR, //ScP",
+    MED_ERROR, //ScP",  // 20170303 AJL - changed from SMALL_ERROR to MED_ERROR
     MED_ERROR, //ScS",
     MED_ERROR, //"PKKSab",
     MED_ERROR, //"PKKSbc",

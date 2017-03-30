@@ -356,6 +356,7 @@ void writeXMLOrigin(xmlTextWriterPtr writer,
         printf("loc2xml: Error at xmlTextWriterStartElement\n");
         return;
     }
+    writeXMLIValue(writer, "ee:seq_num", phypo->nassoc);        // 20170309
     writeXMLIValue(writer, "associatedPhaseCount", phypo->nassoc);
     writeXMLIValue(writer, "usedPhaseCount", phypo->nassoc_P);
     writeXMLDValue(writer, "standardError", phypo->ot_std_dev);
@@ -501,17 +502,23 @@ void writeXMLArrival(xmlTextWriterPtr writer, HypocenterDesc* phypo, TimedomainP
     writeXMLPick(writer, "pick", deData, ndata);
 
     // Early-est
-    writeXMLDValue(writer, "ee:polarizationAzimuth", deData->polarization.azimuth);
-    writeXMLDValue(writer, "ee:polarizationAzimuthUnc", deData->polarization.azimuth_unc);
-    writeXMLDValue(writer, "ee:polarizationWeight", deData->polarization.weight);
+    writeXMLDValue(writer, "ee:polarizationAzimuth", deData->polarization.azimuth); // 201608
+    writeXMLDValue(writer, "ee:polarizationAzimuthUnc", deData->polarization.azimuth_unc); // 201608
+    writeXMLDValue(writer, "ee:polarizationAzimuthCalc", deData->polarization.azimuth_calc); // 20170309
+    writeXMLDValue(writer, "ee:polarizationWeight", deData->polarization.weight); // 201608
     writeXMLDValue(writer, "ee:totalWeight", deData->loc_weight);
     writeXMLDValue(writer, "ee:distanceWeight", deData->dist_weight);
     writeXMLDValue(writer, "ee:staQualityWeight", deData->station_quality_weight);
     writeXMLDValue(writer, "ee:Aerr", deData->amplitude_error_ratio);
-    writeXMLDValue(writer, "ee:mb", deData->mb->mag);
-    writeXMLDValue(writer, "ee:Mwp", deData->mwp->mag);
-    if (deData->mwpd != NULL)
+    if (deData->mb != NULL) {
+        writeXMLDValue(writer, "ee:mb", deData->mb->mag);
+    }
+    if (deData->mwp != NULL) {
+        writeXMLDValue(writer, "ee:Mwp", deData->mwp->mag);
+    }
+    if (deData->mwpd != NULL) {
         writeXMLDValue(writer, "ee:MwpdCorr", deData->mwpd->corr_mag);
+    }
 
     // Close the element.
     rc = xmlTextWriterEndElement(writer);
@@ -585,20 +592,24 @@ void writeXMLPick(xmlTextWriterPtr writer, char* name, TimedomainProcessingData*
         deLevel = deData->t50 / deData->a_ref;
     writeXMLDValue(writer, "ee:T50Ex", deLevel);
     writeXMLDValue(writer, "ee:Td", deData->tauc_peak);
-    writeXMLDValue(writer, "ee:T0", deData->t0->duration_plot);
-    // 20160527 AJL - added/modified (from timedomain_processing/timedomain_processing_report.c)
-    double grd_vel_peak_amp = GRD_MOT_INVALID;
-    double grd_disp_peak_amp = GRD_MOT_INVALID;
-    if (!deData->flag_snr_brb_too_low || !deData->flag_snr_brb_int_too_low) {
-        if (!deData->flag_snr_brb_too_low) {
-            grd_vel_peak_amp = deData->grd_mot->peak_amp_vel;
-        }
-        if (!deData->flag_snr_brb_int_too_low) {
-            grd_disp_peak_amp = deData->grd_mot->peak_amp_disp;
-        }
+    if (deData->t0 != NULL) {
+        writeXMLDValue(writer, "ee:T0", deData->t0->duration_plot);
     }
-    writeXMLDValue(writer, "ee:Avel", grd_vel_peak_amp);
-    writeXMLDValue(writer, "ee:Adisp", grd_disp_peak_amp);
+    // 20160527 AJL - added/modified (from timedomain_processing/timedomain_processing_report.c)
+    if (deData->grd_mot != NULL) {
+        double grd_vel_peak_amp = GRD_MOT_INVALID;
+        double grd_disp_peak_amp = GRD_MOT_INVALID;
+        if (!deData->flag_snr_brb_too_low || !deData->flag_snr_brb_int_too_low) {
+            if (!deData->flag_snr_brb_too_low) {
+                grd_vel_peak_amp = deData->grd_mot->peak_amp_vel;
+            }
+            if (!deData->flag_snr_brb_int_too_low) {
+                grd_disp_peak_amp = deData->grd_mot->peak_amp_disp;
+            }
+        }
+        writeXMLDValue(writer, "ee:Avel", grd_vel_peak_amp);
+        writeXMLDValue(writer, "ee:Adisp", grd_disp_peak_amp);
+    }
     // END -  20160527 AJL - added/modified
     double snr_hf = deData->a_ref < 0.0 || deData->sn_pick < FLT_MIN ? 0.0 : deData->a_ref / deData->sn_pick;
     writeXMLDValue(writer, "ee:snHF", snr_hf);

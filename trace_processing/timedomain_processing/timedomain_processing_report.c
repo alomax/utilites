@@ -640,8 +640,8 @@ void create_mech_image_tag(char* link_root, long event_id, char* image_tag, char
 }
 
 #define MAP_LINK_GLOBAL_ZOOM 2
-#define MAP_LINK_MED_ZOOM 5
-#define MAP_LINK_BIG_ZOOM 9
+#define MAP_LINK_MED_ZOOM 6
+#define MAP_LINK_BIG_ZOOM MAP_LINK_MED_ZOOM
 #define MAP_LINK_DEFAULT_ZOOM MAP_LINK_MED_ZOOM
 
 /** create map link */
@@ -1281,8 +1281,15 @@ int readHypoDataString(HypocenterDesc* phypo, char *hypoDataString, long *pfirst
 
     char time_str[64];
 
+
+#ifdef USE_MWP_MO_POS_NEG
+    static char format[] = "%ld %d %d %d %d %lf %lf %lf %lf %lf %s %lf %lf %lf %lf %lf %s %lf %d %lf %d %lf %s %lf %d %lf %d %lf %d %lf %d %*s %d %d %ld %lf %d";
+#else
+    static char format[] = "%ld %d %d %d %d %lf %lf %lf %lf %lf %s %lf %lf %lf %lf %lf %s %lf %d %lf %d %lf %s %lf %d %lf %d %lf %d %lf %d %*s %d %d %ld";
+#endif
+
     int istat = sscanf(hypoDataString,
-            "%ld %d %d %d %d %lf %lf %lf %lf %lf %s %lf %lf %lf %lf %lf %s %lf %d %lf %d %lf %s %lf %d %lf %d %lf %d %lf %d %*s %d %d %ld",
+            format,
             &phypo->unique_id, &phypo->hyp_assoc_index, &phypo->loc_seq_num, &phypo->nassoc, &phypo->nassoc_P,
             &phypo->dist_min, &phypo->gap_primary, &phypo->gap_secondary,
             &phypo->linRegressPower.power, // amplitude attenuation
@@ -1296,7 +1303,11 @@ int readHypoDataString(HypocenterDesc* phypo, char *hypoDataString, long *pfirst
             &phypo->t0LevelStatistics.centralValue, &phypo->t0LevelStatistics.numLevel,
             &phypo->mwpdLevelStatistics.centralValue, &phypo->mwpdLevelStatistics.numLevel,
             // region ignored
-            &phypo->nstaHasBeenActive, &phypo->nstaIsActive, pfirst_assoc_latency);
+            &phypo->nstaHasBeenActive, &phypo->nstaIsActive, pfirst_assoc_latency
+#ifdef USE_MWP_MO_POS_NEG
+            , &phypo->mwpdMoPosNegLevelStatistics.centralValue, &phypo->mwpdMoPosNegLevelStatistics.numLevel
+#endif
+            );
 
     phypo->otime = string2timeDecSec(time_str);
 
@@ -1343,6 +1354,11 @@ void printHypoDataString(HypocenterDesc* phypo, char *hypoDataString, int iDecPr
         sprintf(hypoDataString + strlen(hypoDataString), " %d %d %ld",
                 phypo->nstaHasBeenActive, phypo->nstaIsActive, first_assoc_latency
                 );
+#ifdef USE_MWP_MO_POS_NEG
+        sprintf(hypoDataString + strlen(hypoDataString), " %.3f %d",
+                phypo->mwpdMoPosNegLevelStatistics.centralValue, phypo->mwpdMoPosNegLevelStatistics.numLevel
+                );
+#endif
     } else {
 
         sprintf(hypoDataString, "%ld %d %d %d %d %.1f %.1f %.1f ",
@@ -1370,6 +1386,12 @@ void printHypoDataString(HypocenterDesc* phypo, char *hypoDataString, int iDecPr
         sprintf(hypoDataString + strlen(hypoDataString), " %d %d %ld",
                 phypo->nstaHasBeenActive, phypo->nstaIsActive, first_assoc_latency
                 );
+#ifdef USE_MWP_MO_POS_NEG
+
+        sprintf(hypoDataString + strlen(hypoDataString), " %.1f %d",
+                phypo->mwpdMoPosNegLevelStatistics.centralValue, phypo->mwpdMoPosNegLevelStatistics.numLevel
+                );
+#endif
     }
 }
 
@@ -1909,6 +1931,7 @@ int send_hypocenter_alert(HypocenterDesc* phypo, int is_new_hypocenter, Hypocent
             sprintf(tmp_str, "ERROR: opening output file: %s", alert_file);
             perror(tmp_str);
         } else {
+
             printHypoDataString(phypo, hypoDataString, 0);
             fprintf(fp_alert, "%s\n", hypoDataString);
             fclose_counter(fp_alert);
@@ -2147,6 +2170,8 @@ void updateStaHealthInformation(char *outnameroot, FILE* staHealthHtmlStream, do
         //
         if (chan_params->numData - DATA_UNASSOC_CUTOFF > 0) {
             chan_params->qualityWeight = (double) (chan_params->numDataAssoc + 1) / (double) (chan_params->numData - DATA_UNASSOC_CUTOFF + 1);
+            //printf("DEBUG: chan_params->qualityWeight %f = (double) (chan_params->numDataAssoc %d + 1) / (double) (chan_params->numData %d - DATA_UNASSOC_CUTOFF + 1)\n",
+            //        chan_params->qualityWeight, chan_params->numDataAssoc, chan_params->numData);
             if (chan_params->qualityWeight > 1.0)
                 chan_params->qualityWeight = 1.0;
         } else {
@@ -2214,6 +2239,7 @@ void updateStaHealthInformation(char *outnameroot, FILE* staHealthHtmlStream, do
                 fprintf(staHealthHtmlStream, "dt_not_supported_by_filter");
             fprintf(staHealthHtmlStream, "</td>");
         } else {
+
             strcpy(bgColor, "bgcolor=\"#DDFFDD\"");
             fprintf(staHealthHtmlStream, "<td %s>-</td>", bgColor);
         }
@@ -2462,7 +2488,9 @@ int useT0Report(TimedomainProcessingData* deData) {
  *
  * Do necessary initialization.
  ***************************************************************************/
-int td_timedomainProcessingReport_init(char* outnameroot_archive) {
+int td_timedomainProcessingReport_init(
+        char* outnameroot_archive
+        ) {
 
     // if many events associated/located will open many files, increase file number limit
     /* does not seem to work on OS X 10.6
@@ -2677,7 +2705,19 @@ int td_timedomainProcessingReport_init(char* outnameroot_archive) {
         ; // handle error
     }
     use_existing_assoc = (existing_assoc_min_num_defining_phases > 0);
+
     //
+    // use_reference_phase_ttime_error
+    int use_reference_phase_ttime_error = 1; // if = 1 use reference_phase_ttime_error, use 0 to disable reference_phase_ttime_error weighting
+    if (settings_get_int_helper(app_prop_settings,
+            "AssociateLocate", "assoc_loc.use_reference_phase_ttime_error", &use_reference_phase_ttime_error, LOCATION_USE_REFERENCE_PHASE_TIME_ERROR_DEFAULT,
+            verbose
+            ) == INT_INVALID) {
+        ; // handle error
+    }
+    if (!use_reference_phase_ttime_error) {
+        reference_phase_ttime_error = -1.0;
+    }
 
 
     // magnitude corrections and checks
@@ -2819,7 +2859,7 @@ int td_timedomainProcessingReport_init(char* outnameroot_archive) {
                     //        time_delay_use[j],
                     //        timeDelayUse[numPhaseTypesUse][0], timeDelayUse[numPhaseTypesUse][1]);
                     numPhaseTypesUse++;
-                    if (get_phase_ttime_error(phase_id_use) < reference_phase_ttime_error)
+                    if (use_reference_phase_ttime_error && get_phase_ttime_error(phase_id_use) < reference_phase_ttime_error)
                         reference_phase_ttime_error = get_phase_ttime_error(phase_id_use);
                 } else {
                     fprintf(stderr, "ERROR: phase name to use in location not found: %s\n", phase_names_use[j]);
@@ -2827,7 +2867,7 @@ int td_timedomainProcessingReport_init(char* outnameroot_archive) {
             }
         } else { // set reference phase ttime error for all phases
             for (j = 0; j < get_num_ttime_phases(); j++) {
-                if (get_phase_ttime_error(j) < reference_phase_ttime_error)
+                if (use_reference_phase_ttime_error && get_phase_ttime_error(j) < reference_phase_ttime_error)
                     reference_phase_ttime_error = get_phase_ttime_error(j);
             }
         }
@@ -2879,25 +2919,12 @@ int td_timedomainProcessingReport_init(char* outnameroot_archive) {
         if (fgets(tmp_str, STANDARD_STRLEN - 1, hypoListStream) == NULL)
             break;
         istat = readHypoDataString(phypo, tmp_str, &first_assoc_latency);
-        /* 20160905 AJL - moved to function
-         * istat = sscanf(tmp_str, "%ld %d %d %d %d %lf %lf %lf %lf %lf %s %lf %lf %lf %lf %lf %s %lf %d %lf %d %lf %s %lf %d %lf %d %lf %d %lf %d %*s %d %d %ld",
-                &phypo->unique_id, &phypo->hyp_assoc_index, &phypo->loc_seq_num, &phypo->nassoc, &phypo->nassoc_P,
-                &phypo->dist_min, &phypo->gap_primary, &phypo->gap_secondary,
-                &phypo->linRegressPower.power, // amplitude attenuation
-                &phypo->ot_std_dev, time_str,
-                &phypo->lat, &phypo->lon, &phypo->errh, &phypo->depth, &phypo->errz, phypo->qualityIndicators.quality_code,
-                &phypo->t50ExLevelStatistics.centralValue, &phypo->t50ExLevelStatistics.numLevel,
-                &phypo->taucLevelStatistics.centralValue, &phypo->taucLevelStatistics.numLevel,
-                &phypo->tdT50ExLevelStatistics.centralValue, phypo->warningLevelString,
-                &phypo->mbLevelStatistics.centralValue, &phypo->mbLevelStatistics.numLevel,
-                &phypo->mwpLevelStatistics.centralValue, &phypo->mwpLevelStatistics.numLevel,
-                &phypo->t0LevelStatistics.centralValue, &phypo->t0LevelStatistics.numLevel,
-                &phypo->mwpdLevelStatistics.centralValue, &phypo->mwpdLevelStatistics.numLevel,
-                // region ignored
-                &phypo->nstaHasBeenActive, &phypo->nstaIsActive, &first_assoc_latency);*/
         //if (istat < 29) { // format error
         if (istat < 31) { // format error  TODO: use this line when all files have phypo->nstaHasBeenActive and phypo->nstaIsActive
             //if (istat < 32) { // format error  TODO: [20160905] use this line when all files have phypo->loc_seq_num
+#ifdef USE_MWP_MO_POS_NEG
+            //if (istat < 34) { // format error  TODO: [20161227] use this line when all files have phypo->mwpdMoPosNegLevelStatistics
+#endif
             //printf("\nDEBUG: hypo read error: istat=%d\n", istat);
             // try to read to end of line
             if (fgets(tmp_str, STANDARD_STRLEN - 1, hypoListStream) == NULL)
@@ -2950,6 +2977,7 @@ void td_timedomainProcessingReport_cleanup() {
 
     // free reference full search oct-tree
     if (pOctTree != NULL) {
+
         int freeDataPointer = 1;
         freeTree3D(pOctTree, freeDataPointer);
         pOctTree = NULL;
@@ -3193,6 +3221,7 @@ void setReducedAssocLocSearchVolume(HypocenterDesc *phypo, double *potime_hypo, 
     }
     *pdepth_max_hypo = poct_node->center.z + poct_node->ds.z * N_FULL_CELLS_HALF_DEPTH;
     if (*pdepth_max_hypo > depth_max_full) {
+
         *pdepth_max_hypo = depth_max_full;
     }
     *pdepth_step_hypo = depth_step_full;
@@ -3246,11 +3275,11 @@ void setReducedAssocLocSearchVolume(HypocenterDesc *phypo, double *potime_hypo, 
     *pot_std_dev_hypo /= 4.0;
 
 
-    printf("DEBUG: setReducedAssocLocSearchVolume: otime: %f+/-%f [+/-%f], lat: %f %f %f [%f/%f], lon: %f %f %f [%f/%f], depth: %f %f %f [%f/%f]\n",
-            *potime_hypo, *pot_std_dev_hypo, phypo->ot_std_dev, *plat_min_hypo, phypo->lat, *plat_max_hypo, *plat_step_hypo, lat_step_full,
-            *plon_min_hypo, phypo->lon, *plon_max_hypo, *plon_step_smallest_hypo, lon_step_smallest_full,
-            *pdepth_min_hypo, phypo->depth, *pdepth_max_hypo, *pdepth_step_hypo, depth_step_full
-            );
+    /*printf("DEBUG: setReducedAssocLocSearchVolume: otime: %f+/-%f [+/-%f], lat: %f %f %f [%f/%f], lon: %f %f %f [%f/%f], depth: %f %f %f [%f/%f]\n",
+     *potime_hypo, *pot_std_dev_hypo, phypo->ot_std_dev, *plat_min_hypo, phypo->lat, *plat_max_hypo, *plat_step_hypo, lat_step_full,
+     *plon_min_hypo, phypo->lon, *plon_max_hypo, *plon_step_smallest_hypo, lon_step_smallest_full,
+     *pdepth_min_hypo, phypo->depth, *pdepth_max_hypo, *pdepth_step_hypo, depth_step_full
+            );//*/
 
 }
 
@@ -3623,8 +3652,8 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
             // if existing event time since otime less than cutoff and not enough defining phases, force full association location
             if (hyp_assoc_loc[nhypo_test]->loc_seq_num >= 0) {
                 double time_since_otime = difftime(time_max, hyp_assoc_loc[nhypo_test]->otime);
-                printf("DEBUG: relocate existing %d: time_since_otime %.1f, <? existing_assoc_delay_otime_min %.1f && nassoc_P %d < existing_assoc_min_num_defining_phases %d\n",
-                        nhypo_test, time_since_otime, existing_assoc_delay_otime_min, hyp_assoc_loc[nhypo_test]->nassoc_P, existing_assoc_min_num_defining_phases);
+                //printf("DEBUG: relocate existing %d: time_since_otime %.1f, <? existing_assoc_delay_otime_min %.1f && nassoc_P %d < existing_assoc_min_num_defining_phases %d\n",
+                //        nhypo_test, time_since_otime, existing_assoc_delay_otime_min, hyp_assoc_loc[nhypo_test]->nassoc_P, existing_assoc_min_num_defining_phases);
                 if (time_since_otime < existing_assoc_delay_otime_min
                         && hyp_assoc_loc[nhypo_test]->nassoc_P < existing_assoc_min_num_defining_phases) {
                     // too few defining phases, do not relocate existing event
@@ -3997,18 +4026,32 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         }
     }
     double ***mwpdStatisticsArray = calloc(num_hypocenters_associated, sizeof (double**));
+#ifdef USE_MWP_MO_POS_NEG
+    double ***mwpdMoPosNegStatisticsArray = calloc(num_hypocenters_associated, sizeof (double**));
+#endif
     if (flag_do_mwpd) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             mwpdStatisticsArray[nhyp] = calloc(3, sizeof (double*));
             for (m = 0; m < 3; m++) {
                 mwpdStatisticsArray[nhyp][m] = calloc(num_de_data, sizeof (double));
             }
+#ifdef USE_MWP_MO_POS_NEG
+            mwpdMoPosNegStatisticsArray[nhyp] = calloc(3, sizeof (double*));
+            for (m = 0; m < 3; m++) {
+                mwpdMoPosNegStatisticsArray[nhyp][m] = calloc(num_de_data, sizeof (double));
+            }
+#endif
         }
     }
     int *numMwpdLevel = calloc(num_hypocenters_associated, sizeof (int));
     int *numMwpdLevelMax = calloc(num_hypocenters_associated, sizeof (int));
     statistic_level* mwpdLevelStatistics = calloc(num_hypocenters_associated, sizeof (statistic_level));
     char mwpdLevelString[num_hypocenters_associated][WARNING_LEVEL_STRING_LEN];
+#ifdef USE_MWP_MO_POS_NEG
+    int *numMwpdMoPosNegLevel = calloc(num_hypocenters_associated, sizeof (int));
+    int *numMwpdMoPosNegLevelMax = calloc(num_hypocenters_associated, sizeof (int));
+    statistic_level* mwpdMoPosNegLevelStatistics = calloc(num_hypocenters_associated, sizeof (statistic_level));
+#endif
     if (flag_do_mwpd) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             mwpdLevelStatistics[nhyp].centralValue = 0.0;
@@ -4017,6 +4060,14 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
             mwpdLevelStatistics[nhyp].numLevel = 0;
             strcpy(mwpdLevelString[nhyp], "NONE");
         }
+#ifdef USE_MWP_MO_POS_NEG
+        for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
+            mwpdMoPosNegLevelStatistics[nhyp].centralValue = 0.0;
+            mwpdMoPosNegLevelStatistics[nhyp].upperBound = 0.0;
+            mwpdMoPosNegLevelStatistics[nhyp].lowerBound = 0.0;
+            mwpdMoPosNegLevelStatistics[nhyp].numLevel = 0;
+        }
+#endif
     }
 
 
@@ -4488,6 +4539,11 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             numMwpdLevelMax[nhyp] = 0;
         }
+#ifdef USE_MWP_MO_POS_NEG
+        for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
+            numMwpdMoPosNegLevelMax[nhyp] = 0;
+        }
+#endif
     }
 
 
@@ -4536,6 +4592,11 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
             for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
                 numMwpdLevel[nhyp] = 0;
             }
+#ifdef USE_MWP_MO_POS_NEG
+            for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
+                numMwpdMoPosNegLevel[nhyp] = 0;
+            }
+#endif
         }
         // loop over data
         int ndata;
@@ -4554,8 +4615,12 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
             time_t pick_time = get_time_t(deData, &dsec);
             if (pick_time >= curr_time && pick_time < curr_time + TIME_STEP) {
                 double dtime = difftime(curr_time, plot_time_max) / 60.0;
-                deData->mwp->mag = MWP_INVALID;
-                deData->mb->mag = MB_INVALID;
+                if (flag_do_mwpd) {
+                    deData->mwp->mag = MWP_INVALID;
+                }
+                if (flag_do_mb) {
+                    deData->mb->mag = MB_INVALID;
+                }
                 double depth = 0.0;
                 if (deData->is_associated)
                     depth = hyp_assoc_loc[deData->is_associated - 1]->depth;
@@ -4598,8 +4663,10 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                     //wlevel = T50EX_LEVEL_MIN + T50EX_LEVEL_STEP * (int) ((wlevel - T50EX_LEVEL_MIN) / T50EX_LEVEL_STEP);
                     fprintf(t50ExStaCodeGridStream, "%f %f %s\n", difftime(pick_time, plot_time_max) / 60.0, wlevel, deData->station);
                 }
-                if (!deData->flag_snr_brb_too_low && is_unassociated_or_location_P(deData))
-                    fprintf(taucStaCodeGridStream, "%f %f %s\n", difftime(pick_time, plot_time_max) / 60.0, deData->tauc_peak, deData->station);
+                if (flag_do_tauc) {
+                    if (!deData->flag_snr_brb_too_low && is_unassociated_or_location_P(deData))
+                        fprintf(taucStaCodeGridStream, "%f %f %s\n", difftime(pick_time, plot_time_max) / 60.0, deData->tauc_peak, deData->station);
+                }
                 // 20130128 AJL - use flag_snr_brb_int_too_low to allow mwp, mwpd, etc., but do not use for ignore tests (e.g. ignore determined by flag_snr_brb_too_low)
                 //if (!deData->flag_snr_hf_too_low || !deData->flag_snr_brb_too_low || !deData->flag_snr_brb_int_too_low)
                 if (!deData->flag_snr_hf_too_low || !deData->flag_snr_brb_too_low)
@@ -5160,6 +5227,16 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                                 numMwpdLevel[(deData->is_associated - 1)]++;
                                 if (numMwpdLevel[(deData->is_associated - 1)] > numMwpdLevelMax[(deData->is_associated - 1)])
                                     numMwpdLevelMax[(deData->is_associated - 1)] = numMwpdLevel[(deData->is_associated - 1)];
+#ifdef USE_MWP_MO_POS_NEG
+                                if (deData->mwpd->mo_pos_neg_ratio > 0.0) {
+                                    mwpdMoPosNegStatisticsArray[(deData->is_associated - 1)][0][numMwpdMoPosNegLevel[(deData->is_associated - 1)]] = deData->mwpd->mo_pos_neg_ratio;
+                                    mwpdMoPosNegStatisticsArray[(deData->is_associated - 1)][1][numMwpdMoPosNegLevel[(deData->is_associated - 1)]] = deData->lat;
+                                    mwpdMoPosNegStatisticsArray[(deData->is_associated - 1)][2][numMwpdMoPosNegLevel[(deData->is_associated - 1)]] = deData->lon;
+                                    numMwpdMoPosNegLevel[(deData->is_associated - 1)]++;
+                                    if (numMwpdMoPosNegLevel[(deData->is_associated - 1)] > numMwpdMoPosNegLevelMax[(deData->is_associated - 1)])
+                                        numMwpdMoPosNegLevelMax[(deData->is_associated - 1)] = numMwpdMoPosNegLevel[(deData->is_associated - 1)];
+                                }
+#endif
                             }
                             (mwpdHistogram[(deData->is_associated - 1)][indexMwpd])++;
                         }
@@ -5200,6 +5277,14 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
             setLevelString(nLevels, &mwpdLevelStatistics[nhyp], mwpdLevelString[nhyp],
                     MIN_NUMBER_VALUES_USE, MWPD_RED_CUTOFF, MWPD_YELLOW_CUTOFF, MWPD_INVALID, magnitude_colors_show);
             //
+#ifdef USE_MWP_MO_POS_NEG
+            if (numMwpdMoPosNegLevelMax[nhyp] > 0) {
+                // evaluate and set level statistics
+                setStatistics("MwpdMoPosNeg", mwpdMoPosNegStatisticsArray[nhyp], numMwpdMoPosNegLevelMax[nhyp], &(mwpdMoPosNegLevelStatistics[nhyp]),
+                        0 && DEBUG && curr_time <= ((time_t) hyp_assoc_loc[nhyp]->otime + LEVEL_PLOT_WINDOW_LENGTH_ASSOCIATED)
+                        && (curr_time + TIME_STEP) > ((time_t) hyp_assoc_loc[nhyp]->otime + LEVEL_PLOT_WINDOW_LENGTH_ASSOCIATED));
+            }
+#endif
         }
 
 
@@ -5398,6 +5483,9 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         phypo->mbLevelStatistics = mbLevelStatistics[nhyp];
         phypo->t0LevelStatistics = t0LevelStatistics[nhyp];
         phypo->mwpdLevelStatistics = mwpdLevelStatistics[nhyp];
+#ifdef USE_MWP_MO_POS_NEG
+        phypo->mwpdMoPosNegLevelStatistics = mwpdMoPosNegLevelStatistics[nhyp];
+#endif
         phypo->hyp_assoc_index = nhyp; //  hypo_list is ordered by time, but association index is by association sum weight (lower index -> more phases associated), if re-associated, arbitrary, otherwise
         HypocenterDesc* phypocenter_desc_inserted = NULL;
         if ((is_new_hypocenter = addHypocenterDescToHypoList(phypo, &hypo_list, &num_hypocenters, icheck_duplicates, &existing_hypo_desc, &phypocenter_desc_inserted))) { // hypocenter unique_id is set here
@@ -5419,7 +5507,9 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         }
         // create event map html pages
         create_map_html_page(outnameroot, phypo, time_min, time_max, MAP_LINK_MED_ZOOM);
-        create_map_html_page(outnameroot, phypo, time_min, time_max, MAP_LINK_BIG_ZOOM);
+        if (MAP_LINK_BIG_ZOOM != MAP_LINK_MED_ZOOM) {
+            create_map_html_page(outnameroot, phypo, time_min, time_max, MAP_LINK_BIG_ZOOM);
+        }
         // check for sending alert
         if (sendMail) {
             // pass phypocenter_desc_inserted here, since send_hypocenter_alert modifies fields in inserted hypocenter
@@ -6762,7 +6852,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
 
                 // 20160808 AJL - add support for 3-comp write
                 int source_id_write = deData->source_id;
-                ChannelParameters* chan_params = channelParameters + source_id_write;
+                ChannelParameters * chan_params = channelParameters + source_id_write;
                 for (int ncomp = 0; ncomp < 3; ncomp++) {
                     ChannelParameters* chan_params_write = chan_params; // ncomp = 0
                     if (ncomp > 0) { // check for other channel orientations
@@ -7274,6 +7364,12 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                 free(mwpdStatisticsArray[nhyp][m]);
             }
             free(mwpdStatisticsArray[nhyp]);
+#ifdef USE_MWP_MO_POS_NEG
+            for (m = 0; m < 3; m++) {
+                free(mwpdMoPosNegStatisticsArray[nhyp][m]);
+            }
+            free(mwpdMoPosNegStatisticsArray[nhyp]);
+#endif
         }
     }
     free(mwpdLevelStatistics);
@@ -7281,7 +7377,12 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     free(mwpdStatisticsArray);
     free(numMwpdLevel);
     free(numMwpdLevelMax);
-
+#ifdef USE_MWP_MO_POS_NEG
+    free(mwpdMoPosNegLevelStatistics);
+    free(mwpdMoPosNegStatisticsArray);
+    free(numMwpdMoPosNegLevel);
+    free(numMwpdMoPosNegLevelMax);
+#endif
 
     // info messages
     printf("Info: td_writeTimedomainProcessingReport(): maximum number files opened: %d\n", max_n_open_files);

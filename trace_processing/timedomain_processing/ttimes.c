@@ -677,13 +677,38 @@ double get_phase_ttime_error(int phase_id) {
 
 }
 
-/** returns travel time error for specified phase
+/** returns phase type flags for specified phase
  */
 
 unsigned get_phase_type_flag(int phase_id) {
 
     if (phase_id < 0 || phase_id >= NUM_TTIME_PHASES)
         return (INVALID_TYPE);
+    return (phase_type_flags[phase_id]);
+
+}
+
+/** add a phase type flag to specified phase
+ */
+
+unsigned add_phase_type_flag_to_phase_name(char *phase_name, int iflag) {
+
+    int phase_id = phase_id_for_name(phase_name);
+
+    return (add_phase_type_flag(phase_id, iflag));
+
+}
+
+/** add a phase type flag to specified phase
+ */
+
+unsigned add_phase_type_flag(int phase_id, int iflag) {
+
+    if (phase_id < 0 || phase_id >= NUM_TTIME_PHASES)
+        return (INVALID_TYPE);
+
+    phase_type_flags[phase_id] |= iflag;
+
     return (phase_type_flags[phase_id]);
 
 }

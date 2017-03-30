@@ -35,6 +35,8 @@ EXTERN_TXT double existing_assoc_delay_otime_min;
 EXTERN_TXT int existing_assoc_min_num_defining_phases;
 #define EXISTING_EVENT_ASSOC_MIN_NUM_DEFINING_PHASES 20
 
+#define LOCATION_USE_REFERENCE_PHASE_TIME_ERROR_DEFAULT 1
+
 // magnitude corrections
 EXTERN_TXT int use_mwp_distance_correction;
 #define LOCATION_USE_MWP_DISTANCE_CORRECTION_DEFAULT 1

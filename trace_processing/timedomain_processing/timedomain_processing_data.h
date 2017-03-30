@@ -18,6 +18,12 @@ enum AmpUnits { NO_AMP_UNITS, DATA_AMP_UNITS, CHAR_FUNCT_AMP_UNITS, INDEP_VAR_UN
 #define POLARITY_NEG 		-1
  */
 
+// test of use of Mwpd positive and negative moment ratios as depth & tsunamigenic indicator
+// 20161226 AJL - added
+// TEST ONLY, DOES NOT HELP
+//#define USE_MWP_MO_POS_NEG
+
+
 // amplitude attenuation
 #define AMPLITUDE_ATTENUATION_MAX_ERROR_RATIO 5.0
 #define AMPLITUDE_ATTENUATION_MIN_ERROR_RATIO (1.0 / AMPLITUDE_ATTENUATION_MAX_ERROR_RATIO)
@@ -132,6 +138,9 @@ enum AmpUnits { NO_AMP_UNITS, DATA_AMP_UNITS, CHAR_FUNCT_AMP_UNITS, INDEP_VAR_UN
 #define TIME_DELAY_TAUC_MAX TIME_DELAY_T50
 
 
+// support for reading data from pick files
+#define PICK_FORMAT_NLL 0
+
 
 // BRB HP ground velocity data
 
@@ -175,7 +184,7 @@ typedef struct {
     int polarity; // polarity of current int_int_sum_mwp_peak sum
     int peak_index_count; // count of index length of current int_int_sum_mwp_peak sum
     int n_peak_max; // maximum index for peak accumulation
-    int n_peak; // current index for peak accumulatoin
+    int n_peak; // current index for peak accumulation
     double* peak; // peak values of double integral signal
     double* peak_dur; // time delay after pick of peak values of double integral signal
     double* int_int; // mwp second integration of amplitude
@@ -221,6 +230,11 @@ typedef struct {
     double raw_mag;
     double corr_mag;
     int have_used_memory;
+#ifdef USE_MWP_MO_POS_NEG
+    // test of use of Mwpd positive and negative moment ratios as depth & tsunamigenic indicator
+    // 20161226 AJL - added
+    double mo_pos_neg_ratio;
+#endif
 }
 MwpdData;
 
@@ -263,7 +277,8 @@ Polarization;
 // polarization application thresholds
 #define POLARIZATION_MAX_DISTANCE_USE 90.0  // maximum GC arc in degrees to use a polarization reading
 #define POLARIZATION_DISTANCE_WEIGHT_DIST_MIN 10.0   // distance at which weight decreases with 1/dist, at closer distance weight = 1
-#define SIGNAL_TO_NOISE_RATIO_BRB_HP_MIN_POLARIZATION 10.0  // 20160812 AJL
+//#define SIGNAL_TO_NOISE_RATIO_BRB_HP_MIN_POLARIZATION 10.0  // 20160812 AJL
+#define SIGNAL_TO_NOISE_RATIO_BRB_HP_MIN_POLARIZATION 6.0  // 20161006 AJL
 // 20160912 AJL  #define POLARIZATION_MAX_DISTANCE_USE 30.0  // maximum GC arc in degrees to use a polarization reading
 // 20160912 AJL  #define POLARIZATION_DISTANCE_WEIGHT_DIST_MIN 5.0   // distance at which weight decreases with 1/dist, at closer distance weight = 1
 // 20160912 AJL  #define SIGNAL_TO_NOISE_RATIO_BRB_HP_MIN_POLARIZATION 20.0  // 20160812 AJL
@@ -346,8 +361,8 @@ typedef struct timedomainProcessingData {
     double dsec;
     char pick_error_type[16];
     double pick_error;
-    time_t t_time_t;
-    double t_decsec;
+    time_t t_time_t; // pick epoch time integer seconds
+    double t_decsec; // pick epoch time decimal seconds remainder
     int brb_polarity; // broad-band polarity measure
     double brb_polarity_quality; // broad-band polarity measure
     double brb_polarity_delay; // peak duration used for polarity measure
@@ -416,3 +431,6 @@ int is_associated_phase(TimedomainProcessingData* deData);
 
 char* pick_stream_name(TimedomainProcessingData* deData);
 
+// 20161006 AJL - following added to support running of Early-est with pick files
+TimedomainProcessingData * get_next_pick(FILE *fp_in, int pick_format, int verbose);
+TimedomainProcessingData *get_next_pick_nll(FILE *fp_in, int verbose);

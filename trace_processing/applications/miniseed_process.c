@@ -993,7 +993,7 @@ static void usage(void) {
     fprintf(stdout, "%s version: %s\n\n", PACKAGE, VERSION);
     fprintf(stdout, "Usage: %s file [options] file1 [file2] [file3] ...\n\n", PACKAGE);
     fprintf(stdout,
-            " file#           Files(s) of Mini-SEED records (output written in directory <file1>.out)\n"
+            " files           Files(s) of Mini-SEED records (output written in directory <file1>.out)\n"
             "\n"
             "\n"
             " ## Application specific options ##\n"

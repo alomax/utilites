@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="97">
+<configurationDescriptor version="100">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root="." name="0">
       <df name="alomax_matrix">
@@ -20,6 +20,8 @@
         <in>miniseed_process.h</in>
         <in>mseedrtstream_lib.c</in>
         <in>mseedrtstream_lib.h</in>
+        <in>pick_process.c</in>
+        <in>pick_process.h</in>
         <in>seedlink_monitor.c</in>
         <in>seedlink_monitor.h</in>
       </df>

@@ -788,7 +788,7 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
                 && report_latency < 2 * report_interval) // 20111109 AJL - skip report if processing latency large
                 ) {
 
-            printf("DEBUG: Mode only_check_for_new_event ->\n"
+            /*printf("DEBUG: Mode only_check_for_new_event ->\n"
                     " num_new_loc_picks:%d >= %d,\n"
                     " time_max %ld last_time_check_for_new_event %ld\n"
                     " time_max-last_time_check_for_new_event %ld >= %d,\n"
@@ -800,7 +800,7 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
                     time_max - last_time_check_for_new_event, report_trigger_min_delay_time,
                     next_report_time - time_max, report_trigger_min_delay_time,
                     report_latency, report_interval / 2,
-                    only_check_for_new_event);
+                    only_check_for_new_event);*/
 
             long report_start_time_total = clock();
 

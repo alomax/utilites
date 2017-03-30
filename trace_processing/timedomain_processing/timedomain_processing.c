@@ -264,12 +264,6 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
     }
 
     // check have station coordinates set station as active
-    double lat = 0.0;
-    double lon = 0.0;
-    double elev = 0.0;
-    double azimuth = -1.0;
-    double dip = -999.0;
-    double station_quality_weight = 0.0;
     //printf("DEBUG: Check ws station: %s %s  time(NULL) %ld >? channelParameters[source_id].internet_station_query_checked_time %ld (diff=%f)\n",
     //        network, station, time(NULL), channelParameters[source_id].internet_station_query_checked_time,
     //        difftime(time(NULL), channelParameters[source_id].internet_station_query_checked_time) / (24 * 3600));
@@ -288,12 +282,12 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
         associate3CompChannelSet(channelParameters, num_sources_total, source_id);
     }
 
-    lat = channelParameters[source_id].lat;
-    lon = channelParameters[source_id].lon;
-    elev = channelParameters[source_id].elev;
-    azimuth = channelParameters[source_id].azimuth;
-    dip = channelParameters[source_id].dip;
-    station_quality_weight = channelParameters[source_id].qualityWeight;
+    double lat = channelParameters[source_id].lat;
+    double lon = channelParameters[source_id].lon;
+    double elev = channelParameters[source_id].elev;
+    double azimuth = channelParameters[source_id].azimuth;
+    double dip = channelParameters[source_id].dip;
+    double station_quality_weight = channelParameters[source_id].qualityWeight;
     channelParameters[source_id].staActiveInReportInterval = 1;
     channelParameters[source_id].data_latency = data_latency;
 

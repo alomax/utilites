@@ -2,16 +2,16 @@
 
 BUILD=YES
 TEST_MSPROCESS=YES	# !! Requires BUILD!  Must activate to get example output in distribution.
-TEST_SEEDLINK=YES	# !! Requires BUILD!
+TEST_SEEDLINK=NO	# !! Requires BUILD!
 
-VERSION=1.2.0  # !!!IMPORTANT: must match WARNING_MONITOR_VERSION in timedomain_processing.h
+VERSION=1.2.1  # !!!IMPORTANT: must match WARNING_MONITOR_VERSION in timedomain_processing.h
 DISTRIBUTION_NAME=early-est-${VERSION}
 echo
 echo "Update distribution -------------------------------------------"
 echo "Version: ${VERSION}     Distribution name: ${DISTRIBUTION_NAME}"
 echo "---------------------------------------------------------------"
 
-PLOT_MAP_MECHANISM_TYPE=fmamp_polarity	# sets mechanism type to plot on map, hash or fmamp, see also plot_event_info.gmt, plot_warning_map.gmt, processEvents.py
+PLOT_MAP_MECHANISM_TYPE=fmamp_polarity	# sets mechanism type to plot on map, hash or fmamp, see also plot_event_info._GMT5.gmt, plot_warning_map_GMT5.gmt, processEvents.py
 
 echo
 echo "Create distribution directory -------------------------------------------"
@@ -53,7 +53,7 @@ cp -p /Users/anthony/work/tsunami_warning/miniseed_process.prop ${DISTRIBUTION_N
 cp -p /Users/anthony/work/mseed_processing/seedlink_monitor.prop ${DISTRIBUTION_NAME}/work
 cp -p /Users/anthony/work/mseed_processing/process_events.prop ${DISTRIBUTION_NAME}/work
 cp -p /Users/anthony/work/mseed_processing/plot_warning_report_seedlink_runtime.bash ${DISTRIBUTION_NAME}/work
-cp -p /Users/anthony/work/mseed_processing/*.gmt ${DISTRIBUTION_NAME}/work
+cp -p /Users/anthony/work/mseed_processing/*_GMT5.gmt ${DISTRIBUTION_NAME}/work
 cp -p /Users/anthony/work/mseed_processing/PB2002_steps.dat.txt.*.xy ${DISTRIBUTION_NAME}/work
 cp -p /Users/anthony/work/mseed_processing/*.ras ${DISTRIBUTION_NAME}/work
 cp -p /Users/anthony/work/mseed_processing/plates.lonlat ${DISTRIBUTION_NAME}/work
@@ -126,7 +126,7 @@ COMMAND="python python/processEvents.py EVENTS msprocess_plots/ msprocess_out/Ho
 echo ${COMMAND}
 ${COMMAND}
 # main report processing =======================
-COMMAND="./plot_warning_report.gmt msprocess_plots/ msprocess_out/Honshu_2011_0_90deg.mseed.out/ msprocess_out/Honshu_2011_0_90deg.mseed.out/ Honshu_2011_0_90deg 0.2 ${PLOT_MAP_MECHANISM_TYPE}"
+COMMAND="./plot_warning_report_GMT5.gmt msprocess_plots/ msprocess_out/Honshu_2011_0_90deg.mseed.out/ msprocess_out/Honshu_2011_0_90deg.mseed.out/ Honshu_2011_0_90deg 0.2 ${PLOT_MAP_MECHANISM_TYPE}"
 echo ${COMMAND}
 ${COMMAND}
 COMMAND="$PS_VIEWER msprocess_plots/Honshu_2011_0_90deg_Monitor.pdf"
@@ -157,7 +157,7 @@ discovery.rm.ingv.it:39962 -S MN_AQU:BHZ,MN_BLY:BHZ,MN_BNI:BHZ,MN_CEL:BHZ,MN_CLT
 \
 -t -3600 -nt 120 -nd 60 -locs --,00,10,01 \
 \
-geofon.gfz-potsdam.de:18000 -S GE_APE:BHZ,GE_BOAB:BHZ,GE_CSS:BHZ,GE_DAG:BHZ,GE_DSB:BHZ,GE_EIL:BHZ,GE_FLT1:BHZ,GE_HLG:BHZ,GE_IBBN:BHZ,GE_IMMV:BHZ,GE_ISP:BHZ,GE_KARP:BHZ,GE_KBS:BHZ,GE_KMBO:BHZ,GE_LVC:BHZ,GE_MALT:BHZ,GE_MATE:BHZ,GE_MORC:BHZ,GE_MTE:BHZ,GE_PMG:BHZ,GE_PSZ:BHZ,GE_PUL:BHZ,GE_RGN:BHZ,GE_RUE:BHZ,GE_SANT:BHZ,GE_SFJD:BHZ,GE_SLIT:BHZ,GE_SNAA:BHZ,GE_STU:BHZ,GE_SUMG:BHZ,GE_TIRR:BHZ,GE_VAL:BHZ,GE_VSU:BHZ,GE_WIN:BHZ,GE_WLF:BHZ,GE_ZKR:BHZ,GE_BKB:BHZ,GE_BKNI:BHZ,GE_BNDI:BHZ,GE_CISI:BHZ,GE_DAMY:BHZ,GE_FAKI:BHZ,GE_GENI:BHZ,GE_GSI:BHZ,GE_HALK:BHZ,GE_HMDM:BHZ,GE_JAGI:BHZ,GE_KAAM:BHZ,GE_LHMI:BHZ,GE_LUWI:BHZ,GE_MALK:BHZ,GE_MMRI:BHZ,GE_MNAI:BHZ,GE_PMBI:BHZ,GE_SANI:BHZ,GE_SAUI:BHZ,GE_SBV:BHZ,GE_SMRI:BHZ,GE_SOCY:BHZ,GE_SOEI:BHZ,GE_TNTI:BHZ,GE_TOLI:BHZ,GE_VOI:BHZ,GE_GVD:BHZ,WM_AVE:BHZ,WM_CART:BHZ,WM_EMAL:BHZ,WM_EVO:BHZ,WM_IFR:BHZ,WM_MAHO:BHZ,WM_MELI:BHZ,WM_SFS:BHZ,CX_MNMCX:BHZ,CX_PB06:BHZ,KR_BTK:BHZ,KC_TARG:BHZ \
+137.227.224.97:18000 -S IU_*:00BHZ,CU_*:BHZ,GT_*:BHZ,IC_*:00BHZ,IM_*:BHZ,US_*:00BHZ,IW_SMCO:BHZ,GS_KAN11:HHZ,GS_OK025:HHZ  \
 \
 geosbud.ipgp.fr:18000 -S G_ATD:BHZ,G_CAN:BHZ,G_CLF:BHZ,G_CRZF:BHZ,G_DZM:BHZ,G_FDF:BHZ,G_FOMA:BHZ,G_HDC:BHZ,G_INU:BHZ,G_IVI:BHZ,G_KIP:BHZ,G_PAF:BHZ,G_PEL:BHZ,G_PPTF:BHZ,G_RER:BHZ,G_SPB:BHZ,G_SSB:BHZ,G_TAM:BHZ,G_TAOE:BHZ,G_TRIS:BHZ,G_UNM:BHZ \
 \

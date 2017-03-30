@@ -34,7 +34,8 @@ TimedomainProcessingData* init_TimedomainProcessingData(double deltaTime, int fl
 
     deData->deltaTime = deltaTime;
 
-    deData->pickData = calloc(1, sizeof (PickData));
+    // 20161007 AJL  deData->pickData = calloc(1, sizeof (PickData));
+    deData->pickData = init_PickData();
     strcpy(deData->pick_error_type, "X");
     deData->pick_error = 0.0;
     deData->pick_stream = STREAM_NULL;
@@ -68,74 +69,86 @@ TimedomainProcessingData* init_TimedomainProcessingData(double deltaTime, int fl
     deData->flag_snr_brb_bp_too_low = 0;
     deData->flag_complete_snr_brb_bp = 0;
     // BRB HP ground velocity data
-    deData->grd_mot = (GrdVel*) calloc(1, sizeof (GrdVel));
-    deData->grd_mot->amp_at_pick = 0.0;
-    deData->grd_mot->n_amp_max = 2 + (int) (1.0 + (START_ANALYSIS_BEFORE_P_BRB_HP + MAX_GRD_VEL_DUR) / deltaTime);
-    deData->grd_mot->n_amp = 0;
-    deData->grd_mot->vel = (double*) calloc(deData->grd_mot->n_amp_max, sizeof (double));
-    deData->grd_mot->disp = (double*) calloc(deData->grd_mot->n_amp_max, sizeof (double));
-    deData->grd_mot->have_used_memory = 0;
-    deData->grd_mot->ioffset_pick = -1;
-    deData->flag_complete_grd_mot = 0;
+    deData->grd_mot = NULL;
+    if (deltaTime > 0.0) { // finite deltaTime flags waveform data
+        deData->grd_mot = (GrdVel*) calloc(1, sizeof (GrdVel));
+        deData->grd_mot->amp_at_pick = 0.0;
+        deData->grd_mot->n_amp_max = 2 + (int) (1.0 + (START_ANALYSIS_BEFORE_P_BRB_HP + MAX_GRD_VEL_DUR) / deltaTime);
+        deData->grd_mot->n_amp = 0;
+        deData->grd_mot->vel = (double*) calloc(deData->grd_mot->n_amp_max, sizeof (double));
+        deData->grd_mot->disp = (double*) calloc(deData->grd_mot->n_amp_max, sizeof (double));
+        deData->grd_mot->have_used_memory = 0;
+        deData->grd_mot->ioffset_pick = -1;
+        deData->flag_complete_grd_mot = 0;
+    }
     // tauc
     deData->tauc_peak = TAUC_INVALID;
     // mb
-    deData->mb = (mBData*) calloc(1, sizeof (mBData));
-    deData->mb->amp_at_pick = 0.0;
-    deData->mb->int_sum = 0.0;
-    deData->mb->polarity = 0;
-    deData->mb->peak_index_count = 0;
-    deData->mb->n_amplitude_max = 2 + (int) (1.0 + (START_ANALYSIS_BEFORE_P_MB + MAX_MB_DUR) / deltaTime); // 20110331 AJL
-    deData->mb->n_amplitude = 0;
-    deData->mb->amplitude = (double*) calloc(deData->mb->n_amplitude_max, sizeof (double));
-    deData->mb->amplitude[0] = 0.0;
-    deData->mb->peak_dur = (double*) calloc(deData->mb->n_amplitude_max, sizeof (double));
-    deData->mb->peak_dur[0] = -1;
-    deData->mb->mag = MB_INVALID;
-    deData->mb->have_used_memory = 0;
-    deData->flag_complete_mb = 0;
+    deData->mb = NULL;
+    if (deltaTime > 0.0) { // finite deltaTime flags waveform data
+        deData->mb = (mBData*) calloc(1, sizeof (mBData));
+        deData->mb->amp_at_pick = 0.0;
+        deData->mb->int_sum = 0.0;
+        deData->mb->polarity = 0;
+        deData->mb->peak_index_count = 0;
+        deData->mb->n_amplitude_max = 2 + (int) (1.0 + (START_ANALYSIS_BEFORE_P_MB + MAX_MB_DUR) / deltaTime); // 20110331 AJL
+        deData->mb->n_amplitude = 0;
+        deData->mb->amplitude = (double*) calloc(deData->mb->n_amplitude_max, sizeof (double));
+        deData->mb->amplitude[0] = 0.0;
+        deData->mb->peak_dur = (double*) calloc(deData->mb->n_amplitude_max, sizeof (double));
+        deData->mb->peak_dur[0] = -1;
+        deData->mb->mag = MB_INVALID;
+        deData->mb->have_used_memory = 0;
+        deData->flag_complete_mb = 0;
+    }
     // mwp
-    deData->mwp = (MwpData*) calloc(1, sizeof (MwpData));
-    deData->mwp->amp_at_pick = 0.0;
-    deData->mwp->int_sum = 0.0;
-    deData->mwp->int_int_sum = 0.0;
-    deData->mwp->abs_int_int_sum = 0.0;
-    deData->mwp->int_int_sum_mwp_peak = 0.0;
-    deData->mwp->polarity = 0;
-    deData->mwp->peak_index_count = 0;
-    deData->mwp->n_peak_max = 2 + (int) (1.0 + (START_ANALYSIS_BEFORE_P_BRB_HP + MAX_MWP_DUR) / deltaTime);
-    deData->mwp->n_peak = 0;
-    deData->mwp->peak = (double*) calloc(deData->mwp->n_peak_max, sizeof (double));
-    deData->mwp->peak_dur = (double*) calloc(deData->mwp->n_peak_max, sizeof (double));
-    deData->mwp->int_int = (double*) calloc(deData->mwp->n_peak_max, sizeof (double));
-    deData->mwp->int_int_abs = (double*) calloc(deData->mwp->n_peak_max, sizeof (double));
-    //deData->mwp->pulse_first = 0.0;
-    //deData->mwp->pulse_first_dur = -1.0;
-    deData->mwp->mag = MWP_INVALID;
-    deData->mwp->index_mag = 0;
-    deData->mwp->have_used_memory = 0;
-    deData->flag_complete_mwp = 0;
+    deData->mwp = NULL;
+    if (deltaTime > 0.0) { // finite deltaTime flags waveform data
+        deData->mwp = (MwpData*) calloc(1, sizeof (MwpData));
+        deData->mwp->amp_at_pick = 0.0;
+        deData->mwp->int_sum = 0.0;
+        deData->mwp->int_int_sum = 0.0;
+        deData->mwp->abs_int_int_sum = 0.0;
+        deData->mwp->int_int_sum_mwp_peak = 0.0;
+        deData->mwp->polarity = 0;
+        deData->mwp->peak_index_count = 0;
+        deData->mwp->n_peak_max = 2 + (int) (1.0 + (START_ANALYSIS_BEFORE_P_BRB_HP + MAX_MWP_DUR) / deltaTime);
+        deData->mwp->n_peak = 0;
+        deData->mwp->peak = (double*) calloc(deData->mwp->n_peak_max, sizeof (double));
+        deData->mwp->peak_dur = (double*) calloc(deData->mwp->n_peak_max, sizeof (double));
+        deData->mwp->int_int = (double*) calloc(deData->mwp->n_peak_max, sizeof (double));
+        deData->mwp->int_int_abs = (double*) calloc(deData->mwp->n_peak_max, sizeof (double));
+        //deData->mwp->pulse_first = 0.0;
+        //deData->mwp->pulse_first_dur = -1.0;
+        deData->mwp->mag = MWP_INVALID;
+        deData->mwp->index_mag = 0;
+        deData->mwp->have_used_memory = 0;
+        deData->flag_complete_mwp = 0;
+    }
     // t0
-    deData->t0 = (T0Data*) calloc(1, sizeof (T0Data));
-    deData->t0->amp_noise = -1.0;
-    deData->t0->amp_peak = -1.0;
-    deData->t0->index_peak = -1;
-    deData->t0->amp_90 = -1.0;
-    deData->t0->index_90 = -1;
-    deData->t0->amp_80 = -1.0;
-    deData->t0->index_80 = -1;
-    deData->t0->amp_50 = -1.0;
-    deData->t0->index_50 = -1;
-    deData->t0->amp_20 = -1.0;
-    deData->t0->index_20 = -1;
-    deData->t0->duration_raw = T0_INVALID;
-    deData->t0->duration_corr = T0_INVALID;
-    deData->t0->duration_plot = T0_INVALID;
-    deData->t0->have_used_memory = 0;
-    deData->flag_complete_t0 = 0;
+    deData->t0 = NULL;
+    if (deltaTime > 0.0) { // finite deltaTime flags waveform data
+        deData->t0 = (T0Data*) calloc(1, sizeof (T0Data));
+        deData->t0->amp_noise = -1.0;
+        deData->t0->amp_peak = -1.0;
+        deData->t0->index_peak = -1;
+        deData->t0->amp_90 = -1.0;
+        deData->t0->index_90 = -1;
+        deData->t0->amp_80 = -1.0;
+        deData->t0->index_80 = -1;
+        deData->t0->amp_50 = -1.0;
+        deData->t0->index_50 = -1;
+        deData->t0->amp_20 = -1.0;
+        deData->t0->index_20 = -1;
+        deData->t0->duration_raw = T0_INVALID;
+        deData->t0->duration_corr = T0_INVALID;
+        deData->t0->duration_plot = T0_INVALID;
+        deData->t0->have_used_memory = 0;
+        deData->flag_complete_t0 = 0;
+    }
     // mwpd
     deData->mwpd = NULL;
-    if (flag_do_mwpd) {
+    if (deltaTime > 0.0 && flag_do_mwpd) { // finite deltaTime flags waveform data
         deData->mwpd = (MwpdData*) calloc(1, sizeof (MwpdData));
         deData->mwpd->amp_at_pick = 0.0;
         deData->mwpd->int_sum = 0.0;
@@ -148,6 +161,9 @@ TimedomainProcessingData* init_TimedomainProcessingData(double deltaTime, int fl
         deData->mwpd->raw_mag = MWPD_INVALID;
         deData->mwpd->corr_mag = MWPD_INVALID;
         deData->mwpd->have_used_memory = 0;
+#ifdef USE_MWP_MO_POS_NEG
+        deData->mwpd->mo_pos_neg_ratio = MWPD_INVALID;
+#endif
     }
     deData->flag_complete_mwpd = 0;
 
@@ -180,13 +196,13 @@ TimedomainProcessingData* init_TimedomainProcessingData(double deltaTime, int fl
     // waveform export bookkeeping
     deData->waveform_export = NULL;
     if (waveform_export_enable) {
-                // 20160808 AJL - add support for 3-comp write
+        // 20160808 AJL - add support for 3-comp write
         deData->waveform_export = (WaveformExport*) calloc(3, sizeof (WaveformExport));
         for (int n = 0; n < 3; n++) {
-        deData->waveform_export[n].filename[0] = '\0';
-        deData->waveform_export[n].start_time_written = -1;
-        deData->waveform_export[n].end_time_written = -1;
-        deData->waveform_export[n].hypo_unique_id = -1;
+            deData->waveform_export[n].filename[0] = '\0';
+            deData->waveform_export[n].start_time_written = -1;
+            deData->waveform_export[n].end_time_written = -1;
+            deData->waveform_export[n].hypo_unique_id = -1;
         }
     }
 
@@ -264,6 +280,58 @@ TimedomainProcessingData* new_TimedomainProcessingData(char* sladdr, int n_int_t
 
 }
 
+/** set data values
+ *
+ * simplified version for catalog pick data
+ */
+
+TimedomainProcessingData* new_TimedomainProcessingData_fromPick(
+        char* station, char* location, char* channel, char* network, char* first_mot, double station_quality_weight,
+        int year, int month, int mday, int hour, int min, double dsec, char *pick_error_type, double pick_error) {
+
+    TimedomainProcessingData* deData = init_TimedomainProcessingData(-1.0, 0, 0);
+
+    strcpy(deData->station, station);
+    strcpy(deData->location, location);
+    strcpy(deData->channel, channel);
+    strcpy(deData->network, network);
+    deData->pickData->polarity = POLARITY_UNKNOWN;
+    deData->pickData->polarityWeight = 0.0;
+    if (strstr("CcUu+", first_mot)) {
+        deData->pickData->polarity = POLARITY_POS;
+        deData->pickData->polarityWeight = 1.0;
+    } else if (strstr("DdRr-", first_mot)) {
+        deData->pickData->polarity = POLARITY_NEG;
+        deData->pickData->polarityWeight = 1.0;
+    }
+    deData->station_quality_weight = station_quality_weight;
+    deData->year = year;
+    deData->month = month;
+    deData->mday = mday;
+    deData->hour = hour;
+    deData->min = min;
+    deData->dsec = dsec;
+
+    struct tm tm_time = {0};
+    tm_time.tm_year = deData->year - 1900;
+    tm_time.tm_mon = deData->month - 1;
+    tm_time.tm_mday = deData->mday;
+    tm_time.tm_hour = deData->hour;
+    tm_time.tm_min = deData->min;
+    tm_time.tm_sec = (int) deData->dsec;
+    tm_time.tm_isdst = 0;
+    tm_time.tm_gmtoff = 0;
+    //tm_time.tm_zone = "UTC";
+    deData->t_time_t = mktime(&tm_time);
+    deData->t_decsec = deData->dsec - (double) ((int) deData->dsec);
+
+    strcpy(deData->pick_error_type, pick_error_type);
+    deData->pick_error = pick_error;
+
+    return (deData);
+
+}
+
 /** copy data to new data object */
 
 TimedomainProcessingData* copy_TimedomainProcessingData(TimedomainProcessingData* deData) {
@@ -290,7 +358,9 @@ void free_TimedomainProcessingData(TimedomainProcessingData* deData) {
     if (deData == NULL)
         return;
 
-    free(deData->pickData);
+    if (deData->pickData != NULL) {
+        free(deData->pickData);
+    }
     if (deData->mwpd != NULL) {
         free(deData->mwpd->int_int_sum_pos);
         free(deData->mwpd->int_int_sum_neg);
@@ -568,14 +638,17 @@ int fprintf_NLLoc_TimedomainProcessingData(TimedomainProcessingData* deData, FIL
     double coda_dur = 0.0;
     double amplitude = deData->pickData->amplitude;
     double period = deData->pickData->period;
-    double apriori_weight = 1.0;
+    //double apriori_weight = 1.0;
+    // 20161007 AJL - bug fix, following is better "prior" weight
+    double apriori_weight = deData->station_quality_weight;
     // test simple weighting scheme
-    if (1) {
+    // 20161007 AJL - removed
+    /*if (1) {
         apriori_weight = 0.0;
         if (deData->is_associated && deData->residual > -9999.9 && deData->residual < 9999.9) {
             apriori_weight = exp(-(fabs(deData->residual) / 1.0));
         }
-    }
+    }*/
 
     // write observation part of NLL_FORMAT_VER_2 phase line
     //sprintf(pick_str,
@@ -634,36 +707,39 @@ void set_derived_values(TimedomainProcessingData* deData, double hypo_depth) {
         }
     }
 
-    double duration_raw = deData->t0->duration_raw;
-    double duration_corr = duration_raw;
+    if (deData->t0 != NULL) {
+
+        double duration_raw = deData->t0->duration_raw;
+        double duration_corr = duration_raw;
 
 #ifdef USE_CLOSE_S_FOR_DURATION // 20111222 TEST AJL - use S duration
-    double SP_FRACTION_CUTOFF = 0.25;
-    // 20120107 AJL if (deData->t0->duration_raw != T0_INVALID && is_associated_location_P(deData)) {
-    if (deData->t0->duration_raw != T0_INVALID && is_associated_location_P(deData) && deData->epicentral_distance < 30.0) {
-        double ttime_P = deData->ttime_P;
-        if (ttime_P > 0.0) {
-            double ttime_S = deData->ttime_S;
-            if (ttime_S > 0.0) {
-                double tSminusP = ttime_S - ttime_P;
-                // 20120107 AJL - test  if (ttime_P + duration_raw > ttime_S + tSminusP / 3.0) {
-                // 20120221 AJL if (ttime_P + duration_raw > ttime_S + tSminusP) {
-                // 20120221 AJL - test
-                if (ttime_P + duration_raw > ttime_S + SP_FRACTION_CUTOFF * tSminusP) {
+        double SP_FRACTION_CUTOFF = 0.25;
+        // 20120107 AJL if (deData->t0->duration_raw != T0_INVALID && is_associated_location_P(deData)) {
+        if (deData->t0->duration_raw != T0_INVALID && is_associated_location_P(deData) && deData->epicentral_distance < 30.0) {
+            double ttime_P = deData->ttime_P;
+            if (ttime_P > 0.0) {
+                double ttime_S = deData->ttime_S;
+                if (ttime_S > 0.0) {
+                    double tSminusP = ttime_S - ttime_P;
+                    // 20120107 AJL - test  if (ttime_P + duration_raw > ttime_S + tSminusP / 3.0) {
+                    // 20120221 AJL if (ttime_P + duration_raw > ttime_S + tSminusP) {
+                    // 20120221 AJL - test
+                    if (ttime_P + duration_raw > ttime_S + SP_FRACTION_CUTOFF * tSminusP) {
 
-                    duration_corr -= tSminusP;
-                    //printf("DEBUG: set_derived_values: ttime_P+duration_raw=%g  ttime_S+(ttime_S-ttime_P)/3.0=%g", ttime_P + duration_raw, ttime_S + tSminusP / 3.0);
-                    //printf("  duration_raw=%g -> duration_corr=%g  dist=%g  %s\n", duration_raw, duration_corr, deData->epicentral_distance, (duration_raw == duration_corr ? "" : "CHANGED!"));
-                    // 20120107 AJL - added
-                    double duration_plot = calculate_duration_plot(deData->t0->duration_raw);
-                    deData->t0->duration_plot = duration_plot;
+                        duration_corr -= tSminusP;
+                        //printf("DEBUG: set_derived_values: ttime_P+duration_raw=%g  ttime_S+(ttime_S-ttime_P)/3.0=%g", ttime_P + duration_raw, ttime_S + tSminusP / 3.0);
+                        //printf("  duration_raw=%g -> duration_corr=%g  dist=%g  %s\n", duration_raw, duration_corr, deData->epicentral_distance, (duration_raw == duration_corr ? "" : "CHANGED!"));
+                        // 20120107 AJL - added
+                        double duration_plot = calculate_duration_plot(deData->t0->duration_raw);
+                        deData->t0->duration_plot = duration_plot;
+                    }
                 }
             }
         }
-    }
 #endif
 
-    deData->t0->duration_corr = duration_corr;
+        deData->t0->duration_corr = duration_corr;
+    }
 
 }
 
@@ -1192,6 +1268,97 @@ double calculate_Raw_Mwpd_Mag(TimedomainProcessingData* deData, double hypo_dept
     double amplitudeIntegral = amplitudeIntegralPos;
     if (amplitudeIntegralNeg > amplitudeIntegralPos)
         amplitudeIntegral = amplitudeIntegralNeg;
+    // 20161117 TEST!
+    /*if (1) {
+        printf("TEST: Mwpd AMPLITUDE TEST - DO NOT USE!\n");
+        //if (amplitudeIntegralNeg < amplitudeIntegralPos)
+        //    amplitudeIntegral = amplitudeIntegralNeg;
+        amplitudeIntegral = (amplitudeIntegralNeg + amplitudeIntegralPos) / 2.0;
+    }*/
+
+#ifdef USE_MWP_MO_POS_NEG
+    /*
+    if (amplitudeIntegralPos > amplitudeIntegralNeg) {
+        deData->mwpd->mo_pos_neg_ratio = (amplitudeIntegralPos - amplitudeIntegralNeg) / amplitudeIntegralPos;
+    } else {
+        deData->mwpd->mo_pos_neg_ratio = (amplitudeIntegralNeg - amplitudeIntegralPos) / amplitudeIntegralNeg;
+    }*/
+    //
+    /*
+#define MO_POS_NEG_DURATION 30.0
+    int ndx = (int) (0.5 + (MO_POS_NEG_DURATION + START_ANALYSIS_BEFORE_P_BRB_HP) / deData->deltaTime);
+    if (ndx > index_duration) {
+        ndx = index_duration;
+    }
+    double ampIntPos = deData->mwpd->int_int_sum_pos[ndx];
+    double ampIntNeg = deData->mwpd->int_int_sum_neg[ndx];
+    if (ampIntPos > ampIntNeg) {
+        deData->mwpd->mo_pos_neg_ratio = (ampIntPos - ampIntNeg) / ampIntPos;
+    } else {
+        deData->mwpd->mo_pos_neg_ratio = (ampIntNeg - ampIntPos) / ampIntNeg;
+    }*/
+    //
+    /*#define MO_POS_NEG_DURATION 50.0
+        int ndx = (int) (0.5 + (MO_POS_NEG_DURATION + START_ANALYSIS_BEFORE_P_BRB_HP) / deData->deltaTime);
+        if (ndx > index_duration) {
+            ndx = index_duration;
+        } else if (ndx < index_duration / 2) {
+            ndx = index_duration / 2;
+        }*/
+    int ndx = index_duration;
+#define MO_POS_NEG_DELAY 5.0
+    int nstart = (int) (0.5 + (MO_POS_NEG_DELAY + START_ANALYSIS_BEFORE_P_BRB_HP) / deData->deltaTime);
+    double last_int_int_sum_pos = deData->mwpd->int_int_sum_pos[nstart - 1];
+    //double last_int_int_sum_neg = deData->mwpd->int_int_sum_neg[nstart - 1];
+    int last_is_positive = 0;
+    int is_positive;
+    //int had_positive = 0;
+    //int had_negative = 0;
+    double ratio = FLT_MAX;
+    //double last_ratio = FLT_MAX;
+    int n_ratio_sum = 0;
+    for (int n = nstart; n <= ndx; n++) {
+        is_positive = deData->mwpd->int_int_sum_pos[n] > last_int_int_sum_pos;
+        /*if (is_positive) {
+            had_positive = 1;
+        } else {
+            had_negative = 1;
+        }*/
+        double ampIntPos = deData->mwpd->int_int_sum_pos[n];
+        double ampIntNeg = deData->mwpd->int_int_sum_neg[n];
+        /*int polarity_ok = 0;
+        if (deData->brb_polarity != POLARITY_UNKNOWN) {
+            polarity_ok = ((deData->brb_polarity == POLARITY_POS && is_positive) || (deData->brb_polarity == POLARITY_NEG && !is_positive));
+        } else if (deData->pickData->polarity != POLARITY_UNKNOWN) {
+            polarity_ok = ((deData->pickData->polarity == POLARITY_POS && is_positive) || (deData->pickData->polarity == POLARITY_NEG && !is_positive));
+        }*/
+        //if (n > nstart && polarity_ok && (is_positive != last_is_positive) && ampIntPos > FLT_MIN && ampIntNeg > FLT_MIN) {
+        if (n > nstart && (is_positive != last_is_positive) && ampIntPos > FLT_MIN && ampIntNeg > FLT_MIN) {
+            // end of positive or negative pulse
+            //last_ratio = ratio;
+            //if (is_positive) {  // polarity is pos, end of neg pulse
+            //if (!is_positive) {  // polarity is neg, end of pos pulse
+            if (ampIntPos > ampIntNeg) {
+                ratio = (ampIntPos - ampIntNeg) / ampIntPos;
+            } else {
+                ratio = (ampIntNeg - ampIntPos) / ampIntNeg;
+            }
+            n_ratio_sum++;
+            if (n_ratio_sum == 1 || ratio < deData->mwpd->mo_pos_neg_ratio) {
+                deData->mwpd->mo_pos_neg_ratio = ratio;
+            }
+            //if(n_ratio_sum > 1) {
+            //    break;
+            //}
+        }
+        last_int_int_sum_pos = ampIntPos;
+        //last_int_int_sum_neg = ampIntNeg;
+        last_is_positive = is_positive;
+    }
+    //if (n_ratio_sum > 0) {
+    //    deData->mwpd->mo_pos_neg_ratio = ratio;
+    //}
+#endif
 
     double moment = MWPD_CONST * amplitudeIntegral;
     moment *= deData->epicentral_distance;
@@ -1603,4 +1770,166 @@ int calculate_BRB_first_motion_polarity(TimedomainProcessingData* deData, double
     return (fmpolarity);
 
  }*/
+
+/** read next pick from a pick file into a TimedomainProcessingData structure
+ *
+ * 20161006 AJL - added to support running of Early-est with pick files
+ *
+ * @return number of pick
+ *
+ */
+TimedomainProcessingData *get_next_pick(FILE *fp_in, int pick_format, int verbose) {
+
+    if (pick_format == PICK_FORMAT_NLL) {
+        return (get_next_pick_nll(fp_in, verbose));
+    }
+
+    return (NULL);
+
+}
+
+/** read line in NonLinLoc phase format
+ *
+ * Note: adapted from NLL->GridLib.c->ReadArrival()  TODO: update this function if changes in NLL ReadArrival
+ *
+ * @return      1    if only observation part of phase read
+                2    if observation and calculated parts of phase read
+                EOF  if EOF or error occurs before any values read
+                -1   otherwise
+ *
+ */
+TimedomainProcessingData *get_next_pick_nll(FILE *fp_in, int verbose) {
+
+#define MAX_LEN_STR 4096
+
+    //read next line
+    static char line[MAX_LEN_STR];
+
+    while (1) {
+
+        if (fgets(line, MAX_LEN_STR - 1, fp_in) == NULL)
+            return (NULL); // end of file or error
+
+
+        /* read observation part of phase line */
+
+        char label[MAX_LEN_STR]; /* char label (i.e. station or site code) */
+        char inst[MAX_LEN_STR]; /* instrument code */
+        char comp[MAX_LEN_STR]; /* component (ie Z N 128) */
+        char phase[MAX_LEN_STR]; /* char phase id */
+        char onset[MAX_LEN_STR]; /* char onset (ie E I) */
+        char first_mot[MAX_LEN_STR]; /* char first motion id */
+        int quality; /* pick quality (ie weight 0 1 2 3 4) */
+        int year, month, day; /* observed arrival date */
+        int hour, min; /* observed arrival hour/min */
+        double sec; /* observed arrival seconds */
+        double error; /* error in arrival time */
+        char error_type[MAX_LEN_STR]; /* error type */
+        double coda_dur; /* coda duration */
+        double amplitude; /* amplitude */
+        double period; /* period */
+
+        /* new values NLL PHASE_2 format*/
+        /* 20060629 AJL - Added */
+        double apriori_weight; /* a priori weight of datum */
+
+        long int idate, ihrmin;
+
+
+        int istat = sscanf(line, "%s %s %s %s %s %s %ld %ld %lf %s %lf %lf %lf %lf",
+                label,
+                inst,
+                comp,
+                onset,
+                phase,
+                first_mot,
+                &idate, &ihrmin,
+                &sec,
+                error_type,
+                &error,
+                &coda_dur,
+                &amplitude,
+                &period
+                );
+        //printf("DEBUG: istat=%d\n", istat);
+        //printf("DEBUG: line %s\n", line);
+
+        if (istat == EOF || istat != 14)
+            continue; // try next input line
+
+        // check for QUAL error type and convert to GAU error using LOCQUAL2ERR
+        // 20160727 AJL - added
+        // 20161006 AJL - not used for Early-est (?)
+        /* if (strcmp(error_type, "QUAL") == 0) {
+            quality = (int) lround(error);
+            Qual2Err(parr);
+        } */
+
+        // DEBUG
+        /*printf("%s %s %s %s %s %s %ld %ld %lf %s %lf %lf %lf %lf %lf\n",
+        label,
+        inst,
+        comp,
+        onset,
+        phase,
+        first_mot,
+        idate, ihrmin,
+        (sec),
+        error_type, error,
+        (coda_dur),
+        (amplitude),
+        (period),
+        apriori_weight
+                      );
+         */
+
+        // new values NLL PHASE_2 format
+        // 20060629 AJL - Added
+
+        // test input of new values
+
+        // Early-est pickdata_nlloc.txt: ends with POSTERIRIOR weight, event_id >
+        // KARP   ?    BHZ  ? P_1    ? 20161008 2141  21.6450 GAU  1.50e-01  0.00e+00  1.01e+01  5.00e-02    0.0005 1475962653466
+        // NLL_FORMAT_VER_2: end with PRIOR weight >
+        // VIC          ?    ?    1 P      ? 19040827 2200   42.0000 GAU  1.00e+01 -1.00e+00 -1.00e+00 -1.00e+00    1.0000 > ...
+
+        int event_id = -1;
+        int istat2 = sscanf(line, "%*s %*s %*s %*s %*s %*s %*d %*d %*f %*s %*f %*f %*f %*f %lf %d >", &apriori_weight, &event_id);
+        if (istat == EOF || istat2 != 1) { // old NLL or Early-est
+            apriori_weight = 1.0;
+        }
+
+        // DEBUG
+        /*printf(" %lf\n",
+        apriori_weight
+        );
+         */
+
+        /* decode data and time integers */
+        year = idate / 10000;
+        idate = idate % 10000;
+        month = idate / 100;
+        day = idate % 100;
+        hour = ihrmin / 100;
+        min = ihrmin % 100;
+
+        /* set null quality value */
+        quality = -1;
+
+
+        // map NLL pick data to TimedomainProcessingData
+        char location[] = "--";
+        char channel[] = "--";
+        char network[] = "--";
+        double station_quality_weight = apriori_weight;
+        TimedomainProcessingData* deData = new_TimedomainProcessingData_fromPick(label, location, channel, network, first_mot, station_quality_weight,
+                year, month, day, hour, min, sec, error_type, error);
+
+
+        return (deData);
+
+    }
+
+}
+
 

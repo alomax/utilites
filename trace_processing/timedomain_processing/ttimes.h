@@ -54,6 +54,8 @@ char *phase_name_for_id(int n_phase);
 int phase_id_for_name(char *phase_name);
 double get_phase_ttime_error(int phase_id);
 unsigned get_phase_type_flag(int phase_id);
+unsigned add_phase_type_flag_to_phase_name(char *phase_name, int iflag);
+unsigned add_phase_type_flag(int phase_id, int iflag);
 double get_ttime(int phase_id, double dist, double depth);
 double get_take_off_angle(int phase_id, double dist, double depth);
 double simple_distance(double ttime, double depth, char *phase_name, int *pn_phase_found);

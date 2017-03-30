@@ -42,7 +42,11 @@ OBJ= ${LIB_OBJS} app_lib.o
 
 
 
-all: $(BINDIR)/seedlink_monitor${EXE_NAME} $(BINDIR)/miniseed_process${EXE_NAME}
+all: $(BINDIR)/seedlink_monitor${EXE_NAME} $(BINDIR)/miniseed_process${EXE_NAME} $(BINDIR)/pick_process${EXE_NAME}
+
+$(BINDIR)/pick_process${EXE_NAME}: pick_process.o $(OBJ)
+	$(CC) $(CCFLAGS) -o $(BINDIR)/pick_process${EXE_NAME} pick_process.o $(OBJ) $(LDFLAGS) $(LDLIBS) -lmseed -ltdproc -lm `xml2-config --cflags` `xml2-config --libs`
+
 
 $(BINDIR)/miniseed_process${EXE_NAME}: miniseed_process.o mseedrtstream_lib.o $(OBJ)
 	$(CC) $(CCFLAGS) -o $(BINDIR)/miniseed_process${EXE_NAME} miniseed_process.o mseedrtstream_lib.o $(OBJ) $(LDFLAGS) $(LDLIBS) -lmseed -ltdproc -lm `xml2-config --cflags` `xml2-config --libs`
@@ -52,7 +56,7 @@ $(BINDIR)/seedlink_monitor${EXE_NAME}: seedlink_monitor.o $(OBJ)
 	$(CC) $(CCFLAGS) -o $(BINDIR)/seedlink_monitor${EXE_NAME} seedlink_monitor.o $(OBJ) $(LDFLAGS) $(LDLIBS) -lslink -lmseed -ltdproc -lm `xml2-config --cflags` `xml2-config --libs`
 
 clean:
-	rm -f $(BINDIR)/miniseed_process${EXE_NAME} $(BINDIR)/seedlink_monitor${EXE_NAME}
+	rm -f $(BINDIR)/pick_process${EXE_NAME} $(BINDIR)/miniseed_process${EXE_NAME} $(BINDIR)/seedlink_monitor${EXE_NAME}
 	rm -f *.o
 	rm -f *.a
 
