@@ -36,6 +36,12 @@ export TTIMES_NAME=
 #TTIME_DEFS=-D TTIMES_SOCALSN_HK_2010 -D TTIMES_REGIONAL
 #export TTIMES_NAME=_SOCALSN_HK_2010
 #
+# Longmenshan (2008/05/12 Wenchuan, China)
+# Zheng Y, Ma H S, Lü J, et al. Source mechanism of strong aftershocks (Ms≥5.6) of the 2008/05/12 Wenchuan earthquake and the implication for seismotectonics. Sci China Ser D-Earth Sci, 2009, 52(6): 739-753, doi: 10.1007/s11430-009-0074-3
+#TTIME_DEFS=-D TTIMES_LONGMENSHAN_REGIONAL -D TTIMES_REGIONAL
+#export TTIMES_NAME=_LONGMENSHAN_REGIONAL
+#
+#
 export EXE_NAME=$(TTIMES_NAME)
 # =========================================================================================================================
 

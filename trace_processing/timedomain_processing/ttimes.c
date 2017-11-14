@@ -27,6 +27,12 @@
 #include "ttimes/ttimes_SoCalSN_HK_2010_toang_phases.h"
 #include "ttimes/tvel_scsn_hk.h"
 #else
+#ifdef TTIMES_LONGMENSHAN_REGIONAL
+#include "ttimes/ttimes_Longmenshan_regional.h"
+#include "ttimes/ttimes_Longmenshan_regional_times_phases.h"
+#include "ttimes/ttimes_Longmenshan_regional_toang_phases.h"
+#include "ttimes/ttimes_Longmenshan_regional_tvel.h"
+#else
 #ifdef TTIMES_MARSITE1_REGIONAL
 #include "ttimes/ttimes_marsite1_regional.h"
 #include "ttimes/ttimes_marsite1_regional_times_phases.h"
@@ -49,6 +55,7 @@
 // default
 #ifndef TTIMES_AK135_GLOBAL
 #define TTIMES_AK135_GLOBAL
+#endif
 #endif
 #endif
 #endif

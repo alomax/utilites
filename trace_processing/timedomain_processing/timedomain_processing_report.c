@@ -3893,29 +3893,29 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     int *numTaucLevelMax = calloc(num_hypocenters_associated, sizeof (int));
     statistic_level* taucLevelStatistics = calloc(num_hypocenters_associated, sizeof (statistic_level));
     char taucLevelString[num_hypocenters_associated][WARNING_LEVEL_STRING_LEN];
-    if (flag_do_tauc) {
-        for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
-            taucLevelStatistics[nhyp].centralValue = 0.0;
-            taucLevelStatistics[nhyp].upperBound = 0.0;
-            taucLevelStatistics[nhyp].lowerBound = 0.0;
-            taucLevelStatistics[nhyp].numLevel = 0;
-            strcpy(taucLevelString[nhyp], "NONE");
-        }
+    //if (flag_do_tauc) {
+    for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
+        taucLevelStatistics[nhyp].centralValue = 0.0;
+        taucLevelStatistics[nhyp].upperBound = 0.0;
+        taucLevelStatistics[nhyp].lowerBound = 0.0;
+        taucLevelStatistics[nhyp].numLevel = 0;
+        strcpy(taucLevelString[nhyp], "NONE");
     }
+    //}
     // TdT50Ex
     int *numAlarmLevel = calloc(num_hypocenters_associated, sizeof (int));
     int *numAlarmLevelMax = calloc(num_hypocenters_associated, sizeof (int));
     statistic_level* tdT50ExLevelStatistics = calloc(num_hypocenters_associated, sizeof (statistic_level));
     char warningLevelString[num_hypocenters_associated][WARNING_LEVEL_STRING_LEN];
-    if (flag_do_tauc) {
-        for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
-            tdT50ExLevelStatistics[nhyp].centralValue = 0.0;
-            tdT50ExLevelStatistics[nhyp].upperBound = 0.0;
-            tdT50ExLevelStatistics[nhyp].lowerBound = 0.0;
-            tdT50ExLevelStatistics[nhyp].numLevel = 0;
-            strcpy(warningLevelString[nhyp], "NONE");
-        }
+    //if (flag_do_tauc) {
+    for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
+        tdT50ExLevelStatistics[nhyp].centralValue = 0.0;
+        tdT50ExLevelStatistics[nhyp].upperBound = 0.0;
+        tdT50ExLevelStatistics[nhyp].lowerBound = 0.0;
+        tdT50ExLevelStatistics[nhyp].numLevel = 0;
+        strcpy(warningLevelString[nhyp], "NONE");
     }
+    //}
     //mwp
     int numMwpLevelTotal = 1 + (int) ((MWP_LEVEL_MAX - MWP_LEVEL_MIN) / MWP_LEVEL_STEP);
 #ifdef USE_MWP_LEVEL_ARRAY
@@ -3942,15 +3942,15 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     int *numMwpLevelMax = calloc(num_hypocenters_associated, sizeof (int));
     statistic_level* mwpLevelStatistics = calloc(num_hypocenters_associated, sizeof (statistic_level));
     char mwpLevelString[num_hypocenters_associated][WARNING_LEVEL_STRING_LEN];
-    if (flag_do_mwp) {
-        for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
-            mwpLevelStatistics[nhyp].centralValue = 0.0;
-            mwpLevelStatistics[nhyp].upperBound = 0.0;
-            mwpLevelStatistics[nhyp].lowerBound = 0.0;
-            mwpLevelStatistics[nhyp].numLevel = 0;
-            strcpy(mwpLevelString[nhyp], "NONE");
-        }
+    //if (flag_do_mwp) {
+    for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
+        mwpLevelStatistics[nhyp].centralValue = 0.0;
+        mwpLevelStatistics[nhyp].upperBound = 0.0;
+        mwpLevelStatistics[nhyp].lowerBound = 0.0;
+        mwpLevelStatistics[nhyp].numLevel = 0;
+        strcpy(mwpLevelString[nhyp], "NONE");
     }
+    //}
     // mb
     int numMbLevelTotal = 1 + (int) ((MB_LEVEL_MAX - MB_LEVEL_MIN) / MB_LEVEL_STEP);
     int** mbHistogram = calloc(num_hypocenters_associated, sizeof (int*));
@@ -3974,15 +3974,15 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     int *numMbLevelMax = calloc(num_hypocenters_associated, sizeof (int));
     statistic_level* mbLevelStatistics = calloc(num_hypocenters_associated, sizeof (statistic_level));
     char mbLevelString[num_hypocenters_associated][WARNING_LEVEL_STRING_LEN];
-    if (flag_do_mb) {
-        for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
-            mbLevelStatistics[nhyp].centralValue = 0.0;
-            mbLevelStatistics[nhyp].upperBound = 0.0;
-            mbLevelStatistics[nhyp].lowerBound = 0.0;
-            mbLevelStatistics[nhyp].numLevel = 0;
-            strcpy(mbLevelString[nhyp], "NONE");
-        }
+    //if (flag_do_mb) {
+    for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
+        mbLevelStatistics[nhyp].centralValue = 0.0;
+        mbLevelStatistics[nhyp].upperBound = 0.0;
+        mbLevelStatistics[nhyp].lowerBound = 0.0;
+        mbLevelStatistics[nhyp].numLevel = 0;
+        strcpy(mbLevelString[nhyp], "NONE");
     }
+    //}
     // t0
     int numT0LevelTotal = 1 + (int) ((T0_LEVEL_MAX - T0_LEVEL_MIN) / T0_LEVEL_STEP);
     int** t0Histogram = calloc(num_hypocenters_associated, sizeof (int*));
@@ -4006,15 +4006,15 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     int *numT0LevelMax = calloc(num_hypocenters_associated, sizeof (int));
     statistic_level* t0LevelStatistics = calloc(num_hypocenters_associated, sizeof (statistic_level));
     char t0LevelString[num_hypocenters_associated][WARNING_LEVEL_STRING_LEN];
-    if (flag_do_t0) {
-        for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
-            t0LevelStatistics[nhyp].centralValue = 0.0;
-            t0LevelStatistics[nhyp].upperBound = 0.0;
-            t0LevelStatistics[nhyp].lowerBound = 0.0;
-            t0LevelStatistics[nhyp].numLevel = 0;
-            strcpy(t0LevelString[nhyp], "NONE");
-        }
+    //if (flag_do_t0) {
+    for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
+        t0LevelStatistics[nhyp].centralValue = 0.0;
+        t0LevelStatistics[nhyp].upperBound = 0.0;
+        t0LevelStatistics[nhyp].lowerBound = 0.0;
+        t0LevelStatistics[nhyp].numLevel = 0;
+        strcpy(t0LevelString[nhyp], "NONE");
     }
+    //}
     // mwpd
     int numMwpdLevelTotal = 1 + (int) ((MWPD_LEVEL_MAX - MWPD_LEVEL_MIN) / MWPD_LEVEL_STEP);
     int** mwpdHistogram = calloc(num_hypocenters_associated, sizeof (int*));
@@ -4052,23 +4052,23 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     int *numMwpdMoPosNegLevelMax = calloc(num_hypocenters_associated, sizeof (int));
     statistic_level* mwpdMoPosNegLevelStatistics = calloc(num_hypocenters_associated, sizeof (statistic_level));
 #endif
-    if (flag_do_mwpd) {
-        for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
-            mwpdLevelStatistics[nhyp].centralValue = 0.0;
-            mwpdLevelStatistics[nhyp].upperBound = 0.0;
-            mwpdLevelStatistics[nhyp].lowerBound = 0.0;
-            mwpdLevelStatistics[nhyp].numLevel = 0;
-            strcpy(mwpdLevelString[nhyp], "NONE");
-        }
-#ifdef USE_MWP_MO_POS_NEG
-        for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
-            mwpdMoPosNegLevelStatistics[nhyp].centralValue = 0.0;
-            mwpdMoPosNegLevelStatistics[nhyp].upperBound = 0.0;
-            mwpdMoPosNegLevelStatistics[nhyp].lowerBound = 0.0;
-            mwpdMoPosNegLevelStatistics[nhyp].numLevel = 0;
-        }
-#endif
+    //if (flag_do_mwpd) {
+    for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
+        mwpdLevelStatistics[nhyp].centralValue = 0.0;
+        mwpdLevelStatistics[nhyp].upperBound = 0.0;
+        mwpdLevelStatistics[nhyp].lowerBound = 0.0;
+        mwpdLevelStatistics[nhyp].numLevel = 0;
+        strcpy(mwpdLevelString[nhyp], "NONE");
     }
+#ifdef USE_MWP_MO_POS_NEG
+    for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
+        mwpdMoPosNegLevelStatistics[nhyp].centralValue = 0.0;
+        mwpdMoPosNegLevelStatistics[nhyp].upperBound = 0.0;
+        mwpdMoPosNegLevelStatistics[nhyp].lowerBound = 0.0;
+        mwpdMoPosNegLevelStatistics[nhyp].numLevel = 0;
+    }
+#endif
+    //}
 
 
 
@@ -6835,15 +6835,23 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                 //waveform_export_window_start_before_P, waveform_export_window_end_after_S);
                 HypocenterDesc* phypo = hyp_assoc_loc[deData->is_associated - 1];
                 hptime_t origin_time = timeDecSec2hptime(phypo->otime);
-                if (deData->ttime_P == VALUE_NOT_SET)
-                    printf("ERROR: waveform export: %s_%s_%s_%s %s: deData->ttime_P not set: this should not happen!\n",
-                        deData->network, deData->station, deData->location, deData->channel, deData->phase);
-                hptime_t start_time = origin_time + (deData->ttime_P - waveform_export_window_start_before_P) * (double) HPTMODULUS;
-                if (deData->ttime_S == VALUE_NOT_SET)
-                    printf("ERROR: waveform export: %s_%s_%s_%s %s: deData->ttime_S not set: this should not happen!\n",
-                        deData->network, deData->station, deData->location, deData->channel, deData->phase);
-                hptime_t end_time = origin_time + (deData->ttime_S + waveform_export_window_end_after_S) * (double) HPTMODULUS;
-                //printf("TP %d ttime_P=%f, ttime_S=%f\n", i++, deData->ttime_P, deData->ttime_S);
+                double ttime_P = deData->ttime_P;
+                hptime_t start_time;
+                if (ttime_P != VALUE_NOT_SET) {
+                    start_time = origin_time + (ttime_P - waveform_export_window_start_before_P) * (double) HPTMODULUS;
+                } else { // 20170406 AJL - bug fix, to correctly support waveform export of PKP
+                    // P not available (deData may be PKP), use deData time as ref
+                    start_time = ((double) (deData->t_time_t) + deData->t_decsec - waveform_export_window_start_before_P) * (double) HPTMODULUS;
+                }
+                double ttime_S = deData->ttime_S;
+                hptime_t end_time;
+                if (ttime_S != VALUE_NOT_SET) {
+                    end_time = origin_time + (ttime_S + waveform_export_window_end_after_S) * (double) HPTMODULUS;
+                } else { // 20170406 AJL - bug fix, to correctly support waveform export of PKP
+                    // S not available (deData may be PKP), use deData time as ref
+                    end_time = ((double) (deData->t_time_t) + deData->t_decsec + waveform_export_window_end_after_S) * (double) HPTMODULUS;
+                }
+                //printf("TP %d ttime_P=%f, ttime_S=%f\n", i++, ttime_P, ttime_S);
                 //printf("TP %d start_time=%ld, origin_time=%ld, end_time=%ld\n", i++, start_time/HPTMODULUS, origin_time/HPTMODULUS, end_time/HPTMODULUS);
                 //printf("TP %d start_time-origin_time=%ld, end_time-origin_time=%ld\n", i++, (start_time-origin_time)/HPTMODULUS, (end_time - origin_time)/HPTMODULUS);
                 //printf("TP %d mslist_getStartTime=%ld, mslist_getEndTime=%ld\n", i++,

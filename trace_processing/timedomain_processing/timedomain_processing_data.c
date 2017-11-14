@@ -700,8 +700,10 @@ void set_derived_values(TimedomainProcessingData* deData, double hypo_depth) {
     if (is_associated_phase(deData) && (is_first_arrival_P(deData->phase_id) || is_direct_P(deData->phase_id)) && is_count_in_location(deData->phase_id)) {
         int phase_id_P = get_P_phase_index(); // IMPORTANT!: index must match phase order in ttimes.c array phases[]
         deData->ttime_P = get_ttime(phase_id_P, deData->epicentral_distance, hypo_depth);
+        deData->ttime_P = deData->ttime_P >= 0.0 ? deData->ttime_P : VALUE_NOT_SET;     // 20170406 AJL - bug fix, to correctly support waveform export of PKP
         int phase_id_S = get_S_phase_index(); // IMPORTANT!: index must match phase order in ttimes.c array phases[]
         deData->ttime_S = get_ttime(phase_id_S, deData->epicentral_distance, hypo_depth);
+        deData->ttime_S = deData->ttime_S >= 0.0 ? deData->ttime_S : VALUE_NOT_SET;     // 20170406 AJL - bug fix, to correctly support waveform export of PKP
         if (deData->ttime_P > 0.0 && deData->ttime_S > 0.0) {
             deData->ttime_SminusP = deData->ttime_S - deData->ttime_P;
         }
@@ -1918,10 +1920,12 @@ TimedomainProcessingData *get_next_pick_nll(FILE *fp_in, int verbose) {
 
 
         // map NLL pick data to TimedomainProcessingData
-        char location[] = "--";
-        char channel[] = "--";
-        char network[] = "--";
+        char location[MAX_LEN_STR] = "--";
+        char channel[MAX_LEN_STR] = "--";
+        char network[MAX_LEN_STR] = "--";
         double station_quality_weight = apriori_weight;
+        // 20170715 AJL - use NLL comp as channel.  TODO: Added for SG2K/CEA_AftershockDetectionContest, may not work for Marsite!
+        strcpy(channel, comp);
         TimedomainProcessingData* deData = new_TimedomainProcessingData_fromPick(label, location, channel, network, first_mot, station_quality_weight,
                 year, month, day, hour, min, sec, error_type, error);
 

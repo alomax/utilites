@@ -226,8 +226,12 @@ EXTERN_TXT double alert_resend_time_delay_mail;   // properties file parameter
 // ========== END - ASSOCIATE_LOCATE_OCTTREE ==================================
 
 
+#ifdef TTIMES_LONGMENSHAN_REGIONAL
+#define MAX_HYPO_ARCHIVE_WINDOW (365*24*3600)     // 365 days
+#else
 #define MAX_HYPO_ARCHIVE_WINDOW (10*24*3600)     // 10 days
 //#define MAX_HYPO_ARCHIVE_WINDOW (2*24*3600)     // testing
+#endif
 
 #define LATENCY_RED_CUTOFF 300.0
 #define LATENCY_YELLOW_CUTOFF 60.0

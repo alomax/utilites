@@ -187,6 +187,10 @@
       <df name="timedomain_processing">
         <df name="ttimes">
           <in>latlon_deep.h</in>
+          <in>ttimes_Longmenshan_regional.h</in>
+          <in>ttimes_Longmenshan_regional_times_phases.h</in>
+          <in>ttimes_Longmenshan_regional_toang_phases.h</in>
+          <in>ttimes_Longmenshan_regional_tvel.h</in>
           <in>ttimes_SoCalSN_HK_2010.h</in>
           <in>ttimes_SoCalSN_HK_2010_times_phases.h</in>
           <in>ttimes_SoCalSN_HK_2010_toang_phases.h</in>
@@ -252,6 +256,9 @@
       </df>
       <df name="ttimes_work_TauP_Table_NLL">
         <df name="temp">
+          <in>ttimes_Longmenshan_regional_times_phases.h</in>
+          <in>ttimes_Longmenshan_regional_toang_phases.h</in>
+          <in>ttimes_Longmenshan_regional_tvel.h</in>
           <in>ttimes_ak135_0-800_10_TauP_times_phases.h</in>
           <in>ttimes_ak135_0-800_10_TauP_toang_phases.h</in>
           <in>ttimes_marsite1_regional_times_phases.h</in>

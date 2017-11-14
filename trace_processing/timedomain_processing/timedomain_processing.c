@@ -98,7 +98,7 @@ static PickParams hfPickParams[MAX_NUM_PICK_CHANNEL_LIST];
 
 #define USE_TO_FOR_SIGNAL_LEVEL_WINDOW 1 // 20121115 TEST AJL - calculate signal level in window of width To after P, instead of fixed window width
 
-#define TEST_TO_FILE NO
+//#define TEST_TO_FILE
 
 #define USE_RAW_PICKS_UNCONDITIONALLY  // # TEST! 20150930 AJL; seems to work well 20151119 AJL
 
@@ -2299,6 +2299,7 @@ int td_set_station_coordinates(int source_id, char* network, char* station, char
                     int nscan;
                     if ((nscan = sscanf(line, "%s %s %lf %lf %lf %*d %*d %*d %s %s %lf %lf",
                             net, sta, &lat, &lon, &elev, loc, chan, &azimuth, &dip)) >= 5) {
+                        //printf("DEBUG: %s[%s] %s[%s] %s[%s] %s[%s] sensor coordinates (%lf %lf %lf), az/dip (%lf %lf) read from geog file: %s\n", net, network, sta, station, loc, location, chan, channel, lat, lon, elev, azimuth, dip, geogfile_name);
                         if ((strcmp(net, network) == 0) && (strcmp(sta, station) == 0)) { // found
                             if (nscan <= 5 || ((strcmp(loc, location) == 0) && (strcmp(chan, channel) == 0))) { // check loc and chan if available
                                 if (verbose)
