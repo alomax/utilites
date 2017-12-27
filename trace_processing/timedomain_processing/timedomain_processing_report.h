@@ -191,7 +191,28 @@ EXTERN_TXT double mwpd_min_mail;   // properties file parameter
 #define PICK_PLOT_LEVEL_MIN -999.9
 #define PICK_PLOT_LEVEL_MAX 999.9
 
-#define MIN_NUMBER_VALUES_USE 4
+typedef struct {
+    int mb;
+    int mwp;
+    int mwpd;
+    int t0;
+    int tdT50Ex;
+    int t50Ex;
+    int tauc;
+}
+report_min_number_values_use;
+#define MIN_NUM_VALUES_USE_DEFAULT 4
+
+typedef struct {
+    double mb;
+    double mwp;
+    double mwpd;
+}
+report_preferred_min_value;
+#define PREFERRED_MIN_VALUE_MB_DEFAULT -9
+#define PREFERRED_MIN_VALUE_MWP_DEFAULT 5.5
+#define PREFERRED_MIN_VALUE_MWPD_DEFAULT 8.0
+
 
 // 20160307 AJL - acceptable location quality levels to use for alerts, hypo display row colors, ...
 #define LOC_QUALITY_ACCEPTABLE "AB"

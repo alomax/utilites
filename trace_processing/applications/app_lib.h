@@ -6,7 +6,7 @@
  */
 
 #ifdef EXTERN_MODE
-#define	EXTERN_TXT extern
+#define EXTERN_TXT extern
 #else
 #define EXTERN_TXT
 #endif
@@ -23,9 +23,9 @@
 #include "../timedomain_processing/timedomain_processing_report.h"
 
 #ifndef APP_LIB_H
-#define	APP_LIB_H
+#define APP_LIB_H
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -44,13 +44,13 @@ extern "C" {
     EXTERN_TXT int data_input_filter_ignore_duplicate_sta;
 
 
-#define DEFAULT_SLIDING_WINDOW_LENGTH 3600	// 1 hour
+#define DEFAULT_SLIDING_WINDOW_LENGTH 3600 // 1 hour
     EXTERN_TXT int sliding_window_length;
-#define DEFAULT_REPORT_INTERVAL 60	// 1 minutes
+#define DEFAULT_REPORT_INTERVAL 60 // 1 minutes
     EXTERN_TXT int report_interval;
-#define DEFAULT_REPORT_TRIGGER_PICK_WINDOW 600	// 10 minutes
+#define DEFAULT_REPORT_TRIGGER_PICK_WINDOW 600 // 10 minutes
     EXTERN_TXT int report_trigger_pick_window;
-#define DEFAULT_REPORT_TRIGGER_MIN_NUM_PICKS 5	// 5 picks to trigger early assoc/location
+#define DEFAULT_REPORT_TRIGGER_MIN_NUM_PICKS 5 // 5 picks to trigger early assoc/location
     EXTERN_TXT int report_trigger_min_num_picks;
 #define DEFAULT_REPORT_TRIGGER_MIN_DELAY_TIME 10  // 10 sec minimum delay after previous report
     EXTERN_TXT int report_trigger_min_delay_time;
@@ -68,9 +68,9 @@ extern "C" {
     void app_lib_cleanup();
 
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* APP_LIB_H */
+#endif /* APP_LIB_H */
 

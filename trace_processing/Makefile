@@ -56,36 +56,34 @@ DEV_DEFS= $(DEV_DEFS_0) $(DEV_DEFS_1) $(DEV_DEFS_2) $(DEV_DEFS_3) $(DEV_DEFS_4) 
 #export EXE_NAME=$(TTIMES_NAME)_ALPHA   # X 20150415
 #DEV_DEFS_0= -D ALPHA_VERSION   # X 20150415
 #
-# 20141203 AJL - Uncomment the following line to enable up-weighting of picks with high S/N for location
-#
-# ADDED TO PROP FILE, CHECK WORKS  DEV_DEFS_5= -D USE_LOCATION_UPWEIGHT_HIGH_SN_PICKS   # X 20150415
-#
-# 20150108 AJL - Uncomment the following line to enable use of station corrections
-#
-# ADDED TO PROP FILE, CHECK WORKS  DEV_DEFS_7= -D USE_STATION_CORRECTIONS   # X 20150415
-#
 # 20150401 AJL - Uncomment the following line to﻿use all picks for location, irrespective of HF S/N.
-#
-DEV_DEFS_8= -D USE_USE_ALL_PICKS_FOR_LOCATION   # X 20150415
-#
-#
-# 20140122 AJL - Uncomment the following line to enable check of P amplitude attenuation in association/location
-# ADDED TO PROP FILE, CHECK WORKS  DEV_DEFS_1= -D USE_AMPLITUDE_ATTENUATION
-#
-# 20140624 AJL - Uncomment the following line to check for event persistence - keep previous location results for events with insufficient potential new defining picks
-# ADDED TO PROP FILE, CHECK WORKS  DEV_DEFS_2= -D USE_EVENT_PERSISTENCE
-#
-# 20140801 AJL - Uncomment the following line to﻿correct the computed Mwp and Mwpd based on epicentral distance.
-# ADDED TO PROP FILE, CHECK WORKS  DEV_DEFS_4= -D USE_MWP_DISTANCE_CORRECTION
-#
-# 20141208 AJL - Uncomment the following line to enable checking if amplitude attenuation error ratio too high or too low - gain may be incorrect, ignore magnitudes
-# ADDED TO PROP FILE, CHECK WORKS  DEV_DEFS_6= -D USE_MAGNITUDE_AMP_ATTEN_CHECK
-#
-# 20150408 AJL - Uncomment the following line to﻿correct mB to better agree with mb_NEIC.
-# ADDED TO PROP FILE, CHECK WORKS  DEV_DEFS_9= -D USE_MB_CORRECTION
+DEV_DEFS_1= -D USE_USE_ALL_PICKS_FOR_LOCATION
 #
 # =========================================================================================================================
 
+
+# IMPORTANT: librabbitmq stuff (20171226 - AJL added)
+# 1) Make sure librabbitmq is on your LD_LIBRARY_PATH:
+# export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:<path to rabbitmg install>/rabbitmq-c-0.8.0/build/librabbitmq
+# 2) Define AMQP_INCLUDE_PATH and AMQP_LIBRARY_PATH
+# export AMQP_INCLUDE_PATH=-I<path to rabbitmg install>/rabbitmq-c-0.8.0/librabbitmq
+# export AMQP_LIBRARY_PATH=-L<path to rabbitmg install>/rabbitmq-c-0.8.0/build/librabbitmq
+#
+# Uncomment the following line to﻿send accepted picks though rabbitmq message broker
+AMQP_DEFS= -D USE_RABBITMQ_MESSAGING
+#
+ifdef AMQP_DEFS
+ifndef AMQP_INCLUDE_PATH
+export AMQP_INCLUDE_PATH= -I$(HOME)/opt/rabbitmq-c-0.8.0/librabbitmq
+endif
+ifndef AMQP_LIBRARY_PATH
+export AMQP_LIBRARY_PATH= -L$(HOME)/opt/rabbitmq-c-0.8.0/build/librabbitmq
+endif
+export LDFLAGS_RMQ= $(AMQP_LIBRARY_PATH)
+export LDLIBS_RMQ= -lrabbitmq
+RMQ_OBJ= ../rabbitmq/amqp_sendstring_func.o
+RMQ_MODULES= rabbitmq
+endif
 
 
 # Options specific for GCC
@@ -97,7 +95,7 @@ GNU_SOURCE=-D _GNU_SOURCE
 #GNU_SOURCE=
 #
 #
-CCFLAGS_BASIC =  -std=c99 -Wall $(GNU_SOURCE) `xml2-config --cflags` $(TTIME_DEFS) $(DEV_DEFS)
+CCFLAGS_BASIC =  -std=c99 -Wall $(GNU_SOURCE) `xml2-config --cflags` $(TTIME_DEFS) $(AMQP_DEFS) $(DEV_DEFS)
 # 20160513 - -mcmodel=large flag may be needed on Linux per suggestion by mehmety@boun.edu.tr
 #CCFLAGS_BASIC = -mcmodel=large -std=c99 -Wall $(GNU_SOURCE) `xml2-config --cflags` $(TTIME_DEFS) $(DEV_DEFS)
 
@@ -132,9 +130,10 @@ export CCFLAGS = -O3 $(CCFLAGS_BASIC)
 
 
 
-export LIB_OBJS = ../timedomain_processing/timedomain_processing.o ../timedomain_processing/timedomain_processing_data.o  ../timedomain_processing/timedomain_processing_report.o \
+export LIB_OBJS =  $(RMQ_OBJ) \
+../timedomain_processing/timedomain_processing.o ../timedomain_processing/timedomain_processing_data.o  ../timedomain_processing/timedomain_processing_report.o \
 ../timedomain_processing/timedomain_processes.o ../timedomain_processing/timedomain_filter.o ../timedomain_processing/timedomain_memory.o \
-../timedomain_processing/ttimes.o ../timedomain_processing/location.o ../timedomain_processing/loc2xml.o \
+../timedomain_processing/ttimes.o ../timedomain_processing/location.o ../timedomain_processing/time_utils.o ../timedomain_processing/loc2xml.o \
 ../vector/vector.o \
 ../statistics/statistics.o \
 ../alomax_matrix/alomax_matrix.o ../alomax_matrix/alomax_matrix_svd.o ../alomax_matrix/polarization.o ../alomax_matrix/eigv.o ../matrix_statistics/matrix_statistics.o \
@@ -143,7 +142,7 @@ export LIB_OBJS = ../timedomain_processing/timedomain_processing.o ../timedomain
 ../settings/settings.o ../settings/strmap.o ../miniseed_utils/miniseed_utils.o
 
 
-MODULES = \
+MODULES = $(RMQ_MODULES) \
 	math \
 	vector \
 	statistics \

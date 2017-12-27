@@ -107,7 +107,6 @@ int main(int argc, char **argv) {
     //char sendMailParams[] = "http://early-est.alomax.net,anthony@alomax.net,alomax@free.fr,anthony@alomax.net";
     char sendMailParams[] = "http://early-est.alomax.net,anthony@alomax.net,alomax@free.fr";
     //char sendMailParams[] = "http://early-est.alomax.net,anthony@alomax.net";
-    char agencyId[] = "alomax.net";
 
     int dataflag = 1;
     int totalrecs = 0;
@@ -149,6 +148,7 @@ int main(int argc, char **argv) {
     }
 
     // process given parameters (command line and parameter file)
+    strcpy(agencyId, "alomax.net");
     if (parameter_proc(argc, argv) < 0)
         return -1;
 

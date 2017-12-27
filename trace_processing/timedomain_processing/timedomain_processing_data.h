@@ -406,7 +406,8 @@ TimedomainProcessingData* new_TimedomainProcessingData(char* sladdr, int n_int_t
         int year, int month, int mday, int hour, int min, double dsec, int flag_do_mwpd, int waveform_export_enable);
 TimedomainProcessingData* copy_TimedomainProcessingData(TimedomainProcessingData* deData);
 void free_TimedomainProcessingData(TimedomainProcessingData* deData);
-int addTimedomainProcessingDataToDataList(TimedomainProcessingData* deData, TimedomainProcessingData*** pdata_list, int* pnum_data, int check_exists);
+int addTimedomainProcessingDataToDataList(TimedomainProcessingData* deData, TimedomainProcessingData*** pdata_list, int* pnum_data,
+        int check_exists, int send_message);
 void removeTimedomainProcessingDataFromDataList(TimedomainProcessingData* deData, TimedomainProcessingData*** pdata_list, int* pnum_data);
 void free_TimedomainProcessingDataList(TimedomainProcessingData** data_list, int num_data);
 int fprintf_TimedomainProcessingData(TimedomainProcessingData* deData, FILE* pfile);

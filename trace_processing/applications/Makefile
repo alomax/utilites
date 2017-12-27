@@ -35,25 +35,25 @@ CCFLAGS = -O3 $(CCFLAGS_BASIC)
 # valgrind --leak-check=full --show-reachable=yes exe_name exe_name <args>
 endif
 
-LDFLAGS = -L..
-LDLIBS = -lm
+LDFLAGS = $(LDFLAGS_RMQ) -L..
+LDLIBS = $(LDLIBS_RMQ) -lm -lmseed -ltdproc -lm `xml2-config --cflags` `xml2-config --libs`
 
-OBJ= ${LIB_OBJS} app_lib.o
+OBJ= $(LIB_OBJS) app_lib.o
 
 
 
 all: $(BINDIR)/seedlink_monitor${EXE_NAME} $(BINDIR)/miniseed_process${EXE_NAME} $(BINDIR)/pick_process${EXE_NAME}
 
 $(BINDIR)/pick_process${EXE_NAME}: pick_process.o $(OBJ)
-	$(CC) $(CCFLAGS) -o $(BINDIR)/pick_process${EXE_NAME} pick_process.o $(OBJ) $(LDFLAGS) $(LDLIBS) -lmseed -ltdproc -lm `xml2-config --cflags` `xml2-config --libs`
+	$(CC) $(CCFLAGS) -o $(BINDIR)/pick_process${EXE_NAME} pick_process.o $(OBJ) $(LDFLAGS) $(LDLIBS)
 
 
 $(BINDIR)/miniseed_process${EXE_NAME}: miniseed_process.o mseedrtstream_lib.o $(OBJ)
-	$(CC) $(CCFLAGS) -o $(BINDIR)/miniseed_process${EXE_NAME} miniseed_process.o mseedrtstream_lib.o $(OBJ) $(LDFLAGS) $(LDLIBS) -lmseed -ltdproc -lm `xml2-config --cflags` `xml2-config --libs`
+	$(CC) $(CCFLAGS) -o $(BINDIR)/miniseed_process${EXE_NAME} miniseed_process.o mseedrtstream_lib.o $(OBJ) $(LDFLAGS) $(LDLIBS)
 
 
 $(BINDIR)/seedlink_monitor${EXE_NAME}: seedlink_monitor.o $(OBJ)
-	$(CC) $(CCFLAGS) -o $(BINDIR)/seedlink_monitor${EXE_NAME} seedlink_monitor.o $(OBJ) $(LDFLAGS) $(LDLIBS) -lslink -lmseed -ltdproc -lm `xml2-config --cflags` `xml2-config --libs`
+	$(CC) $(CCFLAGS) -o $(BINDIR)/seedlink_monitor${EXE_NAME} seedlink_monitor.o $(OBJ) $(LDFLAGS) $(LDLIBS) -lslink
 
 clean:
 	rm -f $(BINDIR)/pick_process${EXE_NAME} $(BINDIR)/miniseed_process${EXE_NAME} $(BINDIR)/seedlink_monitor${EXE_NAME}

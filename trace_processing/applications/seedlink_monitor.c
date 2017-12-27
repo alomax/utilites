@@ -49,7 +49,6 @@ static int ibackfill = 0;
 
 static int sendMail = 0;
 static char *sendMailParams = NULL;
-static char *agencyId = NULL;
 
 static int num_new_loc_picks = 0;
 static double count_new_use_loc_picks_cutoff_time = -FLT_MAX;
@@ -1091,14 +1090,12 @@ static int parameter_proc(int argcount, char **argvec) {
         } else if (strcmp(argvec[optind], "-sendmail") == 0) {
             sendMail = 1;
             sendMailParams = argvec[++optind];
-        } else if (strcmp(argvec[optind], "-agency-id") == 0) {
-            agencyId = argvec[++optind];
         } else if (strncmp(argvec[optind], "-v", 2) == 0) {
             verbose += strspn(&argvec[optind][1], "v");
         } else if (strncmp(argvec[optind], "-", 1) == 0) {
             fprintf(stderr, "Unknown option: %s\n", argvec[optind]);
             exit(1);
-        }// check for common application parameters
+        } // check for common application parameters
         else if (parameter_proc_common(&optind, argvec, PACKAGE, VERSION, VERSION_DATE, usage) > 0) {
             ;
         } else if (num_slconn < MAX_NUM_SLCON) {
@@ -1237,7 +1234,6 @@ static void usage(void) {
             " -c command     command to execute each time report files written (path root (outpath), path to results directory, and results directory name are appended after command)\n"
             "                  command is run in background, so must complete within report interval (%d seconds) to avoid collision with next invocation of command\n"
             " -sendmail      send e-mail messsage using sendmail alarm on new event location (<base web url>,<from>,<to>[,<to>]...})\n"
-            " -agency-id     public id for originatin agency in XML messages (e.g. net.alomax)\n"
             "\n"
             "\n"
             , report_interval

@@ -17,11 +17,8 @@
 #include <time.h>
 #include <sys/stat.h>
 
-//#include "../geometry/geometry.h"
 #include "../alomax_matrix/alomax_matrix.h"
 #include "../alomax_matrix/polarization.h"
-//#include "../matrix_statistics/matrix_statistics.h"
-//#include "../statistics/statistics.h"
 #include "../picker/PickData.h"
 #include "timedomain_processing_data.h"
 #include "ttimes.h"
@@ -479,7 +476,7 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
                 }
             }
 #endif
-            int num_added = addTimedomainProcessingDataToDataList(deData, &data_list, &num_de_data, 1);
+            int num_added = addTimedomainProcessingDataToDataList(deData, &data_list, &num_de_data, 1, 1);
             if (num_added < 1) {
                 if (verbose)
                     printf("Warning: Raw pick: new pick not added to deData list, nearby pick already exists in list: %s, %.4d%.2d%.2d-%.2d:%.2d:%.4f (%ld %f)\n",
@@ -600,7 +597,7 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
                 (*pnum_new_loc_picks)++;
             }
             // }
-            int num_added = addTimedomainProcessingDataToDataList(deData, &data_list, &num_de_data, 1);
+            int num_added = addTimedomainProcessingDataToDataList(deData, &data_list, &num_de_data, 1, 1);
             if (num_added < 1) {
                 if (verbose)
                     printf("Warning: HF pick: new pick not added to deData list, nearby pick already exists in list: %s, %.4d%.2d%.2d-%.2d:%.2d:%.4f\n",
@@ -2113,6 +2110,39 @@ int td_process_timedomain_processing_init(Settings *settings, char* outpath, cha
     printf("Info: property set: [TimedomainProcessing] pick.hf. filterWindow %f longTermWindow %f threshold1 %f threshold2 %f tUpEvent %f\n",
             hfPickParams[0].filterWindow, hfPickParams[0].longTermWindow, hfPickParams[0].threshold1, hfPickParams[0].threshold2, hfPickParams[0].tUpEvent);
 
+
+#ifdef USE_RABBITMQ_MESSAGING
+    //
+    rmq_parameters.rmq_use_rmq = RMQ_USE_RMQ_DEFAULT;
+    if ((int_param = settings_get_int(app_prop_settings, "Messaging", "rmq.use_rmq")) != INT_INVALID) {
+        rmq_parameters.rmq_use_rmq = int_param;
+    }
+    //
+    strcpy(rmq_parameters.rmq_hostname, RMQ_HOSTNAME_DEFAULT);
+    if (settings_get(app_prop_settings, "Messaging", "rmq.hostname", out_buf, SETTINGS_MAX_STR_LEN)) {
+        strcpy(rmq_parameters.rmq_hostname, out_buf);
+    }
+    printf("Info: property set: [Messaging] rmq.hostname %s\n", rmq_parameters.rmq_hostname);
+    //
+    rmq_parameters.rmq_port = RMQ_PORT_DEFAULT;
+    if ((int_param = settings_get_int(app_prop_settings, "Messaging", "rmq.port")) != INT_INVALID) {
+        rmq_parameters.rmq_port = int_param;
+    }
+    printf("Info: property set: [Messaging] rmq.rmq_port %d\n", rmq_parameters.rmq_port);
+    //
+    strcpy(rmq_parameters.rmq_exchange, RMQ_EXCHANGE_DEFAULT);
+    if (settings_get(app_prop_settings, "Messaging", "rmq.exchange", out_buf, SETTINGS_MAX_STR_LEN)) {
+        strcpy(rmq_parameters.rmq_exchange, out_buf);
+    }
+    printf("Info: property set: [Messaging] rmq.exchange %s\n", rmq_parameters.rmq_exchange);
+    //
+    strcpy(rmq_parameters.rmq_routingkey, RMQ_ROUTNGKEY_DEFAULT);
+    if (settings_get(app_prop_settings, "Messaging", "rmq.routingkey", out_buf, SETTINGS_MAX_STR_LEN)) {
+        strcpy(rmq_parameters.rmq_routingkey, out_buf);
+    }
+    printf("Info: property set: [Messaging] rmq.routingkey %s\n", rmq_parameters.rmq_routingkey);
+    //
+#endif
 
 
     // general initialization

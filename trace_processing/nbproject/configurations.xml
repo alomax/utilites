@@ -1,153 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configurationDescriptor version="100">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
-    <logicalFolder name="soft" displayName="soft" projectFiles="true" root="..">
-      <logicalFolder name="alomax_matrix"
-                     displayName="alomax_matrix"
-                     projectFiles="true">
-        <itemPath>../alomax_matrix/alomax_matrix.c</itemPath>
-        <itemPath>../alomax_matrix/alomax_matrix.h</itemPath>
-        <itemPath>../alomax_matrix/alomax_matrix_svd.c</itemPath>
-        <itemPath>../alomax_matrix/alomax_matrix_svd.h</itemPath>
-        <itemPath>../alomax_matrix/eigv.c</itemPath>
-        <itemPath>../alomax_matrix/eigv.h</itemPath>
-        <itemPath>../alomax_matrix/polarization.c</itemPath>
-        <itemPath>../alomax_matrix/polarization.h</itemPath>
-        <itemPath>../alomax_matrix/test_real_symmetric_eigen.c</itemPath>
-      </logicalFolder>
-      <logicalFolder name="feregion" displayName="feregion" projectFiles="true">
-        <itemPath>../feregion/fe_names.h</itemPath>
-        <itemPath>../feregion/fe_nesect.h</itemPath>
-        <itemPath>../feregion/fe_nwsect.h</itemPath>
-        <itemPath>../feregion/fe_quadsidx.h</itemPath>
-        <itemPath>../feregion/fe_region_test.c</itemPath>
-        <itemPath>../feregion/fe_sesect.h</itemPath>
-        <itemPath>../feregion/fe_swsect.h</itemPath>
-        <itemPath>../feregion/feregion.c</itemPath>
-        <itemPath>../feregion/feregion.h</itemPath>
-      </logicalFolder>
-      <logicalFolder name="fmamp" displayName="fmamp" projectFiles="true">
-        <logicalFolder name="alomax_matrix"
-                       displayName="alomax_matrix"
-                       projectFiles="true">
-          <itemPath>../fmamp/alomax_matrix/alomax_matrix.c</itemPath>
-          <itemPath>../fmamp/alomax_matrix/alomax_matrix.h</itemPath>
-          <itemPath>../fmamp/alomax_matrix/alomax_matrix_svd.h</itemPath>
-          <itemPath>../fmamp/alomax_matrix/eigv.h</itemPath>
-        </logicalFolder>
-        <logicalFolder name="geometry" displayName="geometry" projectFiles="true">
-          <itemPath>../fmamp/geometry/geometry.h</itemPath>
-        </logicalFolder>
-        <logicalFolder name="matrix_statistics"
-                       displayName="matrix_statistics"
-                       projectFiles="true">
-          <itemPath>../fmamp/matrix_statistics/matrix_statistics.h</itemPath>
-        </logicalFolder>
-        <logicalFolder name="octtree" displayName="octtree" projectFiles="true">
-          <itemPath>../fmamp/octtree/octtree.h</itemPath>
-        </logicalFolder>
-        <logicalFolder name="ran1" displayName="ran1" projectFiles="true">
-          <itemPath>../fmamp/ran1/ran1.c</itemPath>
-          <itemPath>../fmamp/ran1/ran1.h</itemPath>
-        </logicalFolder>
-        <logicalFolder name="settings" displayName="settings" projectFiles="true">
-          <itemPath>../fmamp/settings/settings.c</itemPath>
-          <itemPath>../fmamp/settings/settings.h</itemPath>
-          <itemPath>../fmamp/settings/strmap.c</itemPath>
-          <itemPath>../fmamp/settings/strmap.h</itemPath>
-        </logicalFolder>
-        <logicalFolder name="vector" displayName="vector" projectFiles="true">
-          <itemPath>../fmamp/vector/vector.c</itemPath>
-          <itemPath>../fmamp/vector/vector.h</itemPath>
-        </logicalFolder>
-        <itemPath>../fmamp/early_est.h</itemPath>
-        <itemPath>../fmamp/fmamp.c</itemPath>
-        <itemPath>../fmamp/fmamp.h</itemPath>
-        <itemPath>../fmamp/fmamp_invert.c</itemPath>
-        <itemPath>../fmamp/fmamp_utils.c</itemPath>
-        <itemPath>../fmamp/fmamp_utils.h</itemPath>
-        <itemPath>../fmamp/gmt_macros.h</itemPath>
-        <itemPath>../fmamp/meca.h</itemPath>
-        <itemPath>../fmamp/read_input.c</itemPath>
-        <itemPath>../fmamp/write_output.c</itemPath>
-      </logicalFolder>
-      <logicalFolder name="math" displayName="math" projectFiles="true">
-        <itemPath>../math/complex.c</itemPath>
-        <itemPath>../math/complex.h</itemPath>
-      </logicalFolder>
-      <logicalFolder name="matrix_statistics"
-                     displayName="matrix_statistics"
-                     projectFiles="true">
-        <itemPath>../matrix_statistics/matrix_statistics.c</itemPath>
-        <itemPath>../matrix_statistics/matrix_statistics.h</itemPath>
-      </logicalFolder>
-      <logicalFolder name="miniseed_utils"
-                     displayName="miniseed_utils"
-                     projectFiles="true">
-        <itemPath>../miniseed_utils/miniseed_utils.c</itemPath>
-        <itemPath>../miniseed_utils/miniseed_utils.h</itemPath>
-      </logicalFolder>
-      <logicalFolder name="net" displayName="net" projectFiles="true">
-        <itemPath>../net/htmlget.c</itemPath>
-        <itemPath>../net/net_lib.c</itemPath>
-        <itemPath>../net/net_lib.h</itemPath>
-      </logicalFolder>
-      <logicalFolder name="octtree" displayName="octtree" projectFiles="true">
-        <itemPath>../octtree/geometry.h</itemPath>
-        <itemPath>../octtree/octtree.c</itemPath>
-        <itemPath>../octtree/octtree.h</itemPath>
-        <itemPath>../octtree/ran1.h</itemPath>
-      </logicalFolder>
-      <logicalFolder name="picker" displayName="picker" projectFiles="true">
-        <itemPath>../picker/FilterPicker5.c</itemPath>
-        <itemPath>../picker/FilterPicker5.h</itemPath>
-        <itemPath>../picker/FilterPicker5_Memory.c</itemPath>
-        <itemPath>../picker/FilterPicker5_Memory.h</itemPath>
-        <itemPath>../picker/PickData.c</itemPath>
-        <itemPath>../picker/PickData.h</itemPath>
-        <itemPath>../picker/ew_bridge.h</itemPath>
-        <itemPath>../picker/picker_func_test.c</itemPath>
-        <itemPath>../picker/picker_func_test_memory.c</itemPath>
-        <itemPath>../picker/sachdr.h</itemPath>
-      </logicalFolder>
-      <logicalFolder name="ran1" displayName="ran1" projectFiles="true">
-        <itemPath>../ran1/ran1.c</itemPath>
-        <itemPath>../ran1/ran1.h</itemPath>
-      </logicalFolder>
-      <logicalFolder name="response" displayName="response" projectFiles="true">
-        <itemPath>../response/get_gain.c</itemPath>
-        <itemPath>../response/get_station_coords.c</itemPath>
-        <itemPath>../response/response_lib.c</itemPath>
-        <itemPath>../response/response_lib.h</itemPath>
-      </logicalFolder>
-      <logicalFolder name="settings" displayName="settings" projectFiles="true">
-        <itemPath>../settings/settings.c</itemPath>
-        <itemPath>../settings/settings.h</itemPath>
-        <itemPath>../settings/strmap.c</itemPath>
-        <itemPath>../settings/strmap.h</itemPath>
-      </logicalFolder>
-      <logicalFolder name="vector" displayName="vector" projectFiles="true">
-        <itemPath>../vector/vector.c</itemPath>
-        <itemPath>../vector/vector.h</itemPath>
-      </logicalFolder>
-    </logicalFolder>
-    <logicalFolder name="statistics"
-                   displayName="statistics"
-                   projectFiles="true"
-                   root="../statistics">
-      <itemPath>../statistics/cprob.h</itemPath>
-      <itemPath>../statistics/incbet.c</itemPath>
-      <itemPath>../statistics/incbi.c</itemPath>
-      <itemPath>../statistics/ndtri.c</itemPath>
-      <itemPath>../statistics/polevl.c</itemPath>
-      <itemPath>../statistics/statistics.c</itemPath>
-      <itemPath>../statistics/statistics.h</itemPath>
-      <itemPath>../statistics/student_t.c</itemPath>
-      <itemPath>../statistics/student_t.h</itemPath>
-      <itemPath>../statistics/student_t_table.c</itemPath>
-      <itemPath>../statistics/student_t_table_1000_68.h</itemPath>
-      <itemPath>../statistics/test_student_t.c</itemPath>
-    </logicalFolder>
     <df root="." name="0">
       <df name="alomax_matrix">
         <in>alomax_matrix.c</in>
@@ -233,6 +86,11 @@
         <in>picker_func_test.c</in>
         <in>picker_func_test_memory.c</in>
       </df>
+      <df name="rabbitmq">
+        <in>amqp_listen_test.c</in>
+        <in>amqp_sendstring_func.c</in>
+        <in>amqp_sendstring_test.c</in>
+      </df>
       <df name="ran1">
         <in>ran1.c</in>
       </df>
@@ -258,6 +116,7 @@
       <df name="timedomain_processing">
         <in>loc2xml.c</in>
         <in>location.c</in>
+        <in>time_utils.c</in>
         <in>timedomain_filter.c</in>
         <in>timedomain_filter_1.c</in>
         <in>timedomain_filter_2.c</in>
@@ -284,6 +143,7 @@
       <itemPath>Makefile-trace_processing.mk</itemPath>
       <itemPath>makefile</itemPath>
     </logicalFolder>
+    <itemPath>rabbitmq/README.txt</itemPath>
   </logicalFolder>
   <sourceFolderFilter>^(nbproject|build|test|tests)$|\._phases.h$</sourceFolderFilter>
   <sourceRootList>
@@ -315,193 +175,6 @@
           <preBuildCommand></preBuildCommand>
         </preBuild>
       </makefileType>
-      <item path="../alomax_matrix/alomax_matrix.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../alomax_matrix/alomax_matrix_svd.c"
-            ex="false"
-            tool="0"
-            flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../alomax_matrix/eigv.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../alomax_matrix/polarization.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../alomax_matrix/test_real_symmetric_eigen.c"
-            ex="false"
-            tool="0"
-            flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../feregion/fe_region_test.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../feregion/feregion.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../fmamp/alomax_matrix/alomax_matrix.c"
-            ex="false"
-            tool="0"
-            flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../fmamp/fmamp.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../fmamp/fmamp_invert.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../fmamp/fmamp_utils.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../fmamp/ran1/ran1.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../fmamp/read_input.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../fmamp/settings/settings.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../fmamp/settings/strmap.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../fmamp/vector/vector.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../fmamp/write_output.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../math/complex.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../matrix_statistics/matrix_statistics.c"
-            ex="false"
-            tool="0"
-            flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../miniseed_utils/miniseed_utils.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../net/htmlget.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../net/net_lib.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../octtree/octtree.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../picker/FilterPicker5.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../picker/FilterPicker5_Memory.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../picker/PickData.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../picker/picker_func_test.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../picker/picker_func_test_memory.c"
-            ex="false"
-            tool="0"
-            flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../ran1/ran1.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../response/get_gain.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../response/get_station_coords.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../response/response_lib.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../settings/settings.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../settings/strmap.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../statistics/incbet.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../statistics/incbi.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../statistics/ndtri.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../statistics/polevl.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../statistics/statistics.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../statistics/student_t.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../statistics/student_t_table.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../statistics/test_student_t.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="../vector/vector.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="0">
-        </cTool>
-      </item>
       <item path="alomax_matrix/alomax_matrix.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
         </cTool>
@@ -551,8 +224,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -564,8 +237,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -577,8 +250,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -587,6 +260,7 @@
       <folder path="0/fmamp">
         <cTool>
           <preprocessorList>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -595,51 +269,36 @@
       <folder path="0/fmamp/alomax_matrix">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include/libxml2</pElem>
+            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
-          <preprocessorList>
-            <Elem>TTIMES_AK135_GLOBAL</Elem>
-          </preprocessorList>
         </cTool>
       </folder>
       <folder path="0/fmamp/matrix_statistics">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include/libxml2</pElem>
+            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
-          <preprocessorList>
-            <Elem>TTIMES_AK135_GLOBAL</Elem>
-          </preprocessorList>
         </cTool>
       </folder>
       <folder path="0/fmamp/octtree">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include/libxml2</pElem>
+            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
-          <preprocessorList>
-            <Elem>TTIMES_AK135_GLOBAL</Elem>
-          </preprocessorList>
         </cTool>
       </folder>
       <folder path="0/fmamp/ran1">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include/libxml2</pElem>
+            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
-          <preprocessorList>
-            <Elem>TTIMES_AK135_GLOBAL</Elem>
-          </preprocessorList>
         </cTool>
       </folder>
       <folder path="0/fmamp/settings">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include/libxml2</pElem>
+            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
-          <preprocessorList>
-            <Elem>TTIMES_AK135_GLOBAL</Elem>
-          </preprocessorList>
         </cTool>
       </folder>
       <folder path="0/fmamp/statistics">
@@ -647,9 +306,6 @@
           <incDir>
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include/libxml2</pElem>
           </incDir>
-          <preprocessorList>
-            <Elem>TTIMES_AK135_GLOBAL</Elem>
-          </preprocessorList>
         </cTool>
       </folder>
       <folder path="0/fmamp/vector">
@@ -657,9 +313,6 @@
           <incDir>
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include/libxml2</pElem>
           </incDir>
-          <preprocessorList>
-            <Elem>TTIMES_AK135_GLOBAL</Elem>
-          </preprocessorList>
         </cTool>
       </folder>
       <folder path="0/math">
@@ -668,8 +321,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -681,8 +334,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -694,8 +347,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -707,8 +360,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -720,8 +373,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -735,14 +388,28 @@
           </incDir>
         </cTool>
       </folder>
+      <folder path="0/rabbitmq">
+        <cTool>
+          <incDir>
+            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>../../opt/rabbitmq-c-0.8.0/librabbitmq</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
+            <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
+            <Elem>_GNU_SOURCE</Elem>
+          </preprocessorList>
+        </cTool>
+      </folder>
       <folder path="0/ran1">
         <cTool>
           <incDir>
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -754,8 +421,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -767,8 +434,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -780,8 +447,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -793,66 +460,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
-            <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
-            <Elem>_GNU_SOURCE</Elem>
-          </preprocessorList>
-        </cTool>
-      </folder>
-      <folder path="soft">
-        <cTool>
-          <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
-          </incDir>
-          <preprocessorList>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
-            <Elem>_GNU_SOURCE</Elem>
-          </preprocessorList>
-        </cTool>
-      </folder>
-      <folder path="soft/fmamp/alomax_matrix">
-        <cTool>
-          <incDir>
-            <pElem>../fmamp</pElem>
-          </incDir>
-        </cTool>
-      </folder>
-      <folder path="soft/fmamp/ran1">
-        <cTool>
-          <incDir>
-            <pElem>../fmamp</pElem>
-          </incDir>
-          <preprocessorList>
-            <Elem>USE_GROUND_MOTION_DATA</Elem>
-          </preprocessorList>
-        </cTool>
-      </folder>
-      <folder path="soft/fmamp/settings">
-        <cTool>
-          <incDir>
-            <pElem>../fmamp</pElem>
-          </incDir>
-        </cTool>
-      </folder>
-      <folder path="soft/fmamp/vector">
-        <cTool>
-          <incDir>
-            <pElem>../fmamp</pElem>
-          </incDir>
-          <preprocessorList>
-            <Elem>USE_GROUND_MOTION_DATA</Elem>
-          </preprocessorList>
-        </cTool>
-      </folder>
-      <folder path="statistics">
-        <cTool>
-          <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
-          </incDir>
-          <preprocessorList>
-            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -901,8 +510,7 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
           </preprocessorList>
         </cTool>
       </item>
@@ -912,8 +520,7 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
           </preprocessorList>
         </cTool>
       </item>
@@ -923,8 +530,7 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
           </preprocessorList>
         </cTool>
       </item>
@@ -949,8 +555,7 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
           </preprocessorList>
         </cTool>
       </item>
@@ -1004,8 +609,7 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
           </preprocessorList>
         </cTool>
       </item>
@@ -1042,8 +646,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -1055,8 +659,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -1068,8 +672,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -1081,8 +685,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -1094,14 +698,26 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
         </cTool>
       </item>
       <item path="picker/sac2ascii/sac2ascii.c" ex="false" tool="0" flavor2="2">
+      </item>
+      <item path="rabbitmq/amqp_listen_test.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+        </cTool>
+      </item>
+      <item path="rabbitmq/amqp_sendstring_func.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+        </cTool>
+      </item>
+      <item path="rabbitmq/amqp_sendstring_test.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+        </cTool>
       </item>
       <item path="ran1/ran1.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
@@ -1165,8 +781,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -1178,8 +794,21 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
+            <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
+            <Elem>_GNU_SOURCE</Elem>
+          </preprocessorList>
+        </cTool>
+      </item>
+      <item path="timedomain_processing/time_utils.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+          <incDir>
+            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -1194,8 +823,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -1287,8 +916,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -1303,8 +932,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -1319,8 +948,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -1335,8 +964,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -1351,8 +980,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -1364,8 +993,8 @@
             <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>TTIMES_LONGMENSHAN_REGIONAL</Elem>
-            <Elem>TTIMES_REGIONAL</Elem>
+            <Elem>TTIMES_AK135_GLOBAL</Elem>
+            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>

@@ -29,6 +29,7 @@
 //#include "../matrix_statistics/matrix_statistics.h"
 #include "../statistics/statistics.h"
 #include "../picker/PickData.h"
+#include "time_utils.h"
 #include "timedomain_processing_data.h"
 #include "ttimes.h"
 #include "location.h"
@@ -44,8 +45,10 @@
 #include "loc2xml.h"
 #include "../response/response_lib.h"
 
+#ifndef _XOPEN_SOURCE   // 20171120 AJL
 // 20160513 - following line added per suggestion by mehmety@boun.edu.tr
 #define _XOPEN_SOURCE 500
+#endif
 
 #define IMIN(a,b) (a<b?a:b)
 
@@ -83,6 +86,10 @@ static double min_time_delay_between_picks_for_location;
 //
 static double gap_primary_critical;
 static double gap_secondary_critical;
+//
+static report_min_number_values_use reportMinNumberValuesUse;
+static report_preferred_min_value reportPreferredMinValue;
+
 
 //
 // END - locals set from from properties file
@@ -183,134 +190,6 @@ int ignoreData(TimedomainProcessingData* deData) {
 
 }
 
-/** format two integer second times into pretty hour-min-sec string */
-
-char *timeDiff2string(time_t later_time, time_t earlier_time, char* tdiff_string) {
-
-    double tdiff = difftime(later_time, earlier_time);
-
-    int tdiff_tenths_sec = (int) (0.5 + 10.0 * tdiff);
-    int tdiff_hour = 0;
-    int tdiff_min = 0;
-    while (tdiff_tenths_sec >= 36000) {
-        tdiff_tenths_sec -= 36000;
-        tdiff_hour++;
-    }
-    while (tdiff_tenths_sec >= 600) {
-        tdiff_tenths_sec -= 600;
-        tdiff_min++;
-    }
-    if (tdiff_hour > 0)
-        sprintf(tdiff_string, "%dh %2.2dm %2.2ds", tdiff_hour, tdiff_min, tdiff_tenths_sec / 10);
-    else if (tdiff_min > 0)
-        sprintf(tdiff_string, "%dm %2.2ds", tdiff_min, tdiff_tenths_sec / 10);
-    else if (tdiff_tenths_sec > 0)
-        sprintf(tdiff_string, "%ds", tdiff_tenths_sec / 10);
-    else
-        sprintf(tdiff_string, "0s");
-
-    return (tdiff_string);
-
-}
-
-/** format a time_t time into time string with integer seconds */
-
-char *time2string(double time_dec_sec, char* str) {
-
-    // round origin time to nearest second
-    time_t itime_sec = (time_t) (0.5 + time_dec_sec); // 20110930 AJL - modified to avoid times that round to 60s
-    struct tm* tm_time = gmtime(&itime_sec);
-
-    sprintf(str, "%4.4d.%2.2d.%2.2d-%2.2d:%2.2d:%2.2d",
-            tm_time->tm_year + 1900, tm_time->tm_mon + 1, tm_time->tm_mday, tm_time->tm_hour, tm_time->tm_min, tm_time->tm_sec);
-
-    return (str);
-}
-
-
-/** format a double time (equivalent to time_t time with decimal seconds) into a time string with decimal seconds */
-
-#define DEFAULT_TIME_FORMAT 0
-#define IRIS_WS_TIME_FORMAT 1
-#define COMMA_DELIMTED_TIME_FORMAT 2
-
-char *timeDecSec2string(double time_dec_sec, char* str, int iformat) {
-
-    time_t itime_sec = (time_t) time_dec_sec;
-    struct tm* tm_time = gmtime(&itime_sec);
-
-    double dec_sec = time_dec_sec - itime_sec;
-
-    if (iformat == IRIS_WS_TIME_FORMAT) {
-        sprintf(str, "%4.4d-%2.2d-%2.2dT%2.2d:%2.2d:%05.2f",
-                tm_time->tm_year + 1900, tm_time->tm_mon + 1, tm_time->tm_mday, tm_time->tm_hour, tm_time->tm_min, (double) tm_time->tm_sec + dec_sec);
-    } else if (iformat == COMMA_DELIMTED_TIME_FORMAT) {
-        sprintf(str, "%4.4d,%2.2d,%2.2d,%2.2d,%2.2d,%05.2f",
-                tm_time->tm_year + 1900, tm_time->tm_mon + 1, tm_time->tm_mday, tm_time->tm_hour, tm_time->tm_min, (double) tm_time->tm_sec + dec_sec);
-    } else {
-        sprintf(str, "%4.4d.%2.2d.%2.2d-%2.2d:%2.2d:%05.2f",
-                tm_time->tm_year + 1900, tm_time->tm_mon + 1, tm_time->tm_mday, tm_time->tm_hour, tm_time->tm_min, (double) tm_time->tm_sec + dec_sec);
-    }
-
-    return (str);
-}
-
-/** convert a time string into a double time (equivalent to time_t time with decimal seconds) */
-
-double string2timeDecSec(char *str) {
-
-    //printf("\nDEBUG: string2timeDecSec %s\n", str);
-
-    struct tm tm_time;
-
-    double dec_sec;
-    sscanf(str, "%4d.%2d.%2d-%d:%d:%lf", &(tm_time.tm_year), &(tm_time.tm_mon), &(tm_time.tm_mday), &(tm_time.tm_hour), &(tm_time.tm_min), &dec_sec);
-    tm_time.tm_year -= 1900;
-    tm_time.tm_mon -= 1;
-    tm_time.tm_sec = (int) dec_sec;
-
-    //printf("DEBUG: string2timeDecSec %.4d.%.2d.%.2d-%.2d:%.2d:%.2d\n", tm_time.tm_year + 1900, tm_time.tm_mon + 1, tm_time.tm_mday, tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec);
-
-    time_t time_gmt = timegm(&tm_time);
-    //printf("DEBUG: time_gmt %ld\n", time_gmt);
-
-    double dec_time = (double) time_gmt + dec_sec - (int) dec_sec;
-    //printf("DEBUG: dec_time %lf\n", dec_time);
-
-    return (dec_time);
-}
-
-/** convert a double time (equivalent to time_t time with decimal seconds) into a libmseed hptime_t */
-
-hptime_t timeDecSec2hptime(double time_dec_sec) {
-
-    time_t itime_sec = (time_t) time_dec_sec;
-    struct tm* tm_time = gmtime(&itime_sec);
-
-    double dec_sec = time_dec_sec - itime_sec;
-    int year = tm_time->tm_year + 1900;
-    int month = tm_time->tm_mon + 1;
-    int mday = tm_time->tm_mday;
-    int jday;
-    ms_md2doy(year, month, mday, &jday);
-    return (ms_time2hptime(year, jday, tm_time->tm_hour, tm_time->tm_min, tm_time->tm_sec, (int) (0.5 + (dec_sec * (double) 1000000))));
-
-}
-
-/** convert a double time (equivalent to time_t time with decimal seconds) into component date/time elements */
-
-void hptime2dateTimeComponents(hptime_t hptime, int *pyear, int *pjday, int *phour, int *pmin, double *psec) {
-
-    BTime btime;
-    ms_hptime2btime(hptime, &btime);
-
-    *pyear = btime.year;
-    *pjday = btime.day;
-    *phour = btime.hour;
-    *pmin = btime.min;
-    *psec = (double) btime.sec + ((double) btime.fract / (double) 10000);
-
-}
 
 /** helper function to remove a file or directory */
 
@@ -599,10 +478,10 @@ void create_compact_hypo_info_string(HypocenterDesc* phypo, char* hypo_info_stri
             feregion_str,
             time2string(phypo->otime, tmp_str),
             phypo->lat, phypo->lon, phypo->depth, phypo->qualityIndicators.quality_code,
-            phypo->mbLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE ? phypo->mbLevelStatistics.centralValue : MB_INVALID, phypo->mbLevelStatistics.numLevel,
-            phypo->mwpLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE ? phypo->mwpLevelStatistics.centralValue : MWP_INVALID, phypo->mwpLevelStatistics.numLevel,
-            phypo->t0LevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE ? phypo->t0LevelStatistics.centralValue : T0_INVALID, phypo->t0LevelStatistics.numLevel,
-            phypo->mwpdLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE && phypo->mwpLevelStatistics.centralValue >= MIN_MWP_FOR_VALID_MWPD
+            phypo->mbLevelStatistics.numLevel >= reportMinNumberValuesUse.mb ? phypo->mbLevelStatistics.centralValue : MB_INVALID, phypo->mbLevelStatistics.numLevel,
+            phypo->mwpLevelStatistics.numLevel >= reportMinNumberValuesUse.mwp ? phypo->mwpLevelStatistics.centralValue : MWP_INVALID, phypo->mwpLevelStatistics.numLevel,
+            phypo->t0LevelStatistics.numLevel >= reportMinNumberValuesUse.t0 ? phypo->t0LevelStatistics.centralValue : T0_INVALID, phypo->t0LevelStatistics.numLevel,
+            phypo->mwpdLevelStatistics.numLevel >= reportMinNumberValuesUse.mwpd && phypo->mwpLevelStatistics.centralValue >= MIN_MWP_FOR_VALID_MWPD
             ? phypo->mwpdLevelStatistics.centralValue : MWPD_INVALID, phypo->mwpdLevelStatistics.numLevel,
             phypo->tdT50ExLevelStatistics.centralValue
             // 20140306 AJL  , phypo->warningLevelString
@@ -1026,9 +905,9 @@ void create_map_html_page(char *outnameroot, HypocenterDesc* phypo_map, time_t t
         }
         create_compact_hypo_info_string(phypo, hypo_description_str2);
         double prefMag = 0.0;
-        if (phypo->mwpLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE) {
+        if (phypo->mwpLevelStatistics.numLevel >= reportMinNumberValuesUse.mwp) {
             prefMag = phypo->mwpLevelStatistics.centralValue;
-        } else if (phypo->mbLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE) {
+        } else if (phypo->mbLevelStatistics.numLevel >= reportMinNumberValuesUse.mb) {
             prefMag = phypo->mbLevelStatistics.centralValue;
         }
         double iconScale = fmax(prefMag * prefMag / 3.0, 4.0);
@@ -1315,10 +1194,47 @@ int readHypoDataString(HypocenterDesc* phypo, char *hypoDataString, long *pfirst
 
 }
 
+/** set preferred magnitude flag
+ */
+void setPreferredMagnitude(HypocenterDesc* phypo, char *mb_preferred, char *mwp_preferred, char *mwpd_preferred) {
+
+    // 20171116 AJL - added
+
+    mb_preferred[0] = '\0';
+    mwp_preferred[0] = '\0';
+    mwpd_preferred[0] = '\0';
+
+    if (phypo->mwpdLevelStatistics.numLevel >= reportMinNumberValuesUse.mwpd && phypo->mwpdLevelStatistics.centralValue >= reportPreferredMinValue.mwpd) {
+        mwpd_preferred[0] = '*';
+        return;
+    }
+
+    if (phypo->mwpLevelStatistics.numLevel >= reportMinNumberValuesUse.mwp && phypo->mwpLevelStatistics.centralValue >= reportPreferredMinValue.mwp) {
+        mwp_preferred[0] = '*';
+        return;
+    }
+
+    if (phypo->mbLevelStatistics.numLevel >= reportMinNumberValuesUse.mb && phypo->mbLevelStatistics.centralValue >= reportPreferredMinValue.mb) {
+        mb_preferred[0] = '*';
+        return;
+    }
+}
+
 /** print hypo data string in csv format
  */
-void printHypoDataString(HypocenterDesc* phypo, char *hypoDataString, int iDecPrecision) {
+void printHypoDataString(HypocenterDesc* phypo, char *hypoDataString, int iDecPrecision, int flag_preferred_magnitude) {
 
+    // set preferred magnitude flag if requested
+    // 20171114 AJL - added
+    char mb_preferred[2] = "";
+    char mwp_preferred[2] = "";
+    char mwpd_preferred[2] = "";
+    if (flag_preferred_magnitude) {
+        setPreferredMagnitude(phypo, mb_preferred, mwp_preferred, mwpd_preferred);
+        //printf("DEBUG: mb_preferred <%s>  mwp_preferred <%s>  mwpd_preferred <%s>\n", mb_preferred, mwp_preferred, mwpd_preferred);
+    }
+
+    // remove spaces from FE region string
     feregion(phypo->lat, phypo->lon, feregion_str, FEREGION_STR_SIZE);
     char *c = feregion_str;
     while ((c = strchr(c, ' ')) != NULL)
@@ -1336,17 +1252,17 @@ void printHypoDataString(HypocenterDesc* phypo, char *hypoDataString, int iDecPr
         sprintf(hypoDataString + strlen(hypoDataString), "%.3f ",
                 phypo->linRegressPower.power
                 );
-        sprintf(hypoDataString + strlen(hypoDataString), "%.3f %s %.3f %.3f %.2f %.2f %.2f %s %.3f %d %.3f %d %.3f %s %.3f %d %.3f %d %.2f %d %.3f %d %s",
+        sprintf(hypoDataString + strlen(hypoDataString), "%.3f %s %.3f %.3f %.2f %.2f %.2f %s %.3f %d %.3f %d %.3f %s %.3f%s %d %.3f%s %d %.2f %d %.3f%s %d %s",
                 phypo->ot_std_dev,
                 timeDecSec2string(phypo->otime, tmp_str, DEFAULT_TIME_FORMAT),
                 phypo->lat, phypo->lon, phypo->errh, phypo->depth, phypo->errz, phypo->qualityIndicators.quality_code,
                 phypo->t50ExLevelStatistics.centralValue, phypo->t50ExLevelStatistics.numLevel,
                 phypo->taucLevelStatistics.centralValue, phypo->taucLevelStatistics.numLevel,
                 phypo->tdT50ExLevelStatistics.centralValue, phypo->warningLevelString,
-                phypo->mbLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE ? phypo->mbLevelStatistics.centralValue : MB_INVALID, phypo->mbLevelStatistics.numLevel,
-                phypo->mwpLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE ? phypo->mwpLevelStatistics.centralValue : MWP_INVALID, phypo->mwpLevelStatistics.numLevel,
-                phypo->t0LevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE ? phypo->t0LevelStatistics.centralValue : T0_INVALID, phypo->t0LevelStatistics.numLevel,
-                phypo->mwpdLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE ? phypo->mwpdLevelStatistics.centralValue : MWPD_INVALID, phypo->mwpdLevelStatistics.numLevel,
+                phypo->mbLevelStatistics.numLevel >= reportMinNumberValuesUse.mb ? phypo->mbLevelStatistics.centralValue : MB_INVALID, mb_preferred, phypo->mbLevelStatistics.numLevel,
+                phypo->mwpLevelStatistics.numLevel >= reportMinNumberValuesUse.mwp ? phypo->mwpLevelStatistics.centralValue : MWP_INVALID, mwp_preferred, phypo->mwpLevelStatistics.numLevel,
+                phypo->t0LevelStatistics.numLevel >= reportMinNumberValuesUse.t0 ? phypo->t0LevelStatistics.centralValue : T0_INVALID, phypo->t0LevelStatistics.numLevel,
+                phypo->mwpdLevelStatistics.numLevel >= reportMinNumberValuesUse.mwpd ? phypo->mwpdLevelStatistics.centralValue : MWPD_INVALID, mwpd_preferred, phypo->mwpdLevelStatistics.numLevel,
                 feregion_str
                 );
         // available station count
@@ -1368,17 +1284,17 @@ void printHypoDataString(HypocenterDesc* phypo, char *hypoDataString, int iDecPr
         sprintf(hypoDataString + strlen(hypoDataString), "%.1f ",
                 phypo->linRegressPower.power
                 );
-        sprintf(hypoDataString + strlen(hypoDataString), "%.1f %s %.1f %.1f %.0f %.0f %.0f %s %.1f %d %.1f %d %.1f %s %.1f %d %.1f %d %.0f %d %.1f %d %s",
+        sprintf(hypoDataString + strlen(hypoDataString), "%.1f %s %.1f %.1f %.0f %.0f %.0f %s %.1f %d %.1f %d %.1f %s %.1f%s %d %.1f%s %d %.0f %d %.1f%s %d %s",
                 phypo->ot_std_dev,
                 time2string(phypo->otime, tmp_str),
                 phypo->lat, phypo->lon, phypo->errh, phypo->depth, phypo->errz, phypo->qualityIndicators.quality_code,
                 phypo->t50ExLevelStatistics.centralValue, phypo->t50ExLevelStatistics.numLevel,
                 phypo->taucLevelStatistics.centralValue, phypo->taucLevelStatistics.numLevel,
                 phypo->tdT50ExLevelStatistics.centralValue, phypo->warningLevelString,
-                phypo->mbLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE ? phypo->mbLevelStatistics.centralValue : MB_INVALID, phypo->mbLevelStatistics.numLevel,
-                phypo->mwpLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE ? phypo->mwpLevelStatistics.centralValue : MWP_INVALID, phypo->mwpLevelStatistics.numLevel,
-                phypo->t0LevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE ? phypo->t0LevelStatistics.centralValue : T0_INVALID, phypo->t0LevelStatistics.numLevel,
-                phypo->mwpdLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE ? phypo->mwpdLevelStatistics.centralValue : MWPD_INVALID, phypo->mwpdLevelStatistics.numLevel,
+                phypo->mbLevelStatistics.numLevel >= reportMinNumberValuesUse.mb ? phypo->mbLevelStatistics.centralValue : MB_INVALID, mb_preferred, phypo->mbLevelStatistics.numLevel,
+                phypo->mwpLevelStatistics.numLevel >= reportMinNumberValuesUse.mwp ? phypo->mwpLevelStatistics.centralValue : MWP_INVALID, mwp_preferred, phypo->mwpLevelStatistics.numLevel,
+                phypo->t0LevelStatistics.numLevel >= reportMinNumberValuesUse.t0 ? phypo->t0LevelStatistics.centralValue : T0_INVALID, phypo->t0LevelStatistics.numLevel,
+                phypo->mwpdLevelStatistics.numLevel >= reportMinNumberValuesUse.mwpd ? phypo->mwpdLevelStatistics.centralValue : MWPD_INVALID, mwpd_preferred, phypo->mwpdLevelStatistics.numLevel,
                 feregion_str
                 );
         // available station counts, elapsed time after origin of first association/location
@@ -1446,31 +1362,31 @@ void printHypoMessageHtmlString(HypocenterDesc* phypo, char *messageString, char
             getQualityCodeBackgroundColorStringHtml(phypo->qualityIndicators.quality_code), phypo->qualityIndicators.quality_code);
     int highlight = 0;
     highlight = setLevelStringHtml(phypo->t50ExLevelStatistics.numLevel, phypo->t50ExLevelStatistics.centralValue, "bgcolor=", rowBackground, levelStringHtml,
-            MIN_NUMBER_VALUES_USE, T50EX_RED_CUTOFF, T50EX_YELLOW_CUTOFF, -1.0, warning_colors_show);
+            reportMinNumberValuesUse.t50Ex, T50EX_RED_CUTOFF, T50EX_YELLOW_CUTOFF, -1.0, warning_colors_show);
     sprintf(messageString + strlen(messageString), "<td %s>%s%.1f%s</td><td %s align=left>&nbsp;%d</td>",
             levelStringHtml, highlight ? "<strong>" : "", phypo->t50ExLevelStatistics.centralValue, highlight ? "&nbsp;</strong>" : "&nbsp;", rowBackground, phypo->t50ExLevelStatistics.numLevel);
     highlight = setLevelStringHtml(phypo->taucLevelStatistics.numLevel, phypo->taucLevelStatistics.centralValue, "bgcolor=", rowBackground, levelStringHtml,
-            MIN_NUMBER_VALUES_USE, TAUC_RED_CUTOFF, TAUC_YELLOW_CUTOFF, -1.0, warning_colors_show);
+            reportMinNumberValuesUse.tauc, TAUC_RED_CUTOFF, TAUC_YELLOW_CUTOFF, -1.0, warning_colors_show);
     sprintf(messageString + strlen(messageString), "<td %s>%s%.1f%s</td><td %s align=left>&nbsp;%d</td>",
             levelStringHtml, highlight ? "<strong>" : "", phypo->taucLevelStatistics.centralValue, highlight ? "&nbsp;</strong>" : "&nbsp;", rowBackground, phypo->taucLevelStatistics.numLevel);
     highlight = setLevelStringHtml(IMIN(phypo->t50ExLevelStatistics.numLevel, phypo->taucLevelStatistics.numLevel), phypo->tdT50ExLevelStatistics.centralValue, "bgcolor=", rowBackground, levelStringHtml,
-            MIN_NUMBER_VALUES_USE, TDT50EX_RED_CUTOFF, TDT50EX_YELLOW_CUTOFF, -1.0, warning_colors_show);
+            reportMinNumberValuesUse.tdT50Ex, TDT50EX_RED_CUTOFF, TDT50EX_YELLOW_CUTOFF, -1.0, warning_colors_show);
     sprintf(messageString + strlen(messageString), "<td %s>%s%.1f%s</td>",
             levelStringHtml, highlight ? "<strong>" : "", phypo->tdT50ExLevelStatistics.centralValue, highlight ? "&nbsp;</strong>" : "&nbsp;");
     highlight = setLevelStringHtml(phypo->mbLevelStatistics.numLevel, phypo->mbLevelStatistics.centralValue, "bgcolor=", rowBackground, levelStringHtml,
-            MIN_NUMBER_VALUES_USE, MB_RED_CUTOFF, MB_YELLOW_CUTOFF, MB_INVALID, magnitude_colors_show);
+            reportMinNumberValuesUse.mb, MB_RED_CUTOFF, MB_YELLOW_CUTOFF, MB_INVALID, magnitude_colors_show);
     sprintf(messageString + strlen(messageString), "<td %s>%s%.1f%s</td><td %s align=left>&nbsp;%d</td>",
-            levelStringHtml, highlight ? "<strong>" : "", phypo->mbLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE ? phypo->mbLevelStatistics.centralValue : MB_INVALID,
+            levelStringHtml, highlight ? "<strong>" : "", phypo->mbLevelStatistics.numLevel >= reportMinNumberValuesUse.mb ? phypo->mbLevelStatistics.centralValue : MB_INVALID,
             highlight ? "&nbsp;</strong>" : "&nbsp;", rowBackground, phypo->mbLevelStatistics.numLevel);
     highlight = setLevelStringHtml(phypo->mwpLevelStatistics.numLevel, phypo->mwpLevelStatistics.centralValue, "bgcolor=", rowBackground, levelStringHtml,
-            MIN_NUMBER_VALUES_USE, MWP_RED_CUTOFF, MWP_YELLOW_CUTOFF, MWP_INVALID, magnitude_colors_show);
+            reportMinNumberValuesUse.mwp, MWP_RED_CUTOFF, MWP_YELLOW_CUTOFF, MWP_INVALID, magnitude_colors_show);
     sprintf(messageString + strlen(messageString), "<td %s>%s%.1f%s</td><td %s align=left>&nbsp;%d</td>",
-            levelStringHtml, highlight ? "<strong>" : "", phypo->mwpLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE ? phypo->mwpLevelStatistics.centralValue : MWP_INVALID,
+            levelStringHtml, highlight ? "<strong>" : "", phypo->mwpLevelStatistics.numLevel >= reportMinNumberValuesUse.mwp ? phypo->mwpLevelStatistics.centralValue : MWP_INVALID,
             highlight ? "&nbsp;</strong>" : "&nbsp;", rowBackground, phypo->mwpLevelStatistics.numLevel);
     highlight = setLevelStringHtml(phypo->t0LevelStatistics.numLevel, phypo->t0LevelStatistics.centralValue, "bgcolor=", rowBackground, levelStringHtml,
-            MIN_NUMBER_VALUES_USE, T0_RED_CUTOFF, T0_YELLOW_CUTOFF, T0_INVALID, warning_colors_show);
+            reportMinNumberValuesUse.t0, T0_RED_CUTOFF, T0_YELLOW_CUTOFF, T0_INVALID, warning_colors_show);
     sprintf(messageString + strlen(messageString), "<td %s>%s%.0f%s</td><td %s align=left>&nbsp;%d</td>",
-            levelStringHtml, highlight ? "<strong>" : "", phypo->t0LevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE ? phypo->t0LevelStatistics.centralValue : T0_INVALID,
+            levelStringHtml, highlight ? "<strong>" : "", phypo->t0LevelStatistics.numLevel >= reportMinNumberValuesUse.mwpd ? phypo->t0LevelStatistics.centralValue : T0_INVALID,
             highlight ? "&nbsp;</strong>" : "&nbsp;", rowBackground, phypo->t0LevelStatistics.numLevel);
     int nLevels = phypo->mwpdLevelStatistics.numLevel;
     // check if Mwpd below minimum value or Mwp too low
@@ -1478,9 +1394,9 @@ void printHypoMessageHtmlString(HypocenterDesc* phypo, char *messageString, char
     if (phypo->mwpdLevelStatistics.centralValue < MWPD_MIN_VALUE_USE || phypo->mwpLevelStatistics.centralValue < MIN_MWP_FOR_VALID_MWPD)
         nLevels = -1; // force grey color
     highlight = setLevelStringHtml(nLevels, phypo->mwpdLevelStatistics.centralValue, "bgcolor=", rowBackground, levelStringHtml,
-            MIN_NUMBER_VALUES_USE, MWPD_RED_CUTOFF, MWPD_YELLOW_CUTOFF, MWPD_INVALID, magnitude_colors_show);
+            reportMinNumberValuesUse.mwpd, MWPD_RED_CUTOFF, MWPD_YELLOW_CUTOFF, MWPD_INVALID, magnitude_colors_show);
     sprintf(messageString + strlen(messageString), "<td %s>%s%.1f%s</td><td %s align=left>&nbsp;%d</td>",
-            levelStringHtml, highlight ? "<strong>" : "", phypo->mwpdLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE
+            levelStringHtml, highlight ? "<strong>" : "", phypo->mwpdLevelStatistics.numLevel >= reportMinNumberValuesUse.mwpd
             ? phypo->mwpdLevelStatistics.centralValue : MWPD_INVALID, highlight ? "&nbsp;</strong>" : "&nbsp;", rowBackground, phypo->mwpdLevelStatistics.numLevel);
     // focal mechanism image
     create_mech_image_tag(".", event_id, image_tag_str, feregion_str);
@@ -1628,24 +1544,24 @@ int send_hypocenter_alert(HypocenterDesc* phypo, int is_new_hypocenter, Hypocent
 
 
     // new, check if Mwp, mb, Mwpd or TdT50Ex greater than cutoff
-    if (phypo->mbLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE && phypo->mbLevelStatistics.centralValue >= phypo->messageTriggerThreshold.mb) {
+    if (phypo->mbLevelStatistics.numLevel >= reportMinNumberValuesUse.mb && phypo->mbLevelStatistics.centralValue >= phypo->messageTriggerThreshold.mb) {
         trigger_mb = 1;
         send_alert = 1;
         phypo->messageTriggerThreshold.mb = phypo->mbLevelStatistics.centralValue + MB_MIN_MAIL_INCREMENT;
     }
-    if (phypo->mwpLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE && phypo->mwpLevelStatistics.centralValue >= phypo->messageTriggerThreshold.mwp) {
+    if (phypo->mwpLevelStatistics.numLevel >= reportMinNumberValuesUse.mwp && phypo->mwpLevelStatistics.centralValue >= phypo->messageTriggerThreshold.mwp) {
         trigger_mwp = 1;
         send_alert = 1;
         phypo->messageTriggerThreshold.mwp = phypo->mwpLevelStatistics.centralValue + MWP_MIN_MAIL_INCREMENT;
     }
-    if ((phypo->mwpLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE && phypo->mwpLevelStatistics.centralValue >= MIN_MWP_FOR_VALID_MWPD) && // Mwpd requires Mwp above 7
-            (phypo->mwpdLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE && phypo->mwpdLevelStatistics.centralValue >= phypo->messageTriggerThreshold.mwpd)) {
+    if ((phypo->mwpLevelStatistics.numLevel >= reportMinNumberValuesUse.mwp && phypo->mwpLevelStatistics.centralValue >= MIN_MWP_FOR_VALID_MWPD) && // Mwpd requires Mwp above 7
+            (phypo->mwpdLevelStatistics.numLevel >= reportMinNumberValuesUse.mwpd && phypo->mwpdLevelStatistics.centralValue >= phypo->messageTriggerThreshold.mwpd)) {
         trigger_mwpd = 1;
         send_alert = 1;
         //phypo->messageTriggerThreshold.mwpd = phypo->mwpLevelStatistics.centralValue + MWPD_MIN_MAIL_INCREMENT;   // 20110623 AJL - Bug fix: mwp should be mwpd
         phypo->messageTriggerThreshold.mwpd = phypo->mwpdLevelStatistics.centralValue + MWPD_MIN_MAIL_INCREMENT;
     }
-    if (phypo->tdT50ExLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE) {
+    if (phypo->tdT50ExLevelStatistics.numLevel >= reportMinNumberValuesUse.tdT50Ex) {
         if (phypo->tdT50ExLevelStatistics.centralValue >= phypo->messageTriggerThreshold.alarm) { // value rises above trigger threshold
             trigger_alarm = 1;
             send_alert = 1;
@@ -1693,19 +1609,19 @@ int send_hypocenter_alert(HypocenterDesc* phypo, int is_new_hypocenter, Hypocent
         strcat(mail_trigger_string, "Td*T50Ex_Decreased ");
 
     // set magnitudes
-    if (phypo->mbLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE)
+    if (phypo->mbLevelStatistics.numLevel >= reportMinNumberValuesUse.mb)
         sprintf(mb_str, "%.1f", phypo->mbLevelStatistics.centralValue);
     else strcpy(mb_str, "N/A");
-    if (phypo->mwpLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE)
+    if (phypo->mwpLevelStatistics.numLevel >= reportMinNumberValuesUse.mwp)
         sprintf(mwp_str, "%.1f", phypo->mwpLevelStatistics.centralValue);
     else strcpy(mwp_str, "N/A");
-    if (phypo->t0LevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE)
+    if (phypo->t0LevelStatistics.numLevel >= reportMinNumberValuesUse.t0)
         sprintf(t0_str, "%.0f", phypo->t0LevelStatistics.centralValue);
     else strcpy(t0_str, "N/A");
-    if (phypo->mwpdLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE && phypo->mwpLevelStatistics.centralValue >= MIN_MWP_FOR_VALID_MWPD)
+    if (phypo->mwpdLevelStatistics.numLevel >= reportMinNumberValuesUse.mwpd && phypo->mwpLevelStatistics.centralValue >= MIN_MWP_FOR_VALID_MWPD)
         sprintf(mwpd_str, "%.1f", phypo->mwpdLevelStatistics.centralValue);
     else strcpy(mwpd_str, "N/A");
-    if (phypo->tdT50ExLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE)
+    if (phypo->tdT50ExLevelStatistics.numLevel >= reportMinNumberValuesUse.tdT50Ex)
         sprintf(alarm_str, "%.1f", phypo->tdT50ExLevelStatistics.centralValue);
     else strcpy(alarm_str, "N/A");
 
@@ -1717,7 +1633,7 @@ int send_hypocenter_alert(HypocenterDesc* phypo, int is_new_hypocenter, Hypocent
         strcpy(alarm_color_open, "");
         strcpy(alarm_color_close, "");
     }
-    if ((phypo->t50ExLevelStatistics.numLevel < MIN_NUMBER_VALUES_USE) || (phypo->taucLevelStatistics.numLevel < MIN_NUMBER_VALUES_USE)) {
+    if ((phypo->t50ExLevelStatistics.numLevel < reportMinNumberValuesUse.tauc) || (phypo->taucLevelStatistics.numLevel < reportMinNumberValuesUse.tauc)) {
         if (warning_colors_show)
             strcpy(alarm_color_open, "<font style=\"background-color: #BDBDBD\">");
         sprintf(tsunami_info_string, "Tsunami evaluation:\n<br>&nbsp;&nbsp;&nbsp;not available (Td*T50Ex Level: %s%s%s%s)",
@@ -1894,7 +1810,7 @@ int send_hypocenter_alert(HypocenterDesc* phypo, int is_new_hypocenter, Hypocent
     fprintf(mailTmpStream, "\n<br>Epicenter in Google Maps: ");
     fprintf(mailTmpStream, " <a href='%s'>Google Map</a>\n<br>", map_link);
     printHypoDataHeaderString(hypoDataString);
-    printHypoDataString(phypo, hypo_info_string, 1);
+    printHypoDataString(phypo, hypo_info_string, 1, 0);
     fprintf(mailTmpStream, "\n\n<br>%s\n<br>%s\n<br>", hypoDataString, hypo_info_string);
     fprintf(mailTmpStream, "Elapsed time after origin of first association/location: %s\n\n<br>", timeDiff2string((time_t) phypo->first_assoc_time, (time_t) phypo->otime, latency_string));
     fprintf(mailTmpStream, "\n<br>Reporting agency: %s\n<br>", agencyId);
@@ -1932,7 +1848,7 @@ int send_hypocenter_alert(HypocenterDesc* phypo, int is_new_hypocenter, Hypocent
             perror(tmp_str);
         } else {
 
-            printHypoDataString(phypo, hypoDataString, 0);
+            printHypoDataString(phypo, hypoDataString, 0, 0);
             fprintf(fp_alert, "%s\n", hypoDataString);
             fclose_counter(fp_alert);
             // run alert script
@@ -2043,7 +1959,7 @@ void updateStaHealthInformation(char *outnameroot, FILE* staHealthHtmlStream, do
     // write output
 
     fprintf(staHealthHtmlStream, "<html>\n<head>\n<title>Station Health - %s</title>\n", EARLY_EST_MONITOR_NAME);
-    fprintf(staHealthHtmlStream, "<meta http-equiv=\"refresh\" content=\"30\">\n</head>\n<body>\n");
+    fprintf(staHealthHtmlStream, "<meta http-equiv=\"refresh\" content=\"30\">\n");
     fprintf(staHealthHtmlStream, "</head>\n");
     fprintf(staHealthHtmlStream, "<body style=\"font-family:sans-serif;font-size:small\">\n");
 
@@ -2835,6 +2751,64 @@ int td_timedomainProcessingReport_init(
     messageTriggerThresholdInitial.alarm = tdt50ex_min_mail;
     messageTriggerThresholdInitial.resend_time_delay = alert_resend_time_delay_mail;
 
+
+
+    // minimum number of readings for measure to be valid
+    // 20171114 AJL - added
+    if (settings_get_int_helper(app_prop_settings,
+            "Report", "min_num_valid.mb", &reportMinNumberValuesUse.mb, MIN_NUM_VALUES_USE_DEFAULT,
+            verbose) == INT_INVALID) {
+        ; // handle error
+    }
+    //
+    if (settings_get_int_helper(app_prop_settings,
+            "Report", "min_num_valid.mwp", &reportMinNumberValuesUse.mwp, MIN_NUM_VALUES_USE_DEFAULT,
+            verbose) == INT_INVALID) {
+        ; // handle error
+    }
+    //
+    if (settings_get_int_helper(app_prop_settings,
+            "Report", "min_num_valid.mwpd", &reportMinNumberValuesUse.mwpd, MIN_NUM_VALUES_USE_DEFAULT,
+            verbose) == INT_INVALID) {
+        ; // handle error
+    }
+    reportMinNumberValuesUse.t0 = reportMinNumberValuesUse.mwpd;
+    //
+    if (settings_get_int_helper(app_prop_settings,
+            "Report", "min_num_valid.tdT50Ex", &reportMinNumberValuesUse.tdT50Ex, MIN_NUM_VALUES_USE_DEFAULT,
+            verbose) == INT_INVALID) {
+        ; // handle error
+    }
+    reportMinNumberValuesUse.t50Ex = reportMinNumberValuesUse.tdT50Ex;
+    reportMinNumberValuesUse.tauc = reportMinNumberValuesUse.tdT50Ex;
+
+
+
+    // minimum value of magnitude measure to be preferred
+    // 20171114 AJL - added
+    if (settings_get_double_helper(app_prop_settings,
+            "Report", "preferred.min_value.mb", &reportPreferredMinValue.mb, PREFERRED_MIN_VALUE_MB_DEFAULT,
+            verbose
+            ) == DBL_INVALID) {
+        ; // handle error
+    }
+    //
+    if (settings_get_double_helper(app_prop_settings,
+            "Report", "preferred.min_value.mwp", &reportPreferredMinValue.mwp, PREFERRED_MIN_VALUE_MWP_DEFAULT,
+            verbose
+            ) == DBL_INVALID) {
+        ; // handle error
+    }
+    //
+    if (settings_get_double_helper(app_prop_settings,
+            "Report", "preferred.min_value.mwp", &reportPreferredMinValue.mwpd, PREFERRED_MIN_VALUE_MWPD_DEFAULT,
+            verbose
+            ) == DBL_INVALID) {
+        ; // handle error
+    }
+    //
+
+
     // initialize list of id's for phase types to use in location/association, set reference phase ttime error
     if (numPhaseTypesUse < 0) { //  not initialized
         numPhaseTypesUse = 0;
@@ -2944,7 +2918,7 @@ int td_timedomainProcessingReport_init(
         phypo->messageTriggerThreshold.mwpd = phypo->mwpLevelStatistics.centralValue + MWPD_MIN_MAIL_INCREMENT;
         phypo->messageTriggerThreshold.alarm = phypo->tdT50ExLevelStatistics.centralValue + TDT50EX_MIN_MAIL_INCREMENT;
         // DEBUG
-        //printHypoDataString(phypo, hypoDataString, 1);
+        //printHypoDataString(phypo, hypoDataString, 1, 0);
         //printf("\nDEBUG: hypo read: %s\n", hypoDataString);
         //
         HypocenterDesc* phypocenter_desc_inserted = NULL;
@@ -3772,9 +3746,9 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                     }
                     if (verbose > 0) {
                         printf("   ---> Info: REMOVED DUPLICATE HYPOCENTER!  Associated pick data attached to preserved hypocenter.\n");
-                        printHypoDataString(hyp_assoc_loc[nhyp_remove], hypoDataString, 0);
+                        printHypoDataString(hyp_assoc_loc[nhyp_remove], hypoDataString, 0, 0);
                         printf("   ---> Removed:   %s\n", hypoDataString);
-                        printHypoDataString(hyp_assoc_loc[nhyp_preserve], hypoDataString, 0);
+                        printHypoDataString(hyp_assoc_loc[nhyp_preserve], hypoDataString, 0, 0);
                         printf("   ---> Preserved: %s\n", hypoDataString);
                     }
                     // attach data from removed hypo to preserved hypo as zero weight associated data  // 20110411 AJL
@@ -3903,8 +3877,8 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     }
     //}
     // TdT50Ex
-    int *numAlarmLevel = calloc(num_hypocenters_associated, sizeof (int));
-    int *numAlarmLevelMax = calloc(num_hypocenters_associated, sizeof (int));
+    int *numTdT50ExLevel = calloc(num_hypocenters_associated, sizeof (int));
+    int *numTdT50ExLevelMax = calloc(num_hypocenters_associated, sizeof (int));
     statistic_level* tdT50ExLevelStatistics = calloc(num_hypocenters_associated, sizeof (statistic_level));
     char warningLevelString[num_hypocenters_associated][WARNING_LEVEL_STRING_LEN];
     //if (flag_do_tauc) {
@@ -4964,7 +4938,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
             double t50ExLowerBoundWrite = t50ExLevelStatistics[nhyp].lowerBound > T50EX_LEVEL_MAX_PLOT ? T50EX_LEVEL_MAX_PLOT : t50ExLevelStatistics[nhyp].lowerBound;
             t50ExLowerBoundWrite = t50ExLowerBoundWrite < T50EX_LEVEL_MIN ? T50EX_LEVEL_MIN : t50ExLowerBoundWrite;
             // check for enough T50 levels to plot statistics
-            if (numT50ExLevel[nhyp] >= MIN_NUMBER_VALUES_USE) {
+            if (numT50ExLevel[nhyp] >= reportMinNumberValuesUse.t50Ex) {
                 fprintf(t50ExCentralValueStream[nhyp], "%f %f\n", difftime(curr_time, plot_time_max) / 60.0, t50ExCentralValueWrite);
                 fprintf(t50ExUpperBoundStream[nhyp], "%f %f\n", difftime(curr_time, plot_time_max) / 60.0, t50ExUpperBoundWrite);
                 fprintf(t50ExLowerBoundStream[nhyp], "%f %f\n", difftime(curr_time, plot_time_max) / 60.0, t50ExLowerBoundWrite);
@@ -4974,7 +4948,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                 fprintf(t50ExLowerBoundStream[nhyp], ">\n");
             }
             setLevelString(numT50ExLevelMax[nhyp], &t50ExLevelStatistics[nhyp], t50ExLevelString[nhyp],
-                    MIN_NUMBER_VALUES_USE, T50EX_RED_CUTOFF, T50EX_YELLOW_CUTOFF, -1.0, warning_colors_show);
+                    reportMinNumberValuesUse.t50Ex, T50EX_RED_CUTOFF, T50EX_YELLOW_CUTOFF, -1.0, warning_colors_show);
             //
             //tauc
             if (flag_do_tauc) {
@@ -4996,7 +4970,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                 double taucLowerBoundWrite = taucLevelStatistics[nhyp].lowerBound > TAUC_LEVEL_MAX_PLOT ? TAUC_LEVEL_MAX_PLOT : taucLevelStatistics[nhyp].lowerBound;
                 taucLowerBoundWrite = taucLowerBoundWrite < TAUC_LEVEL_MIN ? TAUC_LEVEL_MIN : taucLowerBoundWrite;
                 // check for enough tauc levels to plot statistics
-                if (numTaucLevel[nhyp] >= MIN_NUMBER_VALUES_USE) {
+                if (numTaucLevel[nhyp] >= reportMinNumberValuesUse.tauc) {
                     fprintf(taucCentralValueStream[nhyp], "%f %f\n", difftime(curr_time, plot_time_max) / 60.0, taucCentralValueWrite);
                     fprintf(taucUpperBoundStream[nhyp], "%f %f\n", difftime(curr_time, plot_time_max) / 60.0, taucUpperBoundWrite);
                     fprintf(taucLowerBoundStream[nhyp], "%f %f\n", difftime(curr_time, plot_time_max) / 60.0, taucLowerBoundWrite);
@@ -5006,19 +4980,19 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                     fprintf(taucLowerBoundStream[nhyp], ">\n");
                 }
                 setLevelString(numTaucLevelMax[nhyp], &taucLevelStatistics[nhyp], taucLevelString[nhyp],
-                        MIN_NUMBER_VALUES_USE, TAUC_RED_CUTOFF, TAUC_YELLOW_CUTOFF, -1.0, warning_colors_show);
+                        reportMinNumberValuesUse.tauc, TAUC_RED_CUTOFF, TAUC_YELLOW_CUTOFF, -1.0, warning_colors_show);
                 //
                 // TdT50Ex level
                 // NOTE: number of alarm levels is lessor of number t50 or tauc levels, this value has no statistical meaning with regards to alarm level.
-                numAlarmLevel[nhyp] = IMIN(numT50ExLevel[nhyp], numTaucLevel[nhyp]);
-                numAlarmLevelMax[nhyp] = IMIN(numT50ExLevelMax[nhyp], numTaucLevelMax[nhyp]);
+                numTdT50ExLevel[nhyp] = IMIN(numT50ExLevel[nhyp], numTaucLevel[nhyp]);
+                numTdT50ExLevelMax[nhyp] = IMIN(numT50ExLevelMax[nhyp], numTaucLevelMax[nhyp]);
                 // TODO: Is it correct statistics to simply multiply central and bound values?
-                /*if (numAlarmLevel[nhyp] >= MIN_NUMBER_VALUES_USE && numTaucLevel[nhyp] >= MIN_NUMBER_VALUES_USE) {
+                /*if (numTdT50ExLevel[nhyp] >= reportMinNumberValuesUse.MIN_NUMBER_VALUES_USE && numTaucLevel[nhyp] >= reportMinNumberValuesUse.MIN_NUMBER_VALUES_USE) {
                     tdT50ExLevelStatistics[nhyp].centralValue = t50ExLevelStatistics[nhyp].centralValue * taucLevelStatistics[nhyp].centralValue;
                     tdT50ExLevelStatistics[nhyp].lowerBound = t50ExLevelStatistics[nhyp].lowerBound * taucLevelStatistics[nhyp].lowerBound;
                     tdT50ExLevelStatistics[nhyp].upperBound = t50ExLevelStatistics[nhyp].upperBound * taucLevelStatistics[nhyp].upperBound;
                 }*/
-                if (numAlarmLevel[nhyp] >= MIN_NUMBER_VALUES_USE) {
+                if (numTdT50ExLevel[nhyp] >= reportMinNumberValuesUse.tdT50Ex) {
                     tdT50ExLevelStatistics[nhyp].centralValue = t50ExLevelStatistics[nhyp].centralValue * taucLevelStatistics[nhyp].centralValue;
                     tdT50ExLevelStatistics[nhyp].lowerBound = tdT50ExLevelStatistics[nhyp].centralValue
                             - stdDevProductNormalDist(t50ExLevelStatistics[nhyp].centralValue, t50ExLevelStatistics[nhyp].centralValue - t50ExLevelStatistics[nhyp].lowerBound,
@@ -5026,7 +5000,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                     tdT50ExLevelStatistics[nhyp].upperBound = tdT50ExLevelStatistics[nhyp].centralValue
                             + stdDevProductNormalDist(t50ExLevelStatistics[nhyp].centralValue, t50ExLevelStatistics[nhyp].upperBound - t50ExLevelStatistics[nhyp].centralValue,
                             taucLevelStatistics[nhyp].centralValue, taucLevelStatistics[nhyp].upperBound - taucLevelStatistics[nhyp].centralValue);
-                    tdT50ExLevelStatistics[nhyp].numLevel = numAlarmLevel[nhyp];
+                    tdT50ExLevelStatistics[nhyp].numLevel = numTdT50ExLevel[nhyp];
                 }
                 //
                 double tdT50ExCentralValueWrite = tdT50ExLevelStatistics[nhyp].centralValue > TDT50EX_LEVEL_MAX_PLOT ? TDT50EX_LEVEL_MAX_PLOT : tdT50ExLevelStatistics[nhyp].centralValue;
@@ -5038,7 +5012,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                 double tdT50ExLowerBoundWrite = tdT50ExLevelStatistics[nhyp].lowerBound > TDT50EX_LEVEL_MAX_PLOT ? TDT50EX_LEVEL_MAX_PLOT : tdT50ExLevelStatistics[nhyp].lowerBound;
                 tdT50ExLowerBoundWrite = tdT50ExLowerBoundWrite < TDT50EX_LEVEL_MIN ? TDT50EX_LEVEL_MIN : tdT50ExLowerBoundWrite;
                 // check for enough alarm levels to plot statistics
-                if (numAlarmLevel[nhyp] >= MIN_NUMBER_VALUES_USE) {
+                if (numTdT50ExLevel[nhyp] >= reportMinNumberValuesUse.tdT50Ex) {
                     fprintf(tdT50ExCentralValueStream[nhyp], "%f %f\n", difftime(curr_time, plot_time_max) / 60.0, tdT50ExCentralValueWrite);
                     fprintf(tdT50ExUpperBoundStream[nhyp], "%f %f\n", difftime(curr_time, plot_time_max) / 60.0, tdT50ExUpperBoundWrite);
                     fprintf(tdT50ExLowerBoundStream[nhyp], "%f %f\n", difftime(curr_time, plot_time_max) / 60.0, tdT50ExLowerBoundWrite);
@@ -5047,8 +5021,8 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                     fprintf(tdT50ExUpperBoundStream[nhyp], ">\n");
                     fprintf(tdT50ExLowerBoundStream[nhyp], ">\n");
                 }
-                setLevelString(numAlarmLevelMax[nhyp], &tdT50ExLevelStatistics[nhyp], warningLevelString[nhyp],
-                        MIN_NUMBER_VALUES_USE, TDT50EX_RED_CUTOFF, TDT50EX_YELLOW_CUTOFF, -1.0, warning_colors_show);
+                setLevelString(numTdT50ExLevelMax[nhyp], &tdT50ExLevelStatistics[nhyp], warningLevelString[nhyp],
+                        reportMinNumberValuesUse.t50Ex, TDT50EX_RED_CUTOFF, TDT50EX_YELLOW_CUTOFF, -1.0, warning_colors_show);
             }
             //
             if (flag_do_mwp) {
@@ -5073,7 +5047,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                 mwpLowerBoundWrite = mwpLowerBoundWrite < MWP_LEVEL_MIN ? MWP_LEVEL_MIN : mwpLowerBoundWrite;
 #ifdef USE_MWP_LEVEL_ARRAY
                 // check for enough mwp levels to plot statistics
-                if (numMwpLevel[nhyp] >= MIN_NUMBER_VALUES_USE) {
+                if (numMwpLevel[nhyp] >= reportMinNumberValuesUse.MIN_NUMBER_VALUES_USE) {
                     fprintf(mwpCentralValueStream[nhyp], "%f %f\n", difftime(curr_time, plot_time_max) / 60.0, mwpCentralValueWrite);
                     fprintf(mwpUpperBoundStream[nhyp], "%f %f\n", difftime(curr_time, plot_time_max) / 60.0, mwpUpperBoundWrite);
                     fprintf(mwpLowerBoundStream[nhyp], "%f %f\n", difftime(curr_time, plot_time_max) / 60.0, mwpLowerBoundWrite);
@@ -5085,7 +5059,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
 #endif
                 //
                 setLevelString(numMwpLevelMax[nhyp], &mwpLevelStatistics[nhyp], mwpLevelString[nhyp],
-                        MIN_NUMBER_VALUES_USE, MWP_RED_CUTOFF, MWP_YELLOW_CUTOFF, MWP_INVALID, magnitude_colors_show);
+                        reportMinNumberValuesUse.mwp, MWP_RED_CUTOFF, MWP_YELLOW_CUTOFF, MWP_INVALID, magnitude_colors_show);
                 //
             }
         }
@@ -5152,7 +5126,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                         && (curr_time + TIME_STEP) > ((time_t) hyp_assoc_loc[nhyp]->otime + LEVEL_PLOT_WINDOW_LENGTH_ASSOCIATED));
             }
             setLevelString(numMbLevelMax[nhyp], &mbLevelStatistics[nhyp], mbLevelString[nhyp],
-                    MIN_NUMBER_VALUES_USE, MB_RED_CUTOFF, MB_YELLOW_CUTOFF, MB_INVALID, magnitude_colors_show);
+                    reportMinNumberValuesUse.mb, MB_RED_CUTOFF, MB_YELLOW_CUTOFF, MB_INVALID, magnitude_colors_show);
         }
         //
         if (flag_do_t0) {
@@ -5165,7 +5139,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                         && (curr_time + TIME_STEP) > ((time_t) hyp_assoc_loc[nhyp]->otime + LEVEL_PLOT_WINDOW_LENGTH_ASSOCIATED));
             }
             setLevelString(numT0LevelMax[nhyp], &t0LevelStatistics[nhyp], t0LevelString[nhyp],
-                    MIN_NUMBER_VALUES_USE, T0_RED_CUTOFF, T0_YELLOW_CUTOFF, T0_INVALID, warning_colors_show);
+                    reportMinNumberValuesUse.t0, T0_RED_CUTOFF, T0_YELLOW_CUTOFF, T0_INVALID, warning_colors_show);
             //
         }
         //
@@ -5197,15 +5171,15 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                 int associated_ok = use_associated_data && is_associated_location_P(deData);
                 if (flag_do_mwpd && deData->mwpd->raw_mag != MWPD_INVALID && !deData->flag_snr_brb_too_low && !deData->flag_snr_brb_int_too_low) {// 20120612 AJL - changed s/n check from brb vel to brb disp (brb int)
                     if (!associate_data || !deData->is_associated || associated_ok) {
-                        // 20110316 AJL - added taucLevelStatistics, checks against MIN_NUMBER_VALUES_USE
+                        // 20110316 AJL - added taucLevelStatistics, checks against reportMinNumberValuesUse.MIN_NUMBER_VALUES_USE
                         // 20121218 AJL - bug fix
                         /*double mwpd_corr_mag = calculate_corrected_Mwpd_Mag(deData->mwpd->raw_mag,
-                                t0LevelStatistics[nhyp].centralValue >= MIN_NUMBER_VALUES_USE ? t0LevelStatistics[nhyp].centralValue : T0_INVALID,
-                                taucLevelStatistics[nhyp].centralValue >= MIN_NUMBER_VALUES_USE ? taucLevelStatistics[nhyp].centralValue : T0_INVALID,
+                                t0LevelStatistics[nhyp].centralValue >= reportMinNumberValuesUse.MIN_NUMBER_VALUES_USE ? t0LevelStatistics[nhyp].centralValue : T0_INVALID,
+                                taucLevelStatistics[nhyp].centralValue >= reportMinNumberValuesUse.MIN_NUMBER_VALUES_USE ? taucLevelStatistics[nhyp].centralValue : T0_INVALID,
                                 hyp_assoc_loc[nhyp]->depth);*/
                         double mwpd_corr_mag = calculate_corrected_Mwpd_Mag(deData->mwpd->raw_mag,
-                                t0LevelStatistics[nhyp].numLevel >= MIN_NUMBER_VALUES_USE ? t0LevelStatistics[nhyp].centralValue : T0_INVALID,
-                                taucLevelStatistics[nhyp].numLevel >= MIN_NUMBER_VALUES_USE ? taucLevelStatistics[nhyp].centralValue : TAUC_INVALID,
+                                t0LevelStatistics[nhyp].numLevel >= reportMinNumberValuesUse.t0 ? t0LevelStatistics[nhyp].centralValue : T0_INVALID,
+                                taucLevelStatistics[nhyp].numLevel >= reportMinNumberValuesUse.tauc ? taucLevelStatistics[nhyp].centralValue : TAUC_INVALID,
                                 hyp_assoc_loc[nhyp]->depth);
                         deData->mwpd->corr_mag = mwpd_corr_mag;
                         if (deData->epicentral_distance > MIN_EPICENTRAL_DISTANCE_MWPD && deData->epicentral_distance < MAX_EPICENTRAL_DISTANCE_MWPD
@@ -5257,16 +5231,16 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                 // 20110322 AJL - TEST making Mwpd corr after averaging - seems to make no difference to result
                 /*
                 mwpdLevelStatistics[nhyp].centralValue = calculate_corrected_Mwpd_Mag(mwpdLevelStatistics[nhyp].centralValue,
-                        t0LevelStatistics[nhyp].centralValue >= MIN_NUMBER_VALUES_USE ? t0LevelStatistics[nhyp].centralValue : T0_INVALID,
-                        taucLevelStatistics[nhyp].centralValue >= MIN_NUMBER_VALUES_USE ? taucLevelStatistics[nhyp].centralValue : T0_INVALID,
+                        t0LevelStatistics[nhyp].centralValue >= reportMinNumberValuesUse.MIN_NUMBER_VALUES_USE ? t0LevelStatistics[nhyp].centralValue : T0_INVALID,
+                        taucLevelStatistics[nhyp].centralValue >= reportMinNumberValuesUse.MIN_NUMBER_VALUES_USE ? taucLevelStatistics[nhyp].centralValue : T0_INVALID,
                         hyp_assoc_loc[nhyp]->depth);
                 mwpdLevelStatistics[nhyp].lowerBound = calculate_corrected_Mwpd_Mag(mwpdLevelStatistics[nhyp].lowerBound,
-                        t0LevelStatistics[nhyp].centralValue >= MIN_NUMBER_VALUES_USE ? t0LevelStatistics[nhyp].centralValue : T0_INVALID,
-                        taucLevelStatistics[nhyp].centralValue >= MIN_NUMBER_VALUES_USE ? taucLevelStatistics[nhyp].centralValue : T0_INVALID,
+                        t0LevelStatistics[nhyp].centralValue >= reportMinNumberValuesUse.MIN_NUMBER_VALUES_USE ? t0LevelStatistics[nhyp].centralValue : T0_INVALID,
+                        taucLevelStatistics[nhyp].centralValue >= reportMinNumberValuesUse.MIN_NUMBER_VALUES_USE ? taucLevelStatistics[nhyp].centralValue : T0_INVALID,
                         hyp_assoc_loc[nhyp]->depth);
                 mwpdLevelStatistics[nhyp].upperBound = calculate_corrected_Mwpd_Mag(mwpdLevelStatistics[nhyp].upperBound,
-                        t0LevelStatistics[nhyp].centralValue >= MIN_NUMBER_VALUES_USE ? t0LevelStatistics[nhyp].centralValue : T0_INVALID,
-                        taucLevelStatistics[nhyp].centralValue >= MIN_NUMBER_VALUES_USE ? taucLevelStatistics[nhyp].centralValue : T0_INVALID,
+                        t0LevelStatistics[nhyp].centralValue >= reportMinNumberValuesUse.MIN_NUMBER_VALUES_USE ? t0LevelStatistics[nhyp].centralValue : T0_INVALID,
+                        taucLevelStatistics[nhyp].centralValue >= reportMinNumberValuesUse.MIN_NUMBER_VALUES_USE ? taucLevelStatistics[nhyp].centralValue : T0_INVALID,
                         hyp_assoc_loc[nhyp]->depth);*/
 
             }
@@ -5275,7 +5249,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
             if (mwpdLevelStatistics[nhyp].centralValue < MWPD_MIN_VALUE_USE)
                 nLevels = -1; // force grey color
             setLevelString(nLevels, &mwpdLevelStatistics[nhyp], mwpdLevelString[nhyp],
-                    MIN_NUMBER_VALUES_USE, MWPD_RED_CUTOFF, MWPD_YELLOW_CUTOFF, MWPD_INVALID, magnitude_colors_show);
+                    reportMinNumberValuesUse.mwpd, MWPD_RED_CUTOFF, MWPD_YELLOW_CUTOFF, MWPD_INVALID, magnitude_colors_show);
             //
 #ifdef USE_MWP_MO_POS_NEG
             if (numMwpdMoPosNegLevelMax[nhyp] > 0) {
@@ -5499,8 +5473,8 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         // copy inserted hypocenter into working hypocenter since may contain modified fields
         *phypo = *phypocenter_desc_inserted;
         if (!phypo->has_valid_magnitude) {
-            if (phypo->mbLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE || phypo->mwpLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE
-                    || phypo->mwpdLevelStatistics.numLevel >= MIN_NUMBER_VALUES_USE) {
+            if (phypo->mbLevelStatistics.numLevel >= reportMinNumberValuesUse.mb || phypo->mwpLevelStatistics.numLevel >= reportMinNumberValuesUse.mwp
+                    || phypo->mwpdLevelStatistics.numLevel >= reportMinNumberValuesUse.mwpd) {
                 have_new_hypocenter_with_mag++;
                 phypocenter_desc_inserted->has_valid_magnitude = phypo->has_valid_magnitude = 1;
             }
@@ -5668,9 +5642,9 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         if (phypo->hyp_assoc_index >= 0) { // associated
 
             // hypo data csv string
-            printHypoDataString(phypo, hypoDataString, 1);
+            printHypoDataString(phypo, hypoDataString, 1, 0);
             fprintf(hypocentersCsvStream, "%s\n", hypoDataString);
-            printHypoDataString(phypo, hypoDataString, 0);
+            printHypoDataString(phypo, hypoDataString, 0, 1);
             fprintf(hypocentersCsvPrettyStream, "%s\n", hypoDataString);
             //
             printHypoMessageHtmlString(phypo, hypoMessageHtmlString, hypoBackgroundColor[phypo->hyp_assoc_index % hypoBackgroundColorModulo],
@@ -6014,7 +5988,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     // NLL pick data in time order
     for (ndata = 0; ndata < num_de_data; ndata++) {
         TimedomainProcessingData* deData = data_list[ndata];
-        if (printIgnoredData || !ignoreData(deData)) {
+        // 20171220 AJL  if (printIgnoredData || !ignoreData(deData)) {
             if (deData->t_time_t >= time_min) { // 20130407 AJL - added to prevent writing of picks from interval time_min-report_interval->time_min.
                 fprintf_NLLoc_TimedomainProcessingData(deData, pickDataNLLStream, 1);
                 if (deData->is_associated > 0) {
@@ -6023,7 +5997,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                     fprintf(pickDataNLLStream, " %d\n", -1);
                 }
             }
-        }
+        // 20171220 AJL  }
     }
     // general pick data in reverse time order
     static char rowBackgroundColor[64];
@@ -6666,6 +6640,18 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     }
     fclose_counter(tdT50ExCsvStream);
     //
+    // mb
+    FILE* mbCsvStream = NULL;
+    sprintf(outname, "%s/mb.csv", outnameroot);
+    if (verbose > 2)
+        printf("Opening output file: %s\n", outname);
+    mbCsvStream = fopen_counter(outname, "w");
+    if (mbCsvStream == NULL) {
+        sprintf(tmp_str, "ERROR: opening output file: %s", outname);
+        perror(tmp_str);
+        return (-1);
+    }
+    // Mwp
     FILE* mwpCsvStream = NULL;
     sprintf(outname, "%s/mwp.csv", outnameroot);
     if (verbose > 2)
@@ -6676,36 +6662,13 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         perror(tmp_str);
         return (-1);
     }
-    // mwp 10.0
-    fprintf(mwpCsvStream, "mwp");
-    fprintf(mwpCsvStream, " %lf", MWP_CRITICAL_VALUE);
-    fprintf(mwpCsvStream, " %lf", difftime(plot_time_max, plot_time_min) / 60.0);
-    fprintf(mwpCsvStream, " %s", time2string(plot_time_min, tmp_str));
-    fprintf(mwpCsvStream, " %s", time2string(plot_time_max, tmp_str));
-    fprintf(mwpCsvStream, " %d", report_interval);
-    fprintf(mwpCsvStream, " %d", nstaIsActive);
-    fprintf(mwpCsvStream, " %d", nstaHasBeenActive);
-    fprintf(mwpCsvStream, " %d", num_hypocenters_associated);
-    fprintf(mwpCsvStream, "\n");
-    for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
-        level_plot = mwpLevelStatistics[nhyp].centralValue < MWP_LEVEL_MAX ? mwpLevelStatistics[nhyp].centralValue : MWP_LEVEL_MAX;
-        level_plot = level_plot > MWP_LEVEL_MIN ? level_plot : MWP_LEVEL_MIN;
-        fprintf(mwpCsvStream, " %.1f", level_plot);
-        fprintf(mwpCsvStream, " %.1f", mwpLevelStatistics[nhyp].centralValue);
-        fprintf(mwpCsvStream, " %.1f", mwpLevelStatistics[nhyp].lowerBound);
-        fprintf(mwpCsvStream, " %.1f", mwpLevelStatistics[nhyp].upperBound);
-        fprintf(mwpCsvStream, " %s", mwpLevelString[nhyp]);
-        fprintf(mwpCsvStream, " %d", mwpLevelStatistics[nhyp].numLevel);
-        fprintf(mwpCsvStream, "\n");
-    }
-    fclose_counter(mwpCsvStream);
-    //
-    FILE* mbCsvStream = NULL;
-    sprintf(outname, "%s/mb.csv", outnameroot);
+    // Mwpd
+    FILE* mwpdCsvStream = NULL;
+    sprintf(outname, "%s/mwpd.csv", outnameroot);
     if (verbose > 2)
         printf("Opening output file: %s\n", outname);
-    mbCsvStream = fopen_counter(outname, "w");
-    if (mbCsvStream == NULL) {
+    mwpdCsvStream = fopen_counter(outname, "w");
+    if (mwpdCsvStream == NULL) {
         sprintf(tmp_str, "ERROR: opening output file: %s", outname);
         perror(tmp_str);
         return (-1);
@@ -6721,18 +6684,70 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     fprintf(mbCsvStream, " %d", nstaHasBeenActive);
     fprintf(mbCsvStream, " %d", num_hypocenters_associated);
     fprintf(mbCsvStream, "\n");
+    // mwpd 10.0
+    fprintf(mwpdCsvStream, "mwpd");
+    fprintf(mwpdCsvStream, " %lf", MWPD_CRITICAL_VALUE);
+    fprintf(mwpdCsvStream, " %lf", difftime(plot_time_max, plot_time_min) / 60.0);
+    fprintf(mwpdCsvStream, " %s", time2string(plot_time_min, tmp_str));
+    fprintf(mwpdCsvStream, " %s", time2string(plot_time_max, tmp_str));
+    fprintf(mwpdCsvStream, " %d", report_interval);
+    fprintf(mwpdCsvStream, " %d", nstaIsActive);
+    fprintf(mwpdCsvStream, " %d", nstaHasBeenActive);
+    fprintf(mwpdCsvStream, " %d", num_hypocenters_associated);
+    fprintf(mwpdCsvStream, "\n");
+    // mwp 10.0
+    fprintf(mwpCsvStream, "mwp");
+    fprintf(mwpCsvStream, " %lf", MWP_CRITICAL_VALUE);
+    fprintf(mwpCsvStream, " %lf", difftime(plot_time_max, plot_time_min) / 60.0);
+    fprintf(mwpCsvStream, " %s", time2string(plot_time_min, tmp_str));
+    fprintf(mwpCsvStream, " %s", time2string(plot_time_max, tmp_str));
+    fprintf(mwpCsvStream, " %d", report_interval);
+    fprintf(mwpCsvStream, " %d", nstaIsActive);
+    fprintf(mwpCsvStream, " %d", nstaHasBeenActive);
+    fprintf(mwpCsvStream, " %d", num_hypocenters_associated);
+    fprintf(mwpCsvStream, "\n");
     for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
+        // set preferred magnitude flags
+        // 20171114 AJL - added
+        char mb_preferred[2] = "";
+        char mwp_preferred[2] = "";
+        char mwpd_preferred[2] = "";
+        setPreferredMagnitude(hyp_assoc_loc[nhyp], mb_preferred, mwp_preferred, mwpd_preferred);
+        //printf("DEBUG: mb_preferred <%s>  mwp_preferred <%s>  mwpd_preferred <%s>\n", mb_preferred, mwp_preferred, mwpd_preferred);
+        // mb
         level_plot = mbLevelStatistics[nhyp].centralValue < MB_LEVEL_MAX ? mbLevelStatistics[nhyp].centralValue : MB_LEVEL_MAX;
         level_plot = level_plot > MB_LEVEL_MIN ? level_plot : MB_LEVEL_MIN;
         fprintf(mbCsvStream, " %.1f", level_plot);
-        fprintf(mbCsvStream, " %.1f", mbLevelStatistics[nhyp].centralValue);
+        fprintf(mbCsvStream, " %.1f%s", mbLevelStatistics[nhyp].centralValue, mb_preferred);
         fprintf(mbCsvStream, " %.1f", mbLevelStatistics[nhyp].lowerBound);
         fprintf(mbCsvStream, " %.1f", mbLevelStatistics[nhyp].upperBound);
         fprintf(mbCsvStream, " %s", mbLevelString[nhyp]);
         fprintf(mbCsvStream, " %d", mbLevelStatistics[nhyp].numLevel);
         fprintf(mbCsvStream, "\n");
+        // Mwp
+        level_plot = mwpLevelStatistics[nhyp].centralValue < MWP_LEVEL_MAX ? mwpLevelStatistics[nhyp].centralValue : MWP_LEVEL_MAX;
+        level_plot = level_plot > MWP_LEVEL_MIN ? level_plot : MWP_LEVEL_MIN;
+        fprintf(mwpCsvStream, " %.1f", level_plot);
+        fprintf(mwpCsvStream, " %.1f%s", mwpLevelStatistics[nhyp].centralValue, mwp_preferred);
+        fprintf(mwpCsvStream, " %.1f", mwpLevelStatistics[nhyp].lowerBound);
+        fprintf(mwpCsvStream, " %.1f", mwpLevelStatistics[nhyp].upperBound);
+        fprintf(mwpCsvStream, " %s", mwpLevelString[nhyp]);
+        fprintf(mwpCsvStream, " %d", mwpLevelStatistics[nhyp].numLevel);
+        fprintf(mwpCsvStream, "\n");
+        // Mwpd
+        level_plot = mwpdLevelStatistics[nhyp].centralValue < MWPD_LEVEL_MAX ? mwpdLevelStatistics[nhyp].centralValue : MWPD_LEVEL_MAX;
+        level_plot = level_plot > MWPD_LEVEL_MIN ? level_plot : MWPD_LEVEL_MIN;
+        fprintf(mwpdCsvStream, " %.1f", level_plot);
+        fprintf(mwpdCsvStream, " %.1f%s", mwpdLevelStatistics[nhyp].centralValue, mwpd_preferred);
+        fprintf(mwpdCsvStream, " %.1f", mwpdLevelStatistics[nhyp].lowerBound);
+        fprintf(mwpdCsvStream, " %.1f", mwpdLevelStatistics[nhyp].upperBound);
+        fprintf(mwpdCsvStream, " %s", mwpdLevelString[nhyp]);
+        fprintf(mwpdCsvStream, " %d", mwpdLevelStatistics[nhyp].numLevel);
+        fprintf(mwpdCsvStream, "\n");
     }
     fclose_counter(mbCsvStream);
+    fclose_counter(mwpCsvStream);
+    fclose_counter(mwpdCsvStream);
     //
     FILE* t0CsvStream = NULL;
     sprintf(outname, "%s/t0.csv", outnameroot);
@@ -6767,40 +6782,6 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         fprintf(t0CsvStream, "\n");
     }
     fclose_counter(t0CsvStream);
-    //
-    FILE* mwpdCsvStream = NULL;
-    sprintf(outname, "%s/mwpd.csv", outnameroot);
-    if (verbose > 2)
-        printf("Opening output file: %s\n", outname);
-    mwpdCsvStream = fopen_counter(outname, "w");
-    if (mwpdCsvStream == NULL) {
-        sprintf(tmp_str, "ERROR: opening output file: %s", outname);
-        perror(tmp_str);
-        return (-1);
-    }
-    // mwpd 10.0
-    fprintf(mwpdCsvStream, "mwpd");
-    fprintf(mwpdCsvStream, " %lf", MWPD_CRITICAL_VALUE);
-    fprintf(mwpdCsvStream, " %lf", difftime(plot_time_max, plot_time_min) / 60.0);
-    fprintf(mwpdCsvStream, " %s", time2string(plot_time_min, tmp_str));
-    fprintf(mwpdCsvStream, " %s", time2string(plot_time_max, tmp_str));
-    fprintf(mwpdCsvStream, " %d", report_interval);
-    fprintf(mwpdCsvStream, " %d", nstaIsActive);
-    fprintf(mwpdCsvStream, " %d", nstaHasBeenActive);
-    fprintf(mwpdCsvStream, " %d", num_hypocenters_associated);
-    fprintf(mwpdCsvStream, "\n");
-    for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
-        level_plot = mwpdLevelStatistics[nhyp].centralValue < MWPD_LEVEL_MAX ? mwpdLevelStatistics[nhyp].centralValue : MWPD_LEVEL_MAX;
-        level_plot = level_plot > MWPD_LEVEL_MIN ? level_plot : MWPD_LEVEL_MIN;
-        fprintf(mwpdCsvStream, " %.1f", level_plot);
-        fprintf(mwpdCsvStream, " %.1f", mwpdLevelStatistics[nhyp].centralValue);
-        fprintf(mwpdCsvStream, " %.1f", mwpdLevelStatistics[nhyp].lowerBound);
-        fprintf(mwpdCsvStream, " %.1f", mwpdLevelStatistics[nhyp].upperBound);
-        fprintf(mwpdCsvStream, " %s", mwpdLevelString[nhyp]);
-        fprintf(mwpdCsvStream, " %d", mwpdLevelStatistics[nhyp].numLevel);
-        fprintf(mwpdCsvStream, "\n");
-    }
-    fclose_counter(mwpdCsvStream);
 
 
     // perform update of waveform export for associated P ===============================================================
@@ -6976,7 +6957,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                 }
                 printHypoDataHeaderString(hypoDataString);
                 fprintf(fpout, "%s\n", hypoDataString);
-                printHypoDataString(phypo, hypoDataString, 1);
+                printHypoDataString(phypo, hypoDataString, 1, 0);
                 fprintf(fpout, "%s\n", hypoDataString);
                 fclose_counter(fpout);
                 sprintf(outname, "%s/%ld/%s", waveforms_root, phypo->unique_id, "hypo_pretty.csv");
@@ -6988,7 +6969,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                 }
                 printHypoDataHeaderString(hypoDataString);
                 fprintf(fpout, "%s\n", hypoDataString);
-                printHypoDataString(phypo, hypoDataString, 0);
+                printHypoDataString(phypo, hypoDataString, 0, 0);
                 fprintf(fpout, "%s\n", hypoDataString);
                 fclose_counter(fpout);
                 // picks
@@ -7211,7 +7192,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                     fprintf(hypoListPersistentStream, "%s\n", hypoDataString);
                 }
             }
-            printHypoDataString(phypo, hypoDataString, 1);
+            printHypoDataString(phypo, hypoDataString, 1, 0);
             fprintf(hypoListPersistentStream, "%s\n", hypoDataString);
             fclose_counter(hypoListPersistentStream);
             // remove deData for this hypocenter to avoid phantom locations from later phases
@@ -7232,18 +7213,18 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         HypocenterDesc* phypo = hypo_list[nhyp];
         // write hypocenter to archive files
         // hypo data csv string
-        printHypoDataString(phypo, hypoDataString, 1);
+        printHypoDataString(phypo, hypoDataString, 1, 0);
         fprintf(hypoListStream, "%s\n", hypoDataString);
         //printf("DEBUG: =========> hypoDataString: %s\n", hypoDataString);
         // hypo data html string
         // set event background color based on Mwp
         if (!setEventBackgroundColorStringHtml(phypo->mwpLevelStatistics.numLevel, phypo->mwpLevelStatistics.centralValue, "bgcolor=", eventBackgroundColorString,
                 phypo->qualityIndicators.quality_code,
-                MIN_NUMBER_VALUES_USE, MAG_MIN_HIGHLIGHT_CUTOFF, MAG_MAX_HIGHLIGHT_CUTOFF, MAG_HIGH_CUTOFF, LOC_QUALITY_ACCEPTABLE)) {
+                reportMinNumberValuesUse.mwp, MAG_MIN_HIGHLIGHT_CUTOFF, MAG_MAX_HIGHLIGHT_CUTOFF, MAG_HIGH_CUTOFF, LOC_QUALITY_ACCEPTABLE)) {
             // not enough Mwp readings, try mb
             setEventBackgroundColorStringHtml(phypo->mbLevelStatistics.numLevel, phypo->mbLevelStatistics.centralValue, "bgcolor=", eventBackgroundColorString,
                     phypo->qualityIndicators.quality_code,
-                    MIN_NUMBER_VALUES_USE, MAG_MIN_HIGHLIGHT_CUTOFF, MAG_MAX_HIGHLIGHT_CUTOFF, MAG_HIGH_CUTOFF, LOC_QUALITY_ACCEPTABLE);
+                    reportMinNumberValuesUse.mb, MAG_MIN_HIGHLIGHT_CUTOFF, MAG_MAX_HIGHLIGHT_CUTOFF, MAG_HIGH_CUTOFF, LOC_QUALITY_ACCEPTABLE);
         }
         printHypoMessageHtmlString(phypo, hypoMessageHtmlString, eventBackgroundColorString, eventBackgroundColorString, phypo->unique_id, phypo->unique_id);
         fprintf(hypoListHtmlStream, "%s\n", hypoMessageHtmlString);
@@ -7310,8 +7291,8 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     free(numTaucLevel);
     free(numTaucLevelMax);
     free(tdT50ExLevelStatistics);
-    free(numAlarmLevel);
-    free(numAlarmLevelMax);
+    free(numTdT50ExLevel);
+    free(numTdT50ExLevelMax);
     //
     if (flag_do_mwp) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {

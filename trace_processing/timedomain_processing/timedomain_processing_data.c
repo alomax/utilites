@@ -21,7 +21,10 @@
 #include "timedomain_processing_data.h"
 #include "ttimes.h"
 #include "location.h"
-//#include "location.h"
+#include "../miniseed_utils/miniseed_utils.h"
+#include "time_utils.h"
+#include "timedomain_processing.h"  // 20171222 AJL - added
+#include "../rabbitmq/rabbitmq.h"  // 20171222 AJL - added
 
 /** timedomain-processing memory class */
 
@@ -405,13 +408,70 @@ void free_TimedomainProcessingData(TimedomainProcessingData* deData) {
 }
 
 
+
+#ifdef USE_RABBITMQ_MESSAGING
+
+/** send pick using rabbitmq message broker
+ *
+ * 20171222 AJL - added to support real-time export of picks
+ *
+ * @return status
+ *
+ */
+int rmq_send_pick(TimedomainProcessingData* deData) {
+
+    static char messagebody[16384];
+    static char *pick_stream;
+    static char pick_time[1024];
+    static char pick_polarity[1024];
+    static char time_now[1024];
+    static char resource_id_tmp[1024];
+
+    timeDecSec2string((double) deData->t_time_t + deData->t_decsec, pick_time, IRIS_WS_TIME_FORMAT_4);
+    timeDecSec2string(slp_dtime_curr(), time_now, IRIS_WS_TIME_FORMAT);
+
+    pick_stream = deData->pick_stream == STREAM_RAW ? STREAM_RAW_NAME : deData->pick_stream == STREAM_HF ? STREAM_HF_NAME : "UNK";
+
+    sprintf(resource_id_tmp, "smi:%s/ee/pick/%s_%s_%s_%s/%s/%ld", agencyId,
+            deData->network, deData->station, deData->location, deData->channel, pick_stream,
+            (long) (((double) deData->t_time_t + deData->t_decsec) * 1000.0)); // 1/1000 sec precision
+
+    // first motion (from timedomain_processing/timedomain_processing_report.c)
+    double fmquality = 0.0;
+    int fmpolarity = POLARITY_UNKNOWN;
+    char fmtype[32] = "Err";
+    setPolarity(deData, &fmquality, &fmpolarity, fmtype);
+    sprintf(pick_polarity,
+            fmpolarity == POLARITY_POS ? "positive"
+            : fmpolarity == POLARITY_NEG ? "negative"
+            : "undecidable")
+            ;
+
+    sprintf(messagebody, "{networkCode:%s,stationCode:%s,locationCode:%s,channelCode:%s,filterID:%s,phaseHint:%s,polarity:%s,time.value:%s,time.uncertainty:%f,epochTimeSec:%ld,latitude:%f,longitude:%f,elevation:%f,creationTime:%s,agencyID:%s,publicID:%s}",
+            deData->network, deData->station, deData->location, deData->channel, pick_stream,
+            deData->phase, pick_polarity, pick_time, deData->pick_error, (long) deData->t_time_t,
+            deData->lat, deData->lon, deData->elev,
+            time_now, agencyId, resource_id_tmp);
+
+    int ireturn = amqp_sendstring(
+            rmq_parameters.rmq_hostname, rmq_parameters.rmq_port, rmq_parameters.rmq_exchange, rmq_parameters.rmq_routingkey,
+            messagebody);
+
+    return (ireturn);
+
+}
+
+#endif
+
+
 /** add a TimedomainProcessingData to a TimedomainProcessingData list
  * list will be sorted by increasing deData->t_time_t
  */
 
 #define SIZE_INCREMENT 16
 
-int addTimedomainProcessingDataToDataList(TimedomainProcessingData* deData, TimedomainProcessingData*** pdata_list, int* pnum_de_data, int check_exists) {
+int addTimedomainProcessingDataToDataList(TimedomainProcessingData* deData, TimedomainProcessingData*** pdata_list, int* pnum_de_data,
+        int check_exists, int send_message) {
 
 
     TimedomainProcessingData** newDataList = NULL;
@@ -467,6 +527,12 @@ int addTimedomainProcessingDataToDataList(TimedomainProcessingData* deData, Time
     // insert new TimedomainProcessingData
     (*pdata_list)[ninsert] = deData;
     (*pnum_de_data)++;
+
+#ifdef USE_RABBITMQ_MESSAGING
+    if (rmq_parameters.rmq_use_rmq && send_message) {
+        rmq_send_pick(deData);
+    }
+#endif
 
     return (1);
 
@@ -700,10 +766,10 @@ void set_derived_values(TimedomainProcessingData* deData, double hypo_depth) {
     if (is_associated_phase(deData) && (is_first_arrival_P(deData->phase_id) || is_direct_P(deData->phase_id)) && is_count_in_location(deData->phase_id)) {
         int phase_id_P = get_P_phase_index(); // IMPORTANT!: index must match phase order in ttimes.c array phases[]
         deData->ttime_P = get_ttime(phase_id_P, deData->epicentral_distance, hypo_depth);
-        deData->ttime_P = deData->ttime_P >= 0.0 ? deData->ttime_P : VALUE_NOT_SET;     // 20170406 AJL - bug fix, to correctly support waveform export of PKP
+        deData->ttime_P = deData->ttime_P >= 0.0 ? deData->ttime_P : VALUE_NOT_SET; // 20170406 AJL - bug fix, to correctly support waveform export of PKP
         int phase_id_S = get_S_phase_index(); // IMPORTANT!: index must match phase order in ttimes.c array phases[]
         deData->ttime_S = get_ttime(phase_id_S, deData->epicentral_distance, hypo_depth);
-        deData->ttime_S = deData->ttime_S >= 0.0 ? deData->ttime_S : VALUE_NOT_SET;     // 20170406 AJL - bug fix, to correctly support waveform export of PKP
+        deData->ttime_S = deData->ttime_S >= 0.0 ? deData->ttime_S : VALUE_NOT_SET; // 20170406 AJL - bug fix, to correctly support waveform export of PKP
         if (deData->ttime_P > 0.0 && deData->ttime_S > 0.0) {
             deData->ttime_SminusP = deData->ttime_S - deData->ttime_P;
         }
@@ -1935,5 +2001,4 @@ TimedomainProcessingData *get_next_pick_nll(FILE *fp_in, int verbose) {
     }
 
 }
-
 

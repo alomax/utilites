@@ -135,6 +135,7 @@ void writeXMLOrigin(xmlTextWriterPtr writer,
         char* publicIDChar, HypocenterDesc* phypo, int nhypo, TimedomainProcessingData** data_list, int num_de_data,
         int iWriteArrivals);
 void writeXMLAssociatedArrivals(xmlTextWriterPtr writer, int nassoc, HypocenterDesc* phypo, TimedomainProcessingData** data_list, int num_de_data);
+void writeXMLAssociatedPicks(xmlTextWriterPtr writer, int nassoc, HypocenterDesc* phypo, TimedomainProcessingData** data_list, int num_de_data);
 void writeXMLUnAssociatedPicks(xmlTextWriterPtr writer, TimedomainProcessingData** data_list, int num_de_data, int printIgnoredData);
 void writeXMLArrival(xmlTextWriterPtr writer, HypocenterDesc* phypo, TimedomainProcessingData* deData, int ndata);
 void writeXMLPick(xmlTextWriterPtr writer, char *name, TimedomainProcessingData* deData, int ndata);
@@ -226,6 +227,10 @@ int writeLocXML(char *xmlWriterUri, time_t time_stamp, char* agencyId, Hypocente
                     phypo->mwpLevelStatistics.upperBound, phypo->mwpLevelStatistics.numLevel);
             writeXMLMagnitude(writer, resource_id_origin, "Mwpd", phypo->mwpdLevelStatistics.centralValue, phypo->mwpdLevelStatistics.lowerBound,
                     phypo->mwpdLevelStatistics.upperBound, phypo->mwpdLevelStatistics.numLevel);
+            // 20171219 AJL - QML bug fix, Picks moved here, are children of Events, not Arrivals
+            if (iWriteArrivals) {
+                writeXMLAssociatedPicks(writer, phypo->hyp_assoc_index + 1, phypo, data_list, num_de_data);
+            }
             writeXMLOrigin(writer, resource_id_origin, phypo, nhyp, data_list, num_de_data, iWriteArrivals);
 
             // Early-est
@@ -356,7 +361,8 @@ void writeXMLOrigin(xmlTextWriterPtr writer,
         printf("loc2xml: Error at xmlTextWriterStartElement\n");
         return;
     }
-    writeXMLIValue(writer, "ee:seq_num", phypo->nassoc);        // 20170309
+    // 20171219 AJL - bug fix   writeXMLIValue(writer, "ee:seq_num", phypo->nassoc); // 20170309
+    writeXMLIValue(writer, "ee:seq_num", phypo->loc_seq_num); // 20170309
     writeXMLIValue(writer, "associatedPhaseCount", phypo->nassoc);
     writeXMLIValue(writer, "usedPhaseCount", phypo->nassoc_P);
     writeXMLDValue(writer, "standardError", phypo->ot_std_dev);
@@ -410,6 +416,24 @@ void writeXMLAssociatedArrivals(xmlTextWriterPtr writer, int nassoc, HypocenterD
         TimedomainProcessingData* deData = data_list[ndata];
         if (deData->is_associated == nassoc) {
             writeXMLArrival(writer, phypo, deData, ndata);
+        }
+    }
+
+}
+
+// 20171219 AJL - added
+/**
+ * writeXMLAssociatedPicks:
+ *
+ */
+void writeXMLAssociatedPicks(xmlTextWriterPtr writer, int nassoc, HypocenterDesc* phypo, TimedomainProcessingData** data_list, int num_de_data) {
+
+
+    int ndata;
+    for (ndata = 0; ndata < num_de_data; ndata++) {
+        TimedomainProcessingData* deData = data_list[ndata];
+        if (deData->is_associated == nassoc) {
+            writeXMLPick(writer, "pick", deData, ndata);
         }
     }
 
@@ -490,6 +514,13 @@ void writeXMLArrival(xmlTextWriterPtr writer, HypocenterDesc* phypo, TimedomainP
         return;
     }
 
+    // 20171219 AJL - QML bug fix
+    // pickID (must be identical to pickID set in writeXMLPick()
+    sprintf(resource_id_tmp, "%s/pick/%s_%s_%s_%s/%ld", resource_id_event,
+            deData->network, deData->station, deData->location, deData->channel,
+            (long) (((double) deData->t_time_t + deData->t_decsec) * 1000.0)); // 1/1000 sec precision
+    writeXMLCValue(writer, "pickID", resource_id_tmp);
+
     // QuakeML
     writeXMLCValue(writer, "phase", deData->phase);
     writeXMLDValue(writer, "azimuth", deData->epicentral_azimuth);
@@ -499,7 +530,7 @@ void writeXMLArrival(xmlTextWriterPtr writer, HypocenterDesc* phypo, TimedomainP
     writeXMLDValue(writer, "ee:takeOffAngleInc", deData->take_off_angle_inc); // 20160527 AJL - added
 
     // Pick
-    writeXMLPick(writer, "pick", deData, ndata);
+    // 20171219 AJL - QML bug fix  writeXMLPick(writer, "pick", deData, ndata);
 
     // Early-est
     writeXMLDValue(writer, "ee:polarizationAzimuth", deData->polarization.azimuth); // 201608
@@ -548,7 +579,8 @@ void writeXMLPick(xmlTextWriterPtr writer, char* name, TimedomainProcessingData*
     }
 
     // Add an attribute.
-    sprintf(resource_id_tmp, "%s/pick/%s_%s_%s_%s/%ld", resource_id_root,
+    // pickID (must be identical to pickID set in writeXMLArrival()
+    sprintf(resource_id_tmp, "%s/pick/%s_%s_%s_%s/%ld", resource_id_event,
             deData->network, deData->station, deData->location, deData->channel,
             (long) (((double) deData->t_time_t + deData->t_decsec) * 1000.0)); // 1/1000 sec precision
     rc = xmlTextWriterWriteAttribute(writer, BAD_CAST "publicID", BAD_CAST resource_id_tmp);
@@ -557,18 +589,31 @@ void writeXMLPick(xmlTextWriterPtr writer, char* name, TimedomainProcessingData*
         return;
     }
 
+    // prepare pick time values
+    double time_dec_sec = (double) deData->t_time_t + deData->t_decsec;
+    time_t itime_sec = (time_t) time_dec_sec;
+    struct tm* tm_time = gmtime(&itime_sec);
+    double dec_sec = time_dec_sec - itime_sec;
+
     // QuakeML
+    writeXMLTimeQuantity(writer, "time", tm_time->tm_year + 1900, tm_time->tm_mon + 1, tm_time->tm_mday, tm_time->tm_hour, tm_time->tm_min, (double) tm_time->tm_sec + dec_sec, deData->pick_error, 68.0);
+    // 20171219 AJL  writeXMLTimeQuantity(writer, "time", deData->year, deData->month, deData->mday, deData->hour, deData->min, deData->dsec, deData->pick_error, 68.0);
     writeXMLwaveformID(writer, deData);
+    writeXMLCValue(writer, "phaseHint", deData->phase); // 20171219 AJL - added
     // 20160527 AJL - added/modified (from timedomain_processing/timedomain_processing_report.c)
     double fmquality = 0.0;
     int fmpolarity = POLARITY_UNKNOWN;
     char fmtype[32] = "Err";
     setPolarity(deData, &fmquality, &fmpolarity, fmtype);
-    writeXMLIValue(writer, "polarity", fmpolarity);
+    // 20171219 AJL - QML bug fix  writeXMLIValue(writer, "polarity", fmpolarity);
+    writeXMLCValue(writer, "polarity",
+            fmpolarity == POLARITY_POS ? "positive"
+            : fmpolarity == POLARITY_NEG ? "negative"
+            : "undecidable")
+            ;
     writeXMLCValue(writer, "ee:polarityType", fmtype);
     writeXMLDValue(writer, "ee:polarityWeight", fmquality);
     // END - 20160527 AJL - added/modified
-    writeXMLTimeQuantity(writer, "time", deData->year, deData->month, deData->mday, deData->hour, deData->min, deData->dsec, deData->pick_error, 68.0);
     //int numAttributes = 1;
     //strcpy(attNames[0], "type");
     //strcpy(attValues[0], deData->pick_error_type);
@@ -629,7 +674,7 @@ void writeXMLPick(xmlTextWriterPtr writer, char* name, TimedomainProcessingData*
 }
 
 /**
- * writeXMLPick:
+ * writeXMLwaveformID:
  *
  */
 void writeXMLwaveformID(xmlTextWriterPtr writer, TimedomainProcessingData* deData) {
@@ -646,10 +691,33 @@ void writeXMLwaveformID(xmlTextWriterPtr writer, TimedomainProcessingData* deDat
         return;
     }
 
-    writeXMLCValue(writer, "networkCode", deData->network);
-    writeXMLCValue(writer, "stationCode", deData->station);
-    writeXMLCValue(writer, "locationCode", deData->location);
-    writeXMLCValue(writer, "channelCode", deData->channel);
+    // Add an attribute.
+    rc = xmlTextWriterWriteAttribute(writer, BAD_CAST "networkCode", BAD_CAST deData->network);
+    if (rc < 0) {
+        printf("loc2xml: Error at xmlTextWriterWriteAttribute\n");
+        return;
+    }
+
+    // Add an attribute.
+    rc = xmlTextWriterWriteAttribute(writer, BAD_CAST "stationCode", BAD_CAST deData->station);
+    if (rc < 0) {
+        printf("loc2xml: Error at xmlTextWriterWriteAttribute\n");
+        return;
+    }
+
+    // Add an attribute.
+    rc = xmlTextWriterWriteAttribute(writer, BAD_CAST "locationCode", BAD_CAST deData->location);
+    if (rc < 0) {
+        printf("loc2xml: Error at xmlTextWriterWriteAttribute\n");
+        return;
+    }
+
+    // Add an attribute.
+    rc = xmlTextWriterWriteAttribute(writer, BAD_CAST "channelCode", BAD_CAST deData->channel);
+    if (rc < 0) {
+        printf("loc2xml: Error at xmlTextWriterWriteAttribute\n");
+        return;
+    }
 
     // Close the element.
     rc = xmlTextWriterEndElement(writer);
@@ -1103,7 +1171,8 @@ void writeXMLMagnitude(xmlTextWriterPtr writer, char* originID, char* type, doub
         return;
     }
     // Add an attribute.
-    sprintf(resource_id_tmp, "%s/origin/magnitude/%s", resource_id_root, type);
+    // 20171218 AJL - bug fix  sprintf(resource_id_tmp, "%s/origin/magnitude/%s", resource_id_root, type);
+    sprintf(resource_id_tmp, "%s/magnitude/%s", resource_id_event, type);
     rc = xmlTextWriterWriteAttribute(writer, BAD_CAST "publicID", BAD_CAST resource_id_tmp);
     if (rc < 0) {
         printf("loc2xml: Error at xmlTextWriterWriteAttribute\n");

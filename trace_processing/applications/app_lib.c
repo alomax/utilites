@@ -27,6 +27,8 @@ void init_common_globals() {
     verbose = 0;
     details = 0;
 
+    strcpy(agencyId, "AGENCY");
+
     strcpy(data_input_filter_component_accept, DEFAULT_DATA_INPUT_COMPONENT_ACCEPT);
     data_input_filter_ignore_duplicate_net_sta = DEFAULT_DATA_INPUT_IGNORE_DUPLICATE_NET_STA;
     data_input_filter_ignore_duplicate_sta = DEFAULT_DATA_INPUT_IGNORE_DUPLICATE_STA;
@@ -66,6 +68,7 @@ void init_common_globals() {
     alarmNotification = 0;
 
     no_aref_level_check = 0;
+
 
 }
 
@@ -161,6 +164,7 @@ void usage_common() {
             " -v             Be more verbose, multiple flags can be used\n"
             "\n"
             " -p             Print details of mseed header, multiple flags can be used\n"
+            " -agency-id     public id for originatin agency in XML messages (e.g. net.alomax)\n"
 
             " -i template    Specify source names to ignore with comma separated list of NET_STA format prefixes 'NET[_STA[_LOC[_CHAN]]]' (e.g. TA_,AU_W)\n"
             "\n"
@@ -216,6 +220,8 @@ int parameter_proc_common(int *poptind, char **argvec, char *PACKAGE, char *VERS
     } else if (strcmp(argvec[*poptind], "-h") == 0) {
         (*usage)();
         exit(0);
+    } else if (strcmp(argvec[*poptind], "-agency-id") == 0) {
+        strcpy(agencyId, argvec[++(*poptind)]);
     } else if (strcmp(argvec[*poptind], "-o") == 0) {
         outpath_param = argvec[++(*poptind)];
     } else if (strcmp(argvec[*poptind], "-report-sliding-window-length") == 0) {
@@ -329,8 +335,8 @@ int parameter_proc_common(int *poptind, char **argvec, char *PACKAGE, char *VERS
         flag_do_mwp = 1;
     } else if (strcmp(argvec[*poptind], "-mwpd") == 0) {
         flag_do_mwpd = 1;
-        flag_do_t0 = 1;   // T0 required for Mwpd
-        flag_do_tauc = 1;   // also do TauC
+        flag_do_t0 = 1; // T0 required for Mwpd
+        flag_do_tauc = 1; // also do TauC
     } else if (strcmp(argvec[*poptind], "-mb") == 0) {
         flag_do_mb = 1;
     } else if (strcmp(argvec[*poptind], "-a") == 0) {

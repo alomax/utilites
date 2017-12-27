@@ -20,7 +20,7 @@
 //#define EARLY_EST_MONITOR_VERSION "1.2.1"   // use "N.N.NxDEV" for development version
 #define EARLY_EST_MONITOR_VERSION "1.2.2xDEV"   // use "N.N.NxDEV" for development version
 #endif
-#define EARLY_EST_MONITOR_VERSION_DATE "2017.04.06"
+#define EARLY_EST_MONITOR_VERSION_DATE "2017.12.26"
 #define EARLY_EST_MONITOR_BANNER_1 "comes with ABSOLUTELY NO WARRANTY."
 #define EARLY_EST_MONITOR_BANNER_2 "WARNING: DISCLAIMER: This is prototype software, it is not fully validated for use in continuous, real-time systems."
 #define EARLY_EST_MONITOR_BANNER_3 "                     This software produces automatic earthquake information that has not been reviewed by a seismologist."
@@ -54,6 +54,8 @@ EXTERN_TXT Settings *app_prop_settings;
 // globals set from command line in app_lib.c and/or from properties file
 //
 EXTERN_TXT int verbose;
+//
+EXTERN_TXT char agencyId[STANDARD_STRLEN];
 //
 EXTERN_TXT char *geogfile;
 EXTERN_TXT char *gainfile;
@@ -171,6 +173,24 @@ typedef struct {
     double tUpEvent; // FilterPicker5 tUpEvent
 }
 PickParams;
+
+#ifdef USE_RABBITMQ_MESSAGING
+typedef struct {
+    int rmq_use_rmq;
+    char rmq_hostname[STANDARD_STRLEN];
+    int rmq_port;
+    char rmq_exchange[STANDARD_STRLEN];
+    char rmq_routingkey[STANDARD_STRLEN];
+}
+rmq_params;
+EXTERN_TXT rmq_params rmq_parameters;
+#define RMQ_USE_RMQ_DEFAULT 0
+#define RMQ_HOSTNAME_DEFAULT "localhost"
+#define RMQ_PORT_DEFAULT 5672
+#define RMQ_EXCHANGE_DEFAULT "amq.direct"
+#define RMQ_ROUTNGKEY_DEFAULT "ee_test"
+#endif
+
 
 
 double slp_dtime_curr(void);

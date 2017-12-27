@@ -75,7 +75,6 @@ int main(int argc, char **argv) {
     //char sendMailParams[] = "http://early-est.alomax.net,anthony@alomax.net,alomax@free.fr,anthony@alomax.net";
     char sendMailParams[] = "http://early-est.alomax.net,anthony@alomax.net,alomax@free.fr";
     //char sendMailParams[] = "http://early-est.alomax.net,anthony@alomax.net";
-    char agencyId[] = "alomax.net";
 
     int source_id = 0;
 
@@ -112,6 +111,7 @@ int main(int argc, char **argv) {
 
     // process given parameters (command line and parameter file)
     strcpy(phases_count_in_location, "");
+    strcpy(agencyId, "alomax.net");
     if (parameter_proc(argc, argv) < 0)
         return -1;
     // check for phases_count_in_location
@@ -302,7 +302,7 @@ int main(int argc, char **argv) {
                 continue;
             }
 
-            int num_added = addTimedomainProcessingDataToDataList(deData, &data_list, &num_de_data, 1);
+            int num_added = addTimedomainProcessingDataToDataList(deData, &data_list, &num_de_data, 1, 0);
             if (num_added < 1) {
                 if (verbose)
                     printf("Warning: pick: new pick not added to deData list, nearby pick already exists in list: %s, %.4d%.2d%.2d-%.2d:%.2d:%.4f\n",

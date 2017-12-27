@@ -25,6 +25,18 @@
         <in>seedlink_monitor.c</in>
         <in>seedlink_monitor.h</in>
       </df>
+      <df name="early-est-1.2.2">
+        <df name="timedomain_processing">
+        </df>
+        <df name="ttimes_work_iaspei-tau">
+        </df>
+        <df name="ttimes_work_taup_table_nll">
+        </df>
+        <df name="vector">
+        </df>
+        <df name="work">
+        </df>
+      </df>
       <df name="feregion">
         <in>fe_names.h</in>
         <in>fe_nesect.h</in>
@@ -152,6 +164,15 @@
         <in>picker_func_test_memory.c</in>
         <in>sachdr.h</in>
       </df>
+      <df name="rabbitmq">
+        <in>amqp_listen_test.c</in>
+        <in>amqp_sendstring_func.c</in>
+        <in>amqp_sendstring_test.c</in>
+        <in>platform_utils.c</in>
+        <in>rabbitmq.h</in>
+        <in>utils.c</in>
+        <in>utils.h</in>
+      </df>
       <df name="ran1">
         <in>ran1.c</in>
         <in>ran1.h</in>
@@ -221,6 +242,8 @@
         <in>table_Q_Delta_PV.h</in>
         <in>table_Q_Depth_Delta_PV.h</in>
         <in>taup_iasp91_P_times.h</in>
+        <in>time_utils.c</in>
+        <in>time_utils.h</in>
         <in>timedomain_filter.c</in>
         <in>timedomain_filter.h</in>
         <in>timedomain_filter_1.c</in>
@@ -256,14 +279,6 @@
       </df>
       <df name="ttimes_work_TauP_Table_NLL">
         <df name="temp">
-          <in>ttimes_Longmenshan_regional_times_phases.h</in>
-          <in>ttimes_Longmenshan_regional_toang_phases.h</in>
-          <in>ttimes_Longmenshan_regional_tvel.h</in>
-          <in>ttimes_ak135_0-800_10_TauP_times_phases.h</in>
-          <in>ttimes_ak135_0-800_10_TauP_toang_phases.h</in>
-          <in>ttimes_marsite1_regional_times_phases.h</in>
-          <in>ttimes_marsite1_regional_toang_phases.h</in>
-          <in>ttimes_marsite1_regional_tvel.h</in>
         </df>
       </df>
       <df name="vector">
@@ -271,6 +286,7 @@
         <in>vector.h</in>
       </df>
     </df>
+    <itemPath>rabbitmq/README.txt</itemPath>
   </logicalFolder>
   <projectmakefile>Makefile-trace_processing.mk</projectmakefile>
   <confs>

@@ -1,10 +1,10 @@
 #!/bin/bash
 
-BUILD=YES
-TEST_MSPROCESS=YES	# !! Requires BUILD!  Must activate to get example output in distribution.
+BUILD=NO
+TEST_MSPROCESS=NO	# !! Requires BUILD!  Must activate to get example output in distribution.
 TEST_SEEDLINK=NO	# !! Requires BUILD!
 
-VERSION=1.2.1  # !!!IMPORTANT: must match WARNING_MONITOR_VERSION in timedomain_processing.h
+VERSION=1.2.2  # !!!IMPORTANT: must match WARNING_MONITOR_VERSION in timedomain_processing.h
 DISTRIBUTION_NAME=early-est-${VERSION}
 echo
 echo "Update distribution -------------------------------------------"
@@ -72,6 +72,8 @@ cp -p /Users/anthony/work/mseed_processing/fmamp_driver_early_est*.bash ${DISTRI
 mkdir ${DISTRIBUTION_NAME}/work/python
 cp -pr /Users/anthony/work/mseed_processing/python/* ${DISTRIBUTION_NAME}/work/python
 rm ${DISTRIBUTION_NAME}/work/python/evaluate/data/underwater/percent_prob_underwater.grd		# huge file!
+mkdir ${DISTRIBUTION_NAME}/work/tsunamiLearn_regressors
+cp -pr /Users/anthony/work/early-est/tsunamiLearn/out/regressors/* ${DISTRIBUTION_NAME}/work/tsunamiLearn_regressors
 # copy example files
 mkdir ${DISTRIBUTION_NAME}/work/seedlink_out
 mkdir ${DISTRIBUTION_NAME}/work/msprocess_out
