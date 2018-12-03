@@ -41,6 +41,10 @@ export TTIMES_NAME=
 #TTIME_DEFS=-D TTIMES_LONGMENSHAN_REGIONAL -D TTIMES_REGIONAL
 #export TTIMES_NAME=_LONGMENSHAN_REGIONAL
 #
+# regional scale TexNet model, time grid and phases (ttimes_marsite1_regional*)
+#TTIME_DEFS=-D TTIMES_R4_S3_T3_IASP91_REGIONAL -D TTIMES_REGIONAL
+#export TTIMES_NAME=_R4_S3_T3_IASP91_REGIONAL
+#
 #
 export EXE_NAME=$(TTIMES_NAME)
 # =========================================================================================================================
@@ -51,7 +55,7 @@ export EXE_NAME=$(TTIMES_NAME)
 #
 DEV_DEFS= $(DEV_DEFS_0) $(DEV_DEFS_1) $(DEV_DEFS_2) $(DEV_DEFS_3) $(DEV_DEFS_4) $(DEV_DEFS_5) $(DEV_DEFS_6) $(DEV_DEFS_7) $(DEV_DEFS_8) $(DEV_DEFS_9)
 #
-#DEV_DEFS_0= -D COMPILE_OLD_VERSION # do not use!
+#DEV_DEFS_0= -D COMPILE_OLD_VERSION # DO NOT USE!
 #
 #export EXE_NAME=$(TTIMES_NAME)_ALPHA   # X 20150415
 #DEV_DEFS_0= -D ALPHA_VERSION   # X 20150415
@@ -62,6 +66,23 @@ DEV_DEFS_1= -D USE_USE_ALL_PICKS_FOR_LOCATION
 # =========================================================================================================================
 
 
+
+# Google Maps JavaScript API key  ===============================================================================================================
+# To use the Maps JavaScript API, you must get an API key which you can then add to your mobile app, website, or web server.
+# The API key is used to track API requests associated with your project for usage and billing.
+# https://developers.google.com/maps/documentation/javascript/get-api-key#get-an-api-key
+#
+# key for http://your.website/*
+#GOOGLE_API_KEY=XXX
+#
+# key for http://alomax.free.fr/*
+DEFS_GOOGLE_API_KEY= -D GOOGLE_API_KEY=\"AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA\"
+#
+# =========================================================================================================================
+
+
+
+# AMQP_DEFS ===============================================================================================================
 # IMPORTANT: librabbitmq stuff (20171226 - AJL added)
 # 1) Make sure librabbitmq is on your LD_LIBRARY_PATH:
 # export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:<path to rabbitmg install>/rabbitmq-c-0.8.0/build/librabbitmq
@@ -70,7 +91,7 @@ DEV_DEFS_1= -D USE_USE_ALL_PICKS_FOR_LOCATION
 # export AMQP_LIBRARY_PATH=-L<path to rabbitmg install>/rabbitmq-c-0.8.0/build/librabbitmq
 #
 # Uncomment the following line to﻿send accepted picks though rabbitmq message broker
-AMQP_DEFS= -D USE_RABBITMQ_MESSAGING
+#AMQP_DEFS= -D USE_RABBITMQ_MESSAGING
 #
 ifdef AMQP_DEFS
 ifndef AMQP_INCLUDE_PATH
@@ -84,10 +105,17 @@ export LDLIBS_RMQ= -lrabbitmq
 RMQ_OBJ= ../rabbitmq/amqp_sendstring_func.o
 RMQ_MODULES= rabbitmq
 endif
+# END - AMQP_DEFS ===============================================================================================================
+
+
+# Uncomment the following line to﻿enable OpenMP parallel programming (http://www.openmp.org)
+# DO NOT USE!
+#FLAG_OPENMP= -fopenmp -D USE_OPENMP
 
 
 # Options specific for GCC
 export CC = gcc
+#export CC = /usr/local/bin/gcc-7
 #
 # GNU
 GNU_SOURCE=-D _GNU_SOURCE
@@ -95,7 +123,7 @@ GNU_SOURCE=-D _GNU_SOURCE
 #GNU_SOURCE=
 #
 #
-CCFLAGS_BASIC =  -std=c99 -Wall $(GNU_SOURCE) `xml2-config --cflags` $(TTIME_DEFS) $(AMQP_DEFS) $(DEV_DEFS)
+CCFLAGS_BASIC =  -std=c99 -Wall $(GNU_SOURCE) `xml2-config --cflags` $(TTIME_DEFS) $(AMQP_DEFS) $(FLAG_OPENMP) $(DEV_DEFS) $(DEFS_GOOGLE_API_KEY)
 # 20160513 - -mcmodel=large flag may be needed on Linux per suggestion by mehmety@boun.edu.tr
 #CCFLAGS_BASIC = -mcmodel=large -std=c99 -Wall $(GNU_SOURCE) `xml2-config --cflags` $(TTIME_DEFS) $(DEV_DEFS)
 

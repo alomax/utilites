@@ -25,18 +25,6 @@
         <in>seedlink_monitor.c</in>
         <in>seedlink_monitor.h</in>
       </df>
-      <df name="early-est-1.2.2">
-        <df name="timedomain_processing">
-        </df>
-        <df name="ttimes_work_iaspei-tau">
-        </df>
-        <df name="ttimes_work_taup_table_nll">
-        </df>
-        <df name="vector">
-        </df>
-        <df name="work">
-        </df>
-      </df>
       <df name="feregion">
         <in>fe_names.h</in>
         <in>fe_nesect.h</in>
@@ -231,6 +219,10 @@
           <in>ttimes_marsite2_regional.h</in>
           <in>ttimes_marsite2_regional_times_phases.h</in>
           <in>ttimes_marsite2_regional_toang_phases.h</in>
+          <in>ttimes_r4-s3-t3-iasp91_regional.h</in>
+          <in>ttimes_r4-s3-t3-iasp91_regional_times_phases.h</in>
+          <in>ttimes_r4-s3-t3-iasp91_regional_toang_phases.h</in>
+          <in>ttimes_r4-s3-t3-iasp91_regional_tvel.h</in>
           <in>tvel_ak135.h</in>
           <in>tvel_scsn_hk.h</in>
         </df>
@@ -275,6 +267,8 @@
         <df name="marsite1_regional">
         </df>
         <df name="SoCalSN_HK_2010">
+        </df>
+        <df name="TX_r4-s3-t3">
         </df>
       </df>
       <df name="ttimes_work_TauP_Table_NLL">

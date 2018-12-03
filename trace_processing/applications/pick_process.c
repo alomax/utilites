@@ -63,9 +63,9 @@ int check_phases_count_in_location();
 
 int main(int argc, char **argv) {
 
-    char srcname[50];
-    char net_sta[50];
-    char srcname_last[50];
+    char srcname[128];
+    char net_sta[128];
+    char srcname_last[128];
 
     char outnamepath[1024];
     char outpath_report[STANDARD_STRLEN];

@@ -126,7 +126,7 @@ xmlChar *ConvertInput(const char *in, const char *encoding);
 // XMML
 xmlTextWriterPtr startXMLDocument(const char *xmlWriterUri);
 void endXMLDocument(xmlTextWriterPtr writer);
-void startXMLEventElement(xmlTextWriterPtr writer, const char* agencyId, const char* publicIDChar, const time_t creation_time);
+void startXMLEventElement(xmlTextWriterPtr writer, const char* agencyId, const char* publicIDChar, const char* preferredMagnitudeID, const time_t creation_time);
 void endXMLElement(xmlTextWriterPtr writer);
 
 
@@ -146,6 +146,7 @@ void writeXMLDateTime(xmlTextWriterPtr writer, char *name, int year, int month, 
 void writeXMLTimeQuantity(xmlTextWriterPtr writer, char *name, int year, int month, int day, int hour, int min, double sec, double uncertainty, double confidenceLevel);
 void writeXMLOriginUncertainty(xmlTextWriterPtr writer, HypocenterDesc* phypo);
 void writeXMLConfidenceEllipsoid(xmlTextWriterPtr writer, HypocenterDesc* phypo);
+char *setXMLMagnitudeResourceID(char* type);
 void writeXMLMagnitude(xmlTextWriterPtr writer, char* originID, char* name, double dvalue, double lower_uncertainty, double upper_uncertainty, int num_values);
 
 void writeXMLRealQuantity(xmlTextWriterPtr writer, char* name, double dvalue, double uncertainty, double lower_uncertainty, double upper_uncertainty, double confidence_level);
@@ -176,8 +177,8 @@ void writeXML_EarlyEst_qualityIndicators(xmlTextWriterPtr writer, HypocenterDesc
  * @param iWriteArrivals
  * @return
  */
-int writeLocXML(char *xmlWriterUri, time_t time_stamp, char* agencyId, HypocenterDesc** hypo_list, int num_hypocenters, TimedomainProcessingData** data_list, int num_de_data,
-        int iWriteArrivals, int iWriteUnAssociatedPicks, int printIgnoredData) {
+int writeLocXML(char *xmlWriterUri, time_t time_stamp, char* agencyId, HypocenterDesc** hypo_list, int num_hypocenters, TimedomainProcessingData** data_list,
+        int num_de_data, int iWriteAssociatedOnly, int iWriteArrivals, int iWriteUnAssociatedPicks, int printIgnoredData) {
 
     int rc;
 
@@ -212,11 +213,21 @@ int writeLocXML(char *xmlWriterUri, time_t time_stamp, char* agencyId, Hypocente
     int nhyp;
     for (nhyp = 0; nhyp < num_hypocenters; nhyp++) {
         HypocenterDesc* phypo = hypo_list[nhyp];
-        if (phypo->hyp_assoc_index >= 0) { // associated
+        if (!iWriteAssociatedOnly || phypo->hyp_assoc_index >= 0) { // associated
 
             // start new XML event
             sprintf(resource_id_event, "%s/event/%ld", resource_id_root, phypo->unique_id);
-            startXMLEventElement(writer, agencyId, resource_id_event, phypo->first_assoc_time);
+            // determine preferred magnitude    // 20180129 AJL - added
+            char* preferredMagnitudeID = NULL;
+            int pref_mag = getPreferredMagnitude(phypo);
+            if (pref_mag == MAG_MWPD_PREFERRED) {
+                preferredMagnitudeID = setXMLMagnitudeResourceID("Mwpd");
+            } else if (pref_mag == MAG_MWP_PREFERRED) {
+                preferredMagnitudeID = setXMLMagnitudeResourceID("Mwp");
+            } else if (pref_mag == MAG_MB_PREFERRED) {
+                preferredMagnitudeID = setXMLMagnitudeResourceID("mb");
+            }
+            startXMLEventElement(writer, agencyId, resource_id_event, preferredMagnitudeID, phypo->first_assoc_time);
 
             // QuakeML
             sprintf(resource_id_origin, "%s/origin/%ld", resource_id_root, phypo->unique_id);
@@ -284,7 +295,7 @@ int writeLocXML(char *xmlWriterUri, time_t time_stamp, char* agencyId, Hypocente
     /*
      * this is to debug memory for regression tests
      */
-    xmlMemoryDump();
+    //xmlMemoryDump();
 
     return 0;
 }
@@ -349,7 +360,8 @@ void writeXMLOrigin(xmlTextWriterPtr writer,
             phypo->ot_std_dev, 68.0);
     writeXMLRealQuantity(writer, "latitude", phypo->lat, DOUBLE_NULL, DOUBLE_NULL, DOUBLE_NULL, DOUBLE_NULL);
     writeXMLRealQuantity(writer, "longitude", phypo->lon, DOUBLE_NULL, DOUBLE_NULL, DOUBLE_NULL, DOUBLE_NULL);
-    writeXMLRealQuantity(writer, "depth", phypo->depth, phypo->errz, DOUBLE_NULL, DOUBLE_NULL, DOUBLE_NULL);
+    // 20180105 AJL writeXMLRealQuantity(writer, "depth", phypo->depth, phypo->errz, DOUBLE_NULL, DOUBLE_NULL, DOUBLE_NULL);
+    writeXMLRealQuantity(writer, "depth", phypo->depth * 1000.0, phypo->errz * 1000.0, DOUBLE_NULL, DOUBLE_NULL, DOUBLE_NULL); // 20180105 AJL - bug fix, QML Origin.depth is in meters !
 
     writeXMLCValue(writer, "region", feregion_str);
 
@@ -422,6 +434,7 @@ void writeXMLAssociatedArrivals(xmlTextWriterPtr writer, int nassoc, HypocenterD
 }
 
 // 20171219 AJL - added
+
 /**
  * writeXMLAssociatedPicks:
  *
@@ -516,8 +529,9 @@ void writeXMLArrival(xmlTextWriterPtr writer, HypocenterDesc* phypo, TimedomainP
 
     // 20171219 AJL - QML bug fix
     // pickID (must be identical to pickID set in writeXMLPick()
-    sprintf(resource_id_tmp, "%s/pick/%s_%s_%s_%s/%ld", resource_id_event,
-            deData->network, deData->station, deData->location, deData->channel,
+    // 20181003 AJL - added deData->pick_stream to pickID
+    sprintf(resource_id_tmp, "%s/pick/%s_%s_%s_%s/%d/%ld", resource_id_event,
+            deData->network, deData->station, deData->location, deData->channel, deData->pick_stream,
             (long) (((double) deData->t_time_t + deData->t_decsec) * 1000.0)); // 1/1000 sec precision
     writeXMLCValue(writer, "pickID", resource_id_tmp);
 
@@ -527,7 +541,8 @@ void writeXMLArrival(xmlTextWriterPtr writer, HypocenterDesc* phypo, TimedomainP
     writeXMLDValue(writer, "distance", deData->epicentral_distance);
     writeXMLDValue(writer, "timeResidual", deData->residual);
     writeXMLDValue(writer, "timeWeight", deData->loc_weight);
-    writeXMLDValue(writer, "ee:takeOffAngleInc", deData->take_off_angle_inc); // 20160527 AJL - added
+    // 20180220 AJL  writeXMLDValue(writer, "ee:takeOffAngleInc", deData->take_off_angle_inc); // 20160527 AJL - added
+    writeXMLDValue(writer, "takeoffAngle", deData->take_off_angle_inc); // 20180220 AJL - added
 
     // Pick
     // 20171219 AJL - QML bug fix  writeXMLPick(writer, "pick", deData, ndata);
@@ -580,8 +595,9 @@ void writeXMLPick(xmlTextWriterPtr writer, char* name, TimedomainProcessingData*
 
     // Add an attribute.
     // pickID (must be identical to pickID set in writeXMLArrival()
-    sprintf(resource_id_tmp, "%s/pick/%s_%s_%s_%s/%ld", resource_id_event,
-            deData->network, deData->station, deData->location, deData->channel,
+    // 20181003 AJL - added deData->pick_stream to pickID
+    sprintf(resource_id_tmp, "%s/pick/%s_%s_%s_%s/%d/%ld", resource_id_event,
+            deData->network, deData->station, deData->location, deData->channel, deData->pick_stream,
             (long) (((double) deData->t_time_t + deData->t_decsec) * 1000.0)); // 1/1000 sec precision
     rc = xmlTextWriterWriteAttribute(writer, BAD_CAST "publicID", BAD_CAST resource_id_tmp);
     if (rc < 0) {
@@ -1090,7 +1106,7 @@ xmlTextWriterPtr startXMLDocument(const char *xmlWriterUri) {
  *
  * test the xmlWriter interface when writing to a new file
  */
-void startXMLEventElement(xmlTextWriterPtr writer, const char* agencyId, const char* publicIDChar, const time_t creation_time) {
+void startXMLEventElement(xmlTextWriterPtr writer, const char* agencyId, const char* publicIDChar, const char* preferredMagnitudeID, const time_t creation_time) {
 
     int rc;
 
@@ -1107,6 +1123,10 @@ void startXMLEventElement(xmlTextWriterPtr writer, const char* agencyId, const c
     if (rc < 0) {
         printf("loc2xml: Error at xmlTextWriterWriteAttribute\n");
         return;
+    }
+
+    if (preferredMagnitudeID != NULL) { // 20180129 AJL - added
+        writeXMLCValue(writer, "preferredMagnitudeID", preferredMagnitudeID);
     }
 
     writeXMLCreationInfo(writer, "creationInfo", agencyId, creation_time);
@@ -1151,6 +1171,15 @@ void writeXMLDValue(xmlTextWriterPtr writer, char* name, double dvalue) {
 
 }
 
+char *setXMLMagnitudeResourceID(char* type) {
+
+    // 20171218 AJL - bug fix  sprintf(resource_id_tmp, "%s/origin/magnitude/%s", resource_id_root, type);
+    sprintf(resource_id_tmp, "%s/magnitude/%s", resource_id_event, type);
+
+    return (resource_id_tmp);
+
+}
+
 /**
  * writeXMLRealQuantity:
  *
@@ -1171,9 +1200,7 @@ void writeXMLMagnitude(xmlTextWriterPtr writer, char* originID, char* type, doub
         return;
     }
     // Add an attribute.
-    // 20171218 AJL - bug fix  sprintf(resource_id_tmp, "%s/origin/magnitude/%s", resource_id_root, type);
-    sprintf(resource_id_tmp, "%s/magnitude/%s", resource_id_event, type);
-    rc = xmlTextWriterWriteAttribute(writer, BAD_CAST "publicID", BAD_CAST resource_id_tmp);
+    rc = xmlTextWriterWriteAttribute(writer, BAD_CAST "publicID", BAD_CAST setXMLMagnitudeResourceID(type));
     if (rc < 0) {
         printf("loc2xml: Error at xmlTextWriterWriteAttribute\n");
         return;

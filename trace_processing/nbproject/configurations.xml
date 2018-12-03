@@ -221,11 +221,11 @@
       <folder path="0/alomax_matrix">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -234,11 +234,11 @@
       <folder path="0/applications">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -247,11 +247,11 @@
       <folder path="0/feregion">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -318,11 +318,11 @@
       <folder path="0/math">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -331,11 +331,11 @@
       <folder path="0/matrix_statistics">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -344,11 +344,11 @@
       <folder path="0/miniseed_utils">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -357,11 +357,11 @@
       <folder path="0/net">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -370,11 +370,11 @@
       <folder path="0/octtree">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -405,11 +405,11 @@
       <folder path="0/ran1">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -418,11 +418,11 @@
       <folder path="0/response">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -431,11 +431,11 @@
       <folder path="0/settings">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -444,11 +444,11 @@
       <folder path="0/statistics">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -457,11 +457,11 @@
       <folder path="0/vector">
         <cTool>
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -507,30 +507,30 @@
       <item path="fmamp/fmamp.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
           </preprocessorList>
         </cTool>
       </item>
       <item path="fmamp/fmamp_invert.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
           </preprocessorList>
         </cTool>
       </item>
       <item path="fmamp/fmamp_utils.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
           </preprocessorList>
         </cTool>
       </item>
@@ -552,10 +552,10 @@
       <item path="fmamp/read_input.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
           </preprocessorList>
         </cTool>
       </item>
@@ -606,10 +606,10 @@
       <item path="fmamp/write_output.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
           </preprocessorList>
         </cTool>
       </item>
@@ -643,11 +643,11 @@
       <item path="picker/FilterPicker5.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -656,11 +656,11 @@
       <item path="picker/FilterPicker5_Memory.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -669,11 +669,11 @@
       <item path="picker/PickData.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -682,11 +682,11 @@
       <item path="picker/picker_func_test.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -695,11 +695,11 @@
       <item path="picker/picker_func_test_memory.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -778,11 +778,11 @@
       <item path="timedomain_processing/loc2xml.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -791,11 +791,11 @@
       <item path="timedomain_processing/location.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -804,11 +804,11 @@
       <item path="timedomain_processing/time_utils.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -820,11 +820,11 @@
             flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -913,11 +913,11 @@
             flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -929,11 +929,11 @@
             flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -945,11 +945,11 @@
             flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -961,11 +961,11 @@
             flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -977,11 +977,11 @@
             flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>
@@ -990,11 +990,11 @@
       <item path="timedomain_processing/ttimes.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2</pElem>
+            <pElem>/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
             <Elem>TTIMES_AK135_GLOBAL</Elem>
-            <Elem>USE_RABBITMQ_MESSAGING</Elem>
             <Elem>USE_USE_ALL_PICKS_FOR_LOCATION</Elem>
             <Elem>_GNU_SOURCE</Elem>
           </preprocessorList>

@@ -86,9 +86,6 @@ static double min_time_delay_between_picks_for_location;
 //
 static double gap_primary_critical;
 static double gap_secondary_critical;
-//
-static report_min_number_values_use reportMinNumberValuesUse;
-static report_preferred_min_value reportPreferredMinValue;
 
 
 //
@@ -135,6 +132,11 @@ static double reference_phase_ttime_error = DBL_MAX;
 // 20141212 AJL - made static global
 static int nstaHasBeenActive = -1; // number of stations for which data has been received in past
 static int nstaIsActive = -1; // number of stations for which data has been received and data_latency < report_interval
+
+// 20180321 AJL - following made static global to support event_persistence_time_after_otime_cutoff
+static double data_latency_mean = 0.0;
+static double data_latency_variance = 0.0;
+
 
 
 static int n_open_files = 0;
@@ -190,7 +192,6 @@ int ignoreData(TimedomainProcessingData* deData) {
 
 }
 
-
 /** helper function to remove a file or directory */
 
 int remove_fn(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
@@ -203,15 +204,15 @@ int remove_fn(const char *fpath, const struct stat *sb, int typeflag, struct FTW
     return ireturn;
 }
 
-/** function to remove a waveform directory and all files within the directory if the directory name is an event id older
- *      the maximum waveform export file age (waveform_export_file_archive_age_max) relative to the end of the current report interval
+/** function to remove an event directory and all files within the directory if the directory name is an event id older
+ *      the maximum file age (file_archive_age_max) relative to the end of the current report interval
  */
 
 static char filepath[STANDARD_STRLEN];
 
-int remove_waveform_export_directories(const char *dirpath) {
+int remove_file_archive_directories(const char *dirpath, int file_archive_age_max) {
 
-    //printf("DEBUG: remove_waveform_export_directories(): root: %s\n", dirpath);
+    //printf("DEBUG: remove_file_archive_directories(): root: %s\n", dirpath);
 
     int ireturn = 0;
 
@@ -221,21 +222,21 @@ int remove_waveform_export_directories(const char *dirpath) {
     while ((pFile = readdir(pDir))) {
 
         sprintf(filepath, "%s/%s", dirpath, pFile->d_name);
-        //printf("DEBUG: remove_waveform_export_directories(): processing %s\n", filepath);
+        //printf("DEBUG: remove_file_archive_directories(): processing %s\n", filepath);
 
         if (!strcmp(pFile->d_name, ".") || !strcmp(pFile->d_name, "..")) {
             continue;
         }
 
         // check if old event directory
-        time_t archive_earliesttime = report_time_max - waveform_export_file_archive_age_max;
+        time_t archive_earliesttime = report_time_max - file_archive_age_max;
         long hypo_unique_id = atol(pFile->d_name);
-        //printf("DEBUG: remove_waveform_export_directories(): hypo_unique_id/1000 %ld, archive_earliesttime %ld, diff %ld\n",
+        //printf("DEBUG: remove_file_archive_directories(): hypo_unique_id/1000 %ld, archive_earliesttime %ld, diff %ld\n",
         //        (hypo_unique_id / 1000), archive_earliesttime, (hypo_unique_id / 1000) - archive_earliesttime);
         if (hypo_unique_id > 0 && hypo_unique_id != LONG_MIN && hypo_unique_id != LONG_MAX && (hypo_unique_id / 1000) < archive_earliesttime) {
             ireturn = nftw(filepath, remove_fn, 16, FTW_DEPTH);
             if (ireturn) {
-                printf("ERROR: remove_waveform_export_directories(): removing files: return value = %d, path = %s\n", ireturn, filepath);
+                printf("ERROR: remove_file_archive_directories(): removing files: return value = %d, path = %s\n", ireturn, filepath);
             }
         }
 
@@ -249,9 +250,9 @@ int remove_waveform_export_directories(const char *dirpath) {
 
 /** create links if possible for web service to display plot of raw and filtered channel data */
 
-static char hf_str[STANDARD_STRLEN];
-static char brb_str[STANDARD_STRLEN];
-static char str_channel_linked[STANDARD_STRLEN];
+static char hf_str[8 * STANDARD_STRLEN];
+static char brb_str[8 * STANDARD_STRLEN];
+static char str_channel_linked[8 * STANDARD_STRLEN];
 
 char *create_channel_links(char *network, char *station, char *location, char *channel, int pick_stream, char* stream_name, int n_int_tseries,
         double start_time, int duration, char* str_channel, char* str_stream) {
@@ -645,7 +646,7 @@ void create_map_html_page(char *outnameroot, HypocenterDesc* phypo_map, time_t t
             "  #map-canvas { height: 97%% }\n"
             "h1 { font-family: sans-serif; font-size: medium; text-align: center; border: 0px solid #ffffff; background-color: #ffffff; }\n"
             "</style>\n"
-            "<script src='https://maps.googleapis.com/maps/api/js?v=3.exp'></script>\n"
+            "<script src='https://maps.googleapis.com/maps/api/js?key=%s'></script>\n"
             "<script src='%s'></script>\n"
             "</head>\n"
             "<body>\n"
@@ -655,7 +656,7 @@ void create_map_html_page(char *outnameroot, HypocenterDesc* phypo_map, time_t t
             "</html>\n",
             EARLY_EST_MONITOR_SHORT_NAME, EARLY_EST_MONITOR_VERSION, EARLY_EST_MONITOR_VERSION_DATE,
             EARLY_EST_MONITOR_SHORT_NAME, hypo_description_str,
-            js_file_str,
+            GOOGLE_API_KEY, js_file_str,
             hypo_description_str, EARLY_EST_MONITOR_SHORT_NAME, EARLY_EST_MONITOR_VERSION, EARLY_EST_MONITOR_VERSION_DATE
             );
 
@@ -864,8 +865,7 @@ void create_map_html_page(char *outnameroot, HypocenterDesc* phypo_map, time_t t
         int npt = 72;
         double daz = DE2RA * 360.0 / (double) npt;
         double az = 0.0;
-        int n;
-        for (n = 0; n < npt; n++) {
+        for (int n = 0; n < npt; n++) {
             xrect = xrect_hyp + ell_len_major * cos(az) * cos(ell_az_major) - ell_len_minor * sin(az) * sin(ell_az_major);
             yrect = yrect_hyp + ell_len_major * cos(az) * sin(ell_az_major) + ell_len_minor * sin(az) * cos(ell_az_major);
             rect2latlon_simple(xrect, yrect, &lat, &lon, expect_lat, expect_lon);
@@ -1196,7 +1196,7 @@ int readHypoDataString(HypocenterDesc* phypo, char *hypoDataString, long *pfirst
 
 /** set preferred magnitude flag
  */
-void setPreferredMagnitude(HypocenterDesc* phypo, char *mb_preferred, char *mwp_preferred, char *mwpd_preferred) {
+void setPreferredMagnitudeFlags(HypocenterDesc* phypo, char *mb_preferred, char *mwp_preferred, char *mwpd_preferred) {
 
     // 20171116 AJL - added
 
@@ -1204,17 +1204,19 @@ void setPreferredMagnitude(HypocenterDesc* phypo, char *mb_preferred, char *mwp_
     mwp_preferred[0] = '\0';
     mwpd_preferred[0] = '\0';
 
-    if (phypo->mwpdLevelStatistics.numLevel >= reportMinNumberValuesUse.mwpd && phypo->mwpdLevelStatistics.centralValue >= reportPreferredMinValue.mwpd) {
+    int pref_mag = getPreferredMagnitude(phypo);
+
+    if (pref_mag == MAG_MWPD_PREFERRED) {
         mwpd_preferred[0] = '*';
         return;
     }
 
-    if (phypo->mwpLevelStatistics.numLevel >= reportMinNumberValuesUse.mwp && phypo->mwpLevelStatistics.centralValue >= reportPreferredMinValue.mwp) {
+    if (pref_mag == MAG_MWP_PREFERRED) {
         mwp_preferred[0] = '*';
         return;
     }
 
-    if (phypo->mbLevelStatistics.numLevel >= reportMinNumberValuesUse.mb && phypo->mbLevelStatistics.centralValue >= reportPreferredMinValue.mb) {
+    if (pref_mag == MAG_MB_PREFERRED) {
         mb_preferred[0] = '*';
         return;
     }
@@ -1230,7 +1232,7 @@ void printHypoDataString(HypocenterDesc* phypo, char *hypoDataString, int iDecPr
     char mwp_preferred[2] = "";
     char mwpd_preferred[2] = "";
     if (flag_preferred_magnitude) {
-        setPreferredMagnitude(phypo, mb_preferred, mwp_preferred, mwpd_preferred);
+        setPreferredMagnitudeFlags(phypo, mb_preferred, mwp_preferred, mwpd_preferred);
         //printf("DEBUG: mb_preferred <%s>  mwp_preferred <%s>  mwpd_preferred <%s>\n", mb_preferred, mwp_preferred, mwpd_preferred);
     }
 
@@ -1338,6 +1340,15 @@ void printHypoMessageHtmlHeaderString(char *messageString) {
 
 void printHypoMessageHtmlString(HypocenterDesc* phypo, char *messageString, char* hypoBackground, char* rowBackground, long event_index, long event_id) {
 
+    // enable highlight border around preferred magnitude
+    // 20171114 AJL - added
+    static char mb_preferred[2] = "";
+    static char mwp_preferred[2] = "";
+    static char mwpd_preferred[2] = "";
+    setPreferredMagnitudeFlags(phypo, mb_preferred, mwp_preferred, mwpd_preferred);
+    static char border[] = "style=\"border:solid 2px #b00\"";
+
+
     // set feregion string
     feregion(phypo->lat, phypo->lon, feregion_str, FEREGION_STR_SIZE);
 
@@ -1375,13 +1386,13 @@ void printHypoMessageHtmlString(HypocenterDesc* phypo, char *messageString, char
             levelStringHtml, highlight ? "<strong>" : "", phypo->tdT50ExLevelStatistics.centralValue, highlight ? "&nbsp;</strong>" : "&nbsp;");
     highlight = setLevelStringHtml(phypo->mbLevelStatistics.numLevel, phypo->mbLevelStatistics.centralValue, "bgcolor=", rowBackground, levelStringHtml,
             reportMinNumberValuesUse.mb, MB_RED_CUTOFF, MB_YELLOW_CUTOFF, MB_INVALID, magnitude_colors_show);
-    sprintf(messageString + strlen(messageString), "<td %s>%s%.1f%s</td><td %s align=left>&nbsp;%d</td>",
-            levelStringHtml, highlight ? "<strong>" : "", phypo->mbLevelStatistics.numLevel >= reportMinNumberValuesUse.mb ? phypo->mbLevelStatistics.centralValue : MB_INVALID,
+    sprintf(messageString + strlen(messageString), "<td %s %s>%s%.1f%s</td><td %s align=left>&nbsp;%d</td>",
+            mb_preferred[0] == '*' ? border : "", levelStringHtml, highlight ? "<strong>" : "", phypo->mbLevelStatistics.numLevel >= reportMinNumberValuesUse.mb ? phypo->mbLevelStatistics.centralValue : MB_INVALID,
             highlight ? "&nbsp;</strong>" : "&nbsp;", rowBackground, phypo->mbLevelStatistics.numLevel);
     highlight = setLevelStringHtml(phypo->mwpLevelStatistics.numLevel, phypo->mwpLevelStatistics.centralValue, "bgcolor=", rowBackground, levelStringHtml,
             reportMinNumberValuesUse.mwp, MWP_RED_CUTOFF, MWP_YELLOW_CUTOFF, MWP_INVALID, magnitude_colors_show);
-    sprintf(messageString + strlen(messageString), "<td %s>%s%.1f%s</td><td %s align=left>&nbsp;%d</td>",
-            levelStringHtml, highlight ? "<strong>" : "", phypo->mwpLevelStatistics.numLevel >= reportMinNumberValuesUse.mwp ? phypo->mwpLevelStatistics.centralValue : MWP_INVALID,
+    sprintf(messageString + strlen(messageString), "<td %s %s>%s%.1f%s</td><td %s align=left>&nbsp;%d</td>",
+            mwp_preferred[0] == '*' ? border : "", levelStringHtml, highlight ? "<strong>" : "", phypo->mwpLevelStatistics.numLevel >= reportMinNumberValuesUse.mwp ? phypo->mwpLevelStatistics.centralValue : MWP_INVALID,
             highlight ? "&nbsp;</strong>" : "&nbsp;", rowBackground, phypo->mwpLevelStatistics.numLevel);
     highlight = setLevelStringHtml(phypo->t0LevelStatistics.numLevel, phypo->t0LevelStatistics.centralValue, "bgcolor=", rowBackground, levelStringHtml,
             reportMinNumberValuesUse.t0, T0_RED_CUTOFF, T0_YELLOW_CUTOFF, T0_INVALID, warning_colors_show);
@@ -1395,8 +1406,8 @@ void printHypoMessageHtmlString(HypocenterDesc* phypo, char *messageString, char
         nLevels = -1; // force grey color
     highlight = setLevelStringHtml(nLevels, phypo->mwpdLevelStatistics.centralValue, "bgcolor=", rowBackground, levelStringHtml,
             reportMinNumberValuesUse.mwpd, MWPD_RED_CUTOFF, MWPD_YELLOW_CUTOFF, MWPD_INVALID, magnitude_colors_show);
-    sprintf(messageString + strlen(messageString), "<td %s>%s%.1f%s</td><td %s align=left>&nbsp;%d</td>",
-            levelStringHtml, highlight ? "<strong>" : "", phypo->mwpdLevelStatistics.numLevel >= reportMinNumberValuesUse.mwpd
+    sprintf(messageString + strlen(messageString), "<td %s %s>%s%.1f%s</td><td %s align=left>&nbsp;%d</td>",
+            mwpd_preferred[0] == '*' ? border : "", levelStringHtml, highlight ? "<strong>" : "", phypo->mwpdLevelStatistics.numLevel >= reportMinNumberValuesUse.mwpd
             ? phypo->mwpdLevelStatistics.centralValue : MWPD_INVALID, highlight ? "&nbsp;</strong>" : "&nbsp;", rowBackground, phypo->mwpdLevelStatistics.numLevel);
     // focal mechanism image
     create_mech_image_tag(".", event_id, image_tag_str, feregion_str);
@@ -1875,10 +1886,9 @@ int send_hypocenter_alert(HypocenterDesc* phypo, int is_new_hypocenter, Hypocent
 
 void updateStaHealthInformation(char *outnameroot, FILE* staHealthHtmlStream, double report_time_window, double report_interval, double time_since_last_report, time_t time_min, time_t time_max) {
 
-    int n;
 
     // initialize work fields
-    for (n = 0; n < num_sources_total; n++) {
+    for (int n = 0; n < num_sources_total; n++) {
         channelParameters[n].numData = 0;
         channelParameters[n].numDataAssoc = 0;
         channelParameters[n].qualityWeight = 1.0;
@@ -1887,7 +1897,7 @@ void updateStaHealthInformation(char *outnameroot, FILE* staHealthHtmlStream, do
     // count station deData
     TimedomainProcessingData* deData = NULL;
     int source_id = -1;
-    for (n = 0; n < num_de_data; n++) {
+    for (int n = 0; n < num_de_data; n++) {
         deData = data_list[n];
         source_id = deData->source_id;
         // 20120316 AJL - add check on flag_complete_t50 and only count assoc data when data counted
@@ -1913,7 +1923,7 @@ void updateStaHealthInformation(char *outnameroot, FILE* staHealthHtmlStream, do
     int num_data_unassoc_sum = 0;
     int num_data_unassoc_sum_sqr = 0;
     int num_data_unassoc = 0;
-    for (n = 0; n < num_sorted_chan_params; n++) {
+    for (int n = 0; n < num_sorted_chan_params; n++) {
         chan_params = sorted_chan_params_list[n];
         // 20160906 AJL  if (chan_params->inactive_duplicate || !chan_params->process_this_channel_orientation) {
         if (chan_params->inactive_duplicate) {
@@ -1941,8 +1951,8 @@ void updateStaHealthInformation(char *outnameroot, FILE* staHealthHtmlStream, do
             nstaIsActive++;
         }
     }
-    double data_latency_mean = 0.0;
-    double data_latency_variance = 999.0 * 999.0;
+    // 20180321 AJL  double data_latency_mean = 0.0;
+    // 20180321 AJL  double data_latency_variance = 999.0 * 999.0;
     double num_data_unassoc_mean = 0.0;
     double num_data_unassoc_variance = 999.0 * 999.0;
     if (nstaHasBeenActive > 0) {
@@ -2024,7 +2034,7 @@ void updateStaHealthInformation(char *outnameroot, FILE* staHealthHtmlStream, do
     //double std_dev_cutoff = NUM_DATA_UNASSOC_STD_CUTOFF * num_data_unassoc_std_dev;
     int duration = 3600; // 1
     double start_time = (double) (time_max - duration);
-    for (n = 0; n < num_sorted_chan_params; n++) {
+    for (int n = 0; n < num_sorted_chan_params; n++) {
         chan_params = sorted_chan_params_list[n];
         if (chan_params->inactive_duplicate || !chan_params->process_this_channel_orientation)
             strcpy(bgColor, "bgcolor=\"#EEEEEE\"");
@@ -2181,8 +2191,6 @@ void updateStaHealthInformation(char *outnameroot, FILE* staHealthHtmlStream, do
 
 int setStatistics(char *levelName, double **statisticsArray, int numLevel, statistic_level* pLevelStatistics, int verbose) {
 
-    int n, m;
-
     double **statisticsArray_tmp;
     double* percentiles;
 
@@ -2193,13 +2201,13 @@ int setStatistics(char *levelName, double **statisticsArray, int numLevel, stati
     if (TRIM_BEFORE_WEIGHTING && numLevel > 2) {
         percentiles = vector_percentiles(statisticsArray[0], numLevel, 'a');
         statisticsArray_tmp = calloc(3, sizeof (double*));
-        for (m = 0; m < 3; m++) {
+        for (int m = 0; m < 3; m++) {
             statisticsArray_tmp[m] = calloc(numLevel, sizeof (double));
         }
         allocated_tmp = 1;
         int ntrim = 0;
         double value;
-        for (n = 0; n < numLevel; n++) {
+        for (int n = 0; n < numLevel; n++) {
             value = statisticsArray[0][n];
             if (value >= percentiles[10] && value <= percentiles[90]) {
                 statisticsArray_tmp[0][ntrim] = value;
@@ -2238,7 +2246,7 @@ int setStatistics(char *levelName, double **statisticsArray, int numLevel, stati
 
     free(percentiles);
     if (allocated_tmp) {
-        for (m = 0; m < 3; m++) {
+        for (int m = 0; m < 3; m++) {
 
             free(statisticsArray_tmp[m]);
         }
@@ -2256,12 +2264,12 @@ int setStatisticsGeometric(char *levelName, double **statisticsArray, int numLev
     int n, m;
 
     double **statisticsArray_tmp = calloc(3, sizeof (double*));
-    for (m = 0; m < 3; m++) {
+    for (int m = 0; m < 3; m++) {
         statisticsArray_tmp[m] = calloc(numLevel, sizeof (double));
     }
 
     // set logarithmic values
-    for (n = 0; n < numLevel; n++) {
+    for (int n = 0; n < numLevel; n++) {
         statisticsArray_tmp[0][n] = log10(statisticsArray[0][n]);
         statisticsArray_tmp[1][n] = statisticsArray[1][n];
         statisticsArray_tmp[2][n] = statisticsArray[2][n];
@@ -2269,7 +2277,7 @@ int setStatisticsGeometric(char *levelName, double **statisticsArray, int numLev
 
     setStatistics(levelName, statisticsArray_tmp, numLevel, pLevelStatistics, verbose);
 
-    for (m = 0; m < 3; m++) {
+    for (int m = 0; m < 3; m++) {
         free(statisticsArray_tmp[m]);
     }
     free(statisticsArray_tmp);
@@ -2598,6 +2606,13 @@ int td_timedomainProcessingReport_init(
     }
     //
     if (settings_get_double_helper(app_prop_settings,
+            "AssociateLocate", "assoc_loc.persistence.time_after_otime_cutoff", &event_persistence_time_after_otime_cutoff, EVENT_PERSISTENCE_TIME_AFTER_OTIME_CUTOFF_DEFAULT,
+            verbose
+            ) == DBL_INVALID) {
+        ; // handle error
+    }
+    //
+    if (settings_get_double_helper(app_prop_settings,
             "AssociateLocate", "assoc_loc.persistence.tt_err_fact", &event_persistence_tt_err_fact, EVENT_PERSISTENCE_TT_ERR_FACTOR_DEFAULT,
             verbose
             ) == DBL_INVALID) {
@@ -2809,6 +2824,25 @@ int td_timedomainProcessingReport_init(
     //
 
 
+    // enable and configure hypocenter_sequence_xml archive parameters
+    hypocenter_sequence_xml_enable = 0;
+    if ((int_param = settings_get_int(app_prop_settings, "Report", "hypocenter_sequence_xml.enable")) != INT_INVALID)
+        hypocenter_sequence_xml_enable = int_param;
+    printf("Info: property set: [Report] hypocenter_sequence_xml.enable %d\n", hypocenter_sequence_xml_enable);
+    //
+    hypocenter_sequence_xml_write_arrivals = 0;
+    if ((int_param = settings_get_int(app_prop_settings, "Report", "hypocenter_sequence_xml.write_arrivals")) != INT_INVALID)
+        hypocenter_sequence_xml_write_arrivals = int_param;
+    printf("Info: property set: [Report] hypocenter_sequence_xml.write_arrivals %d\n", hypocenter_sequence_xml_write_arrivals);
+    //
+    if (settings_get_int_helper(app_prop_settings,
+            "Report", "hypocenter_sequence_xml.file_archive.age_max", &hypocenter_sequence_xml_file_archive_age_max, HYPOCENTER_SEQUENCE_XML_FILE_ARCHIVE_AGE_MAX,
+            verbose) == INT_INVALID) {
+        ; // handle error
+    }
+    printf("Info: property set: [Report] hypocenter_sequence_xml.file_archive.age_max %d\n", hypocenter_sequence_xml_file_archive_age_max);
+    //
+
     // initialize list of id's for phase types to use in location/association, set reference phase ttime error
     if (numPhaseTypesUse < 0) { //  not initialized
         numPhaseTypesUse = 0;
@@ -2960,7 +2994,7 @@ void td_timedomainProcessingReport_cleanup() {
     /*
     int ilat, n;
     for (ilat = 0; ilat < nlat_alloc_coarse; ilat++) {
-        for (n = 0; n < nlon_alloc_coarse; n++) {
+        for (int n = 0; n < nlon_alloc_coarse; n++) {
             free((weight_count_grid_coarse)[ilat][n]);
         }
         free((weight_count_grid_coarse)[ilat]);
@@ -2968,7 +3002,7 @@ void td_timedomainProcessingReport_cleanup() {
     free(weight_count_grid_coarse);
 
     for (ilat = 0; ilat < nlat_alloc; ilat++) {
-        for (n = 0; n < nlon_alloc; n++) {
+        for (int n = 0; n < nlon_alloc; n++) {
 
             free((weight_count_grid)[ilat][n]);
         }
@@ -3050,8 +3084,7 @@ int associate_locate_octtree(int num_pass, char *outnameroot, HypocenterDesc **h
 
     // 20140721 AJL      if (wt_count_assoc < min_weight_sum_assoc) {
     if (!reassociate_only && wt_count_assoc < min_weight_sum_assoc) {
-        int n;
-        for (n = 0; n < num_de_data; n++) {
+        for (int n = 0; n < num_de_data; n++) {
             TimedomainProcessingData* deData = data_list[n];
             if (deData->is_associated == num_pass)
                 deData->is_associated = 0;
@@ -3282,7 +3315,6 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     }
 
 
-    int n, m;
     int nhyp;
 
 
@@ -3295,7 +3327,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
 
     // remove late timedomain-processing data from list (use for running archive data, not for real-time)
     if (cut_at_time_max) {
-        for (n = num_de_data - 1; n >= 0; n--) {
+        for (int n = num_de_data - 1; n >= 0; n--) {
             TimedomainProcessingData* deData = data_list[n];
             if (deData->t_time_t > time_max) {
                 removeTimedomainProcessingDataFromDataList(deData, &data_list, &num_de_data);
@@ -3337,7 +3369,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
 
     // update polarization analysis for timedomain-processing data from list
     if (polarization_enable) {
-        for (n = 0; n < num_de_data; n++) {
+        for (int n = 0; n < num_de_data; n++) {
             TimedomainProcessingData* deData = data_list[n];
             //printf("DEBUG: doPolarizationAnalysis: test: %d %s_%s_%s_%s dt=%f stream=%d use=%d\n", n + 1, deData->network, deData->station, deData->location, deData->channel, deData->deltaTime, deData->pick_stream, deData->use_for_location);
             if (!deData->use_for_location && (deData->use_for_location_twin_data == NULL || !deData->use_for_location_twin_data->use_for_location))
@@ -3352,7 +3384,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
 
     // determine time span if not specified
     if (time_min < 0) {
-        for (n = 0; n < num_de_data; n++) {
+        for (int n = 0; n < num_de_data; n++) {
             TimedomainProcessingData* deData = data_list[n];
             double dsec;
             time_t pick_time = get_time_t(deData, &dsec);
@@ -3392,9 +3424,19 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
             for (nhyp_assoc = num_hypocenters_associated - 1; nhyp_assoc >= 0; nhyp_assoc--) {
                 if (hyp_assoc_loc[nhyp_assoc]->hyp_assoc_index < 0) { // not associated
                     // remove hypo and pack list
+                    HypocenterDesc *temp = hyp_assoc_loc[nhyp_assoc]; // 20180113 AJL - bug fix
                     for (nhyp = nhyp_assoc; nhyp < num_hypocenters_associated - 1; nhyp++) {
                         hyp_assoc_loc[nhyp] = hyp_assoc_loc[nhyp + 1];
+                        // re-index data from to old new hypo index
+                        // 20180110 AJL - bug fix
+                        for (int n = 0; n < num_de_data; n++) {
+                            TimedomainProcessingData* deData = data_list[n];
+                            if (deData->is_associated == nhyp + 2) {
+                                deData->is_associated = nhyp + 1; // attach to re-indexed hypo
+                            }
+                        }
                     }
+                    hyp_assoc_loc[num_hypocenters_associated - 1] = temp; // 20180113 AJL - bug fix
                     num_hypocenters_associated--;
                 }
             }
@@ -3418,24 +3460,47 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
             } else {
                 // check each associated hypocenter for persistence
                 for (nhyp_assoc = 0; nhyp_assoc < num_hypocenters_associated; nhyp_assoc++) {
+
                     double otime = hyp_assoc_loc[nhyp_assoc]->otime;
+
                     // 20160910 AJL  if ((time_t) otime <= time_min) {
                     if ((time_t) otime <= time_min + report_interval) { // 20160910 AJL
                         // otime is before analysis window, do not preserve event to force full reassociation before event is removed
                         continue;
                     }
-                    if (hyp_assoc_loc[nhyp_assoc]->nassoc_P < event_persistence_min_num_defining_phases) {
+
+                    // 20180319 AJL - added
+                    // reduce frac_poss_assoc linearly with time for times longer than specified cutoff
+                    double time_since_otime = difftime(time_max, otime);
+                    double time_cutoff = event_persistence_time_after_otime_cutoff;
+                    // 20180323 AJL   time_cutoff += data_latency_mean; // crude attempt to allow for data latency // 20180323 AJL - does not work, data_latency_mean can be very large. Perhaps replace with trimmed mean???
+                    double time_after_origin_factor =
+                            time_since_otime < time_cutoff ? 1.0
+                            : 1.0 - 0.8 * (time_since_otime - time_cutoff) / time_cutoff;
+                    if (time_after_origin_factor < 0.2) {
+                        time_after_origin_factor = 0.2;
+                    }
+                    printf("DEBUG: Mode USE_EVENT_PERSISTENCE -> nhyp_assoc: %d seq_num: %d time_max: %ld otime %f time_since_otime %f time_after_origin_factor %f,  hyp_assoc_loc[nhyp_assoc]->nassoc_P %d * time_after_origin_factor = %f\n", nhyp_assoc, hyp_assoc_loc[nhyp_assoc]->loc_seq_num, time_max, otime, time_since_otime, time_after_origin_factor, hyp_assoc_loc[nhyp_assoc]->nassoc_P, hyp_assoc_loc[nhyp_assoc]->nassoc_P * time_after_origin_factor);
+
+                    if (hyp_assoc_loc[nhyp_assoc]->loc_seq_num < EVENT_PERSISTENCE_MIN_SEQ_NUM_DEFAULT) {   // 20180326 AJL - added to prevent freezing of late, low seq_num events
+                        // too few definitive locations, do not preserve event
+                        continue;
+                    }
+
+                    if (hyp_assoc_loc[nhyp_assoc]->nassoc_P < event_persistence_min_num_defining_phases * time_after_origin_factor) {
                         // too few defining phases, do not preserve event
                         continue;
                     }
+
                     double lat = hyp_assoc_loc[nhyp_assoc]->lat;
                     double lon = hyp_assoc_loc[nhyp_assoc]->lon;
                     double depth = hyp_assoc_loc[nhyp_assoc]->depth;
                     //printf("DEBUG: check for persistence: ev:%d %s\n", nhyp_assoc, time2string(otime, tmp_str));
                     // find new picks that could be defining picks for this event
                     int n_poss_assoc = 0;
-                    double wt_assoc_full = 0.0;
-                    for (n = 0; n < num_de_data; n++) {
+                    // 20180323 AJL  double wt_assoc_full = 0.0;
+                    int n_assoc_full = 0;  // 20180323 AJL - changed wt_assoc_full to n_assoc_full
+                    for (int n = 0; n < num_de_data; n++) {
                         TimedomainProcessingData* deData = data_list[n];
                         // check if pick is skipped for location (location.c->skipData())
                         if (skipData(deData, -1)) {
@@ -3443,7 +3508,8 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                         }
                         // check if pick is already associated with full association location
                         if ((deData->is_associated == nhyp_assoc + 1 && deData->is_full_assoc_loc == 1)) {
-                            wt_assoc_full += deData->loc_weight;
+                            // 20180323 AJL  wt_assoc_full += deData->loc_weight;
+                            n_assoc_full++;
                             continue;
                         }
                         // check each phase type
@@ -3486,8 +3552,13 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                     }
                     // get ratio of [n_poss_assoc = number possible defining phases not already used for full assoc/loc] to [wt_assoc_full = total weight of fully associated defining phases]
                     //    NOTE: this ratio is conservative (will overestimate true ratio of weights, since number and not eventual weights used for possible associated phases)
-                    double frac_poss_assoc = (double) n_poss_assoc / wt_assoc_full;
-                    //printf("DEBUG: Mode USE_EVENT_PERSISTENCE -> ev:%d %s  n_poss_assoc: %d  wt_assoc_full: %f frac_poss_assoc %f\n", nhyp_assoc, time2string(otime, tmp_str), n_poss_assoc, wt_assoc_full, frac_poss_assoc);
+                    // 20180323 AJL  double frac_poss_assoc = (double) n_poss_assoc / wt_assoc_full;
+                    // get ratio of [n_poss_assoc = number possible defining phases not already used for full assoc/loc] to [n_assoc_full = total number of fully associated defining phases]
+                    double frac_poss_assoc = (double) n_poss_assoc / (double) n_assoc_full;
+                    // 20180319 AJL - added
+                    // reduce frac_poss_assoc linearly with time for times longer than specified cutoff
+                    frac_poss_assoc *= time_after_origin_factor;
+                    printf("DEBUG: Mode USE_EVENT_PERSISTENCE -> ev:%d %s  n_poss_assoc: %d  n_assoc_full: %d frac_poss_assoc %f time_after_origin_factor %f\n", nhyp_assoc, time2string(otime, tmp_str), n_poss_assoc, n_assoc_full, frac_poss_assoc, time_after_origin_factor);
                     // if ratio is less than cutoff, declare hypocenter as persistent, will be re-associated without full association/location
                     if (frac_poss_assoc < event_persistence_frac_poss_assoc_cutoff) {
                         hyp_persistent[nhyp_assoc] = 1;
@@ -3506,7 +3577,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                         hyp_assoc_loc[last_saved_persistent] = hyp_assoc_loc[nhyp_assoc]; // 20140717 AJL - shift pointers only
                         hyp_assoc_loc[nhyp_assoc] = temp;
                         // re-index data from to new persistent hypo index
-                        for (n = 0; n < num_de_data; n++) {
+                        for (int n = 0; n < num_de_data; n++) {
                             TimedomainProcessingData* deData = data_list[n];
                             if (deData->is_associated == nhyp_assoc + 1) {
                                 deData->is_associated = last_saved_persistent + 1; // attach to preserved hypo
@@ -3520,7 +3591,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
             hyp_full_assoc_loc_start_index = last_saved_persistent + 1;
             //printf("DEBUG: hyp_full_assoc_loc_start_index:%d\n", hyp_full_assoc_loc_start_index);
         }
-        printf("INFO: Mode USE_EVENT_PERSISTENCE active!\n");
+        printf("INFO: Mode USE_EVENT_PERSISTENCE active!  hyp_full_assoc_loc_start_index=%d\n", hyp_full_assoc_loc_start_index);
     }
 
 
@@ -3613,6 +3684,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                 num_hypocenters_associated++;
                 hyp_assoc_loc[num_pass - 1]->loc_type = LOC_TYPE_REASSOC_ONLY;
             } else { // with reassociate_only, should always be associated, otherwise some error
+                printf("ERROR: event reassociate only: event not associated: this should not happen!\n");
                 num_pass--;
                 break;
             }
@@ -3726,7 +3798,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     // check for duplicate events, remove event with fewer associated P phases
     // 20110408 AJL - added to avoid processing of same event twice and possible loss of instance with greater associated P phases
     if (1) {
-        for (n = 0; n < num_de_data; n++) { // 20140722 AJL - bug fix
+        for (int n = 0; n < num_de_data; n++) { // 20140722 AJL - bug fix
             TimedomainProcessingData* deData = data_list[n];
             deData->merged = 0;
         }
@@ -3752,7 +3824,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                         printf("   ---> Preserved: %s\n", hypoDataString);
                     }
                     // attach data from removed hypo to preserved hypo as zero weight associated data  // 20110411 AJL
-                    for (n = 0; n < num_de_data; n++) {
+                    for (int n = 0; n < num_de_data; n++) {
                         TimedomainProcessingData* deData = data_list[n];
                         if (deData->is_associated == nhyp_remove + 1) {
                             deData->is_associated = nhyp_preserve + 1; // attach to preserved hypo
@@ -3822,13 +3894,13 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     int** t50ExHistogram = calloc(num_hypocenters_associated, sizeof (int*));
     for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
         t50ExHistogram[nhyp] = calloc(numWarningLevelTotal, sizeof (int));
-        for (m = 0; m < numWarningLevelTotal; m++)
+        for (int m = 0; m < numWarningLevelTotal; m++)
             t50ExHistogram[nhyp][m] = 0;
     }
     double ***t50ExStatisticsArray = calloc(num_hypocenters_associated, sizeof (double**));
     for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
         t50ExStatisticsArray[nhyp] = calloc(3, sizeof (double*));
-        for (m = 0; m < 3; m++) {
+        for (int m = 0; m < 3; m++) {
             t50ExStatisticsArray[nhyp][m] = calloc(num_de_data, sizeof (double));
         }
     }
@@ -3850,7 +3922,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     if (flag_do_tauc) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             taucHistogram[nhyp] = calloc(numTaucLevelTotal, sizeof (int));
-            for (m = 0; m < numTaucLevelTotal; m++)
+            for (int m = 0; m < numTaucLevelTotal; m++)
                 taucHistogram[nhyp][m] = 0;
         }
     }
@@ -3858,7 +3930,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     if (flag_do_tauc) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             taucStatisticsArray[nhyp] = calloc(3, sizeof (double*));
-            for (m = 0; m < 3; m++) {
+            for (int m = 0; m < 3; m++) {
                 taucStatisticsArray[nhyp][m] = calloc(num_de_data, sizeof (double));
             }
         }
@@ -3899,7 +3971,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     if (flag_do_mwp) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             mwpHistogram[nhyp] = calloc(numMwpLevelTotal, sizeof (int));
-            for (m = 0; m < numMwpLevelTotal; m++)
+            for (int m = 0; m < numMwpLevelTotal; m++)
                 mwpHistogram[nhyp][m] = 0;
         }
     }
@@ -3907,7 +3979,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     if (flag_do_mwp) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             mwpStatisticsArray[nhyp] = calloc(3, sizeof (double*));
-            for (m = 0; m < 3; m++) {
+            for (int m = 0; m < 3; m++) {
                 mwpStatisticsArray[nhyp][m] = calloc(num_de_data, sizeof (double));
             }
         }
@@ -3931,7 +4003,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     if (flag_do_mb) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             mbHistogram[nhyp] = calloc(numMbLevelTotal, sizeof (int));
-            for (m = 0; m < numMbLevelTotal; m++)
+            for (int m = 0; m < numMbLevelTotal; m++)
                 mbHistogram[nhyp][m] = 0;
         }
     }
@@ -3939,7 +4011,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     if (flag_do_mb) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             mbStatisticsArray[nhyp] = calloc(3, sizeof (double*));
-            for (m = 0; m < 3; m++) {
+            for (int m = 0; m < 3; m++) {
                 mbStatisticsArray[nhyp][m] = calloc(num_de_data, sizeof (double));
             }
         }
@@ -3963,7 +4035,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     if (flag_do_t0) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             t0Histogram[nhyp] = calloc(numT0LevelTotal, sizeof (int));
-            for (m = 0; m < numT0LevelTotal; m++)
+            for (int m = 0; m < numT0LevelTotal; m++)
                 t0Histogram[nhyp][m] = 0;
         }
     }
@@ -3971,7 +4043,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     if (flag_do_t0) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             t0StatisticsArray[nhyp] = calloc(3, sizeof (double*));
-            for (m = 0; m < 3; m++) {
+            for (int m = 0; m < 3; m++) {
                 t0StatisticsArray[nhyp][m] = calloc(num_de_data, sizeof (double));
             }
         }
@@ -3995,7 +4067,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     if (flag_do_mwpd) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             mwpdHistogram[nhyp] = calloc(numMwpdLevelTotal, sizeof (int));
-            for (m = 0; m < numMwpdLevelTotal; m++)
+            for (int m = 0; m < numMwpdLevelTotal; m++)
                 mwpdHistogram[nhyp][m] = 0;
         }
     }
@@ -4006,12 +4078,12 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     if (flag_do_mwpd) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             mwpdStatisticsArray[nhyp] = calloc(3, sizeof (double*));
-            for (m = 0; m < 3; m++) {
+            for (int m = 0; m < 3; m++) {
                 mwpdStatisticsArray[nhyp][m] = calloc(num_de_data, sizeof (double));
             }
 #ifdef USE_MWP_MO_POS_NEG
             mwpdMoPosNegStatisticsArray[nhyp] = calloc(3, sizeof (double*));
-            for (m = 0; m < 3; m++) {
+            for (int m = 0; m < 3; m++) {
                 mwpdMoPosNegStatisticsArray[nhyp][m] = calloc(num_de_data, sizeof (double));
             }
 #endif
@@ -5343,59 +5415,53 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
 
         // histograms
         double level = T50EX_LEVEL_MIN;
-        for (m = 0; m < numWarningLevelTotal; m++) {
+        for (int m = 0; m < numWarningLevelTotal; m++) {
             int num = t50ExHistogram[nhyp][m];
-            int m;
-            for (m = 0; m < num; m++)
+            for (int m = 0; m < num; m++)
                 fprintf(t50ExHistorgramStream[nhyp], " %f\n", level + 0.001);
             level += T50EX_LEVEL_STEP;
         }
         if (flag_do_tauc) {
             level = TAUC_LEVEL_MIN;
-            for (m = 0; m < numTaucLevelTotal; m++) {
+            for (int m = 0; m < numTaucLevelTotal; m++) {
                 int num = taucHistogram[nhyp][m];
-                int m;
-                for (m = 0; m < num; m++)
+                for (int m = 0; m < num; m++)
                     fprintf(taucHistorgramStream[nhyp], " %f\n", level + 0.001);
                 level += TAUC_LEVEL_STEP;
             }
         }
         if (flag_do_mwp) {
             level = MWP_LEVEL_MIN;
-            for (m = 0; m < numMwpLevelTotal; m++) {
+            for (int m = 0; m < numMwpLevelTotal; m++) {
                 int num = mwpHistogram[nhyp][m];
-                int m;
-                for (m = 0; m < num; m++)
+                for (int m = 0; m < num; m++)
                     fprintf(mwpHistorgramStream[nhyp], " %f\n", level + 0.001);
                 level += MWP_LEVEL_STEP;
             }
         }
         if (flag_do_mb) {
             level = MB_LEVEL_MIN;
-            for (m = 0; m < numMbLevelTotal; m++) {
+            for (int m = 0; m < numMbLevelTotal; m++) {
                 int num = mbHistogram[nhyp][m];
-                int m;
-                for (m = 0; m < num; m++)
+                for (int m = 0; m < num; m++)
                     fprintf(mbHistorgramStream[nhyp], " %f\n", level + 0.001);
                 level += MB_LEVEL_STEP;
             }
         }
         if (flag_do_t0) {
             level = T0_LEVEL_MIN;
-            for (m = 0; m < numT0LevelTotal; m++) {
+            for (int m = 0; m < numT0LevelTotal; m++) {
                 int num = t0Histogram[nhyp][m];
-                int m;
-                for (m = 0; m < num; m++)
+                for (int m = 0; m < num; m++)
                     fprintf(t0HistorgramStream[nhyp], " %f\n", level + 0.001);
                 level += T0_LEVEL_STEP;
             }
         }
         if (flag_do_mwpd) {
             level = MWPD_LEVEL_MIN;
-            for (m = 0; m < numMwpdLevelTotal; m++) {
+            for (int m = 0; m < numMwpdLevelTotal; m++) {
                 int num = mwpdHistogram[nhyp][m];
-                int m;
-                for (m = 0; m < num; m++)
+                for (int m = 0; m < num; m++)
                     fprintf(mwpdHistorgramStream[nhyp], " %f\n", level + 0.001);
                 level += MWPD_LEVEL_STEP;
             }
@@ -5462,7 +5528,8 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
 #endif
         phypo->hyp_assoc_index = nhyp; //  hypo_list is ordered by time, but association index is by association sum weight (lower index -> more phases associated), if re-associated, arbitrary, otherwise
         HypocenterDesc* phypocenter_desc_inserted = NULL;
-        if ((is_new_hypocenter = addHypocenterDescToHypoList(phypo, &hypo_list, &num_hypocenters, icheck_duplicates, &existing_hypo_desc, &phypocenter_desc_inserted))) { // hypocenter unique_id is set here
+        if ((is_new_hypocenter = addHypocenterDescToHypoList(phypo, &hypo_list, &num_hypocenters, icheck_duplicates,
+                &existing_hypo_desc, &phypocenter_desc_inserted))) { // hypocenter unique_id is set here
             have_new_hypocenter++;
             phypocenter_desc_inserted->loc_seq_num = 0; // 20160905 AJL - added
         } else {
@@ -5713,7 +5780,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
 
             // distance limits T50Ex, Td, Mwp
             /*  2011222 replaced with 5 deg limit only, see below
-            for (n = 0; n < 4; n++) {
+            for (int n = 0; n < 4; n++) {
                 double dl_dist;
                 char dl_name[64];
                 if (n == 0) {
@@ -5786,9 +5853,11 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     //
     // xml hypocenters messsage
     sprintf(xmlWriterUri, "%s/monitor.xml", outnameroot);
+    int iWriteAssociatedOnly = 1;
     int iWriteArrivals = 1;
     int iWriteUnAssociatedPicks = 1;
-    writeLocXML(xmlWriterUri, time_max, agencyId, hypo_list, num_hypocenters, data_list, num_de_data, iWriteArrivals, iWriteUnAssociatedPicks, printIgnoredData);
+    writeLocXML(xmlWriterUri, time_max, agencyId, hypo_list, num_hypocenters, data_list, num_de_data,
+            iWriteAssociatedOnly, iWriteArrivals, iWriteUnAssociatedPicks, printIgnoredData);
 
 
     // loop over associated hypocenters, develop epicenter statistics ===============================================================
@@ -5885,12 +5954,13 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         fprintf(epicenterDiffValueStream, ">\n");
         fprintf(epicenterDiffUpperStream, ">\n");
         fprintf(epicenterDiffLowerStream, ">\n");
-        int istat;
+        //int istat;
         double histtime = 0.0, lat = 0.0, lon = 0.0, errh = 0.0, depth = 0.0, otime = 0.0, depicenter = 0.0;
         while (1) {
             if (fgets(tmp_str, STANDARD_STRLEN - 1, hypocenterHistoryStream) == NULL)
                 break;
-            istat = sscanf(tmp_str, "%lf %lf %lf %lf %lf %lf ", &histtime, &lat, &lon, &errh, &depth, &otime);
+            //istat =
+            sscanf(tmp_str, "%lf %lf %lf %lf %lf %lf ", &histtime, &lat, &lon, &errh, &depth, &otime);
             depicenter = DEG2KM * GCDistance(lat, lon, phypo->lat, phypo->lon);
             fprintf(epicenterDiffValueStream, "%f %f\n", difftime(histtime, plot_time_max) / 60.0, depicenter);
             fprintf(epicenterDiffUpperStream, "%f %f\n", difftime(histtime, plot_time_max) / 60.0, depicenter + errh);
@@ -5989,14 +6059,15 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     for (ndata = 0; ndata < num_de_data; ndata++) {
         TimedomainProcessingData* deData = data_list[ndata];
         // 20171220 AJL  if (printIgnoredData || !ignoreData(deData)) {
-            if (deData->t_time_t >= time_min) { // 20130407 AJL - added to prevent writing of picks from interval time_min-report_interval->time_min.
-                fprintf_NLLoc_TimedomainProcessingData(deData, pickDataNLLStream, 1);
-                if (deData->is_associated > 0) {
-                    fprintf(pickDataNLLStream, " %ld\n", hyp_assoc_loc[deData->is_associated - 1]->unique_id);
-                } else {
-                    fprintf(pickDataNLLStream, " %d\n", -1);
-                }
+        if (deData->t_time_t >= time_min) { // 20130407 AJL - added to prevent writing of picks from interval time_min-report_interval->time_min.
+            if (deData->is_associated > 0) {
+                fprintf_NLLoc_TimedomainProcessingData(deData, pickDataNLLStream, 1, hyp_assoc_loc[deData->is_associated - 1]->depth);
+                fprintf(pickDataNLLStream, " %ld\n", hyp_assoc_loc[deData->is_associated - 1]->unique_id);
+            } else {
+                fprintf_NLLoc_TimedomainProcessingData(deData, pickDataNLLStream, 1, 0.0);
+                fprintf(pickDataNLLStream, " %d\n", -1);
             }
+        }
         // 20171220 AJL  }
     }
     // general pick data in reverse time order
@@ -6513,7 +6584,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     // write all recently active stations to sta streams
     //int nstaIsActive = 0;
     //int nstaHasBeenActive = 0;
-    for (n = 0; n < num_sources_total; n++) {
+    for (int n = 0; n < num_sources_total; n++) {
         if (channelParameters[n].have_coords && !channelParameters[n].inactive_duplicate && channelParameters[n].process_this_channel_orientation) {
             fprintf(staCodeStream, "%f %f %s\n", channelParameters[n].lat, channelParameters[n].lon, channelParameters[n].station);
             //nstaHasBeenActive++;
@@ -6712,7 +6783,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         char mb_preferred[2] = "";
         char mwp_preferred[2] = "";
         char mwpd_preferred[2] = "";
-        setPreferredMagnitude(hyp_assoc_loc[nhyp], mb_preferred, mwp_preferred, mwpd_preferred);
+        setPreferredMagnitudeFlags(hyp_assoc_loc[nhyp], mb_preferred, mwp_preferred, mwpd_preferred);
         //printf("DEBUG: mb_preferred <%s>  mwp_preferred <%s>  mwpd_preferred <%s>\n", mb_preferred, mwp_preferred, mwpd_preferred);
         // mb
         level_plot = mbLevelStatistics[nhyp].centralValue < MB_LEVEL_MAX ? mbLevelStatistics[nhyp].centralValue : MB_LEVEL_MAX;
@@ -6800,14 +6871,18 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         // update waveform export for all associated P data
         //int i = 0;
         //printf("TP %d\n", i++);
-        for (n = num_de_data - 1; n >= 0; n--) {
+        for (int n = num_de_data - 1; n >= 0; n--) {
             //i = 1;
             //printf("TP %d num_de_data=%d\n", i++, n);
             TimedomainProcessingData* deData = data_list[n];
             hptime_t start_time_written, end_time_written;
             // 20140417 AJL - make selection less strict to include all first arrival or direct P phases which can be counted in location
             //if (is_associated_location_P(deData) && is_count_in_location(deData->phase_id)) {
-            if (is_associated_phase(deData) && (is_first_arrival_P(deData->phase_id) || is_direct_P(deData->phase_id)) && is_count_in_location(deData->phase_id)) {
+            if (is_associated_phase(deData)
+                    && (is_first_arrival_P(deData->phase_id) || is_direct_P(deData->phase_id))
+                    && is_count_in_location(deData->phase_id)
+                    && deData->loc_weight > FLT_MIN // 20180130 AJL - Bug fix, added, prevent duplicate waveforms
+                    ) {
                 //printf("TP %d\n", i++);
                 // int waveform_export_memory_sliding_window_length;   // seconds
                 // int waveform_export_window_start_before_P;   // seconds
@@ -6870,8 +6945,16 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                         sprintf(outname, "%s/%ld/", waveforms_root, phypo->unique_id); // directory
                         mkdir(outname, 0755);
                         char* filename = deData->waveform_export[ncomp].filename;
+                        int iyear, ijday, ihour, imin;
+                        double sec;
                         if (filename[0] == '\0' || deData->waveform_export[ncomp].hypo_unique_id != phypo->unique_id) {
-                            strcpy(filename, outname);
+                            //hptime2dateTimeComponents(start_time_written, &iyear, &ijday, &ihour, &imin, &sec);
+                            //sprintf(filename, "%s%4.4d.%3.3d.%2.2d.%2.2d.%06.3f", outname, iyear, ijday, ihour, imin, sec);
+                            // path, pick time
+                            timeDecSec2string((double) deData->t_time_t + deData->t_decsec, tmp_str, PERIOD_DELIMTED_TIME_FORMAT);
+                            sprintf(filename, "%s%s", outname, tmp_str); // 20180131 AJL - added to support SeisGram2K waveform reading
+                            // stream
+                            strcat(filename, ".");
                             strcat(filename, chan_params_write->network);
                             strcat(filename, ".");
                             strcat(filename, chan_params_write->station);
@@ -6879,6 +6962,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                             strcat(filename, chan_params_write->location);
                             strcat(filename, ".");
                             strcat(filename, chan_params_write->channel);
+                            // file type extension
                             strcat(filename, ".mseed");
                         }
                         //printf("TP %d filename=%s\n", i++, filename);
@@ -6895,8 +6979,6 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                         strcpy(hdr_filename, deData->waveform_export[ncomp].filename);
                         strcat(hdr_filename, ".sg2k");
                         sprintf(tmp_str, "%ld", phypo->unique_id);
-                        int iyear, ijday, ihour, imin;
-                        double sec;
                         double comp_azimuth = chan_params_write->azimuth;
                         // SAC / SG2K: inclination = Component incident angle (degrees from vertical up).   eg.    0, 90, 180
                         // FDSN/SEED: dip = Dip of the instrument in degrees, down from horizontal          e.g. -90,  0,  90
@@ -6937,10 +7019,27 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                                 );
                     }
                 }
+            } else {
+                // not saving waveforms, delete any previously generated waveform files
+                for (int ncomp = 0; ncomp < 3; ncomp++) {
+                    if (deData->waveform_export[ncomp].filename[0] != '\0') {
+                        char* filename = deData->waveform_export[ncomp].filename;
+                        // delete waveform file
+                        printf("DEBUG: removing unneeded waveform file: %s\n", filename);
+                        if (remove(filename) < 0) {
+                            fprintf(stderr, "ERROR: removing unneeded waveform file: %s: %s\n", filename, strerror(errno));
+                        }
+                        // re-initialize waveform export
+                        deData->waveform_export[ncomp].filename[0] = '\0';
+                        deData->waveform_export[ncomp].start_time_written = -1;
+                        deData->waveform_export[ncomp].end_time_written = -1;
+                        deData->waveform_export[ncomp].hypo_unique_id = -1;
+                    }
+                }
             }
         }
         // clean up old waveform data
-        if (remove_waveform_export_directories(waveforms_root) != 0) {
+        if (remove_file_archive_directories(waveforms_root, waveform_export_file_archive_age_max) != 0) {
             printf("ERROR: waveform export: while cleaning up old waveform data.\n");
         }
         // write hypocenter info and picks for each associated hypocenter for which waveforms were exported
@@ -6980,10 +7079,10 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                     perror(tmp_str);
                     continue;
                 }
-                for (n = 0; n < num_de_data; n++) {
+                for (int n = 0; n < num_de_data; n++) {
                     TimedomainProcessingData* deData = data_list[n];
                     if (deData->is_associated - 1 == nhyp) {
-                        fprintf_NLLoc_TimedomainProcessingData(deData, fpout, 0);
+                        fprintf_NLLoc_TimedomainProcessingData(deData, fpout, 0, phypo->depth);
                         fprintf(fpout, " %ld\n", phypo->unique_id);
                     }
                 }
@@ -7020,7 +7119,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
             // waveform export for all data
             //int i = 0;
             //printf("TP %d\n", i++);
-            for (n = num_de_data - 1; n >= 0; n--) {
+            for (int n = num_de_data - 1; n >= 0; n--) {
                 TimedomainProcessingData* deData = data_list[n];
                 hptime_t start_time = time_min * (double) HPTMODULUS;
                 hptime_t end_time = time_max * (double) HPTMODULUS;
@@ -7133,7 +7232,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
             }
             removeHypocenterDescFromHypoList(phypo, &hypo_list, &num_hypocenters);
             // free phypo if not from hyp_assoc_loc array, which is freed later
-            for (n = 0; n < MAX_NUM_HYPO; n++) {
+            for (int n = 0; n < MAX_NUM_HYPO; n++) {
                 if (phypo == hyp_assoc_loc[n])
                     break;
             }
@@ -7153,6 +7252,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
                     }
                     removeHypocenterDescFromHypoList(phypo, &hypo_list, &num_hypocenters);
                     // free phypo if not from hyp_assoc_loc array, which is freed later
+                    int n;
                     for (n = 0; n < MAX_NUM_HYPO; n++) {
                         if (phypo == hyp_assoc_loc[n])
                             break;
@@ -7196,7 +7296,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
             fprintf(hypoListPersistentStream, "%s\n", hypoDataString);
             fclose_counter(hypoListPersistentStream);
             // remove deData for this hypocenter to avoid phantom locations from later phases
-            for (n = num_de_data - 1; n >= 0; n--) {
+            for (int n = num_de_data - 1; n >= 0; n--) {
                 TimedomainProcessingData* deData = data_list[n];
                 if (deData->is_associated && deData->is_associated == (phypo->hyp_assoc_index + 1)) {
                     removeTimedomainProcessingDataFromDataList(deData, &data_list, &num_de_data);
@@ -7233,6 +7333,42 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     fclose_counter(hypoListStream);
     fprintf(hypoListHtmlStream, "</tbody>\n</table>\n</body>\n</html>\n");
     fclose_counter(hypoListHtmlStream);
+    // write archive hypocenter xml      // 20180131 AJL - added to support SeisGram2K waveform reading
+    sprintf(xmlWriterUri, "%s/hypolist.xml", outnameroot_archive);
+    iWriteAssociatedOnly = 0;
+    iWriteArrivals = 0;
+    iWriteUnAssociatedPicks = 0;
+    writeLocXML(xmlWriterUri, time_max, agencyId, hypo_list, num_hypocenters, data_list, num_de_data,
+            iWriteAssociatedOnly, iWriteArrivals, iWriteUnAssociatedPicks, printIgnoredData);
+
+    // write active hypocenter sequence number xml
+    // 20180206 AJL - added
+    if (hypocenter_sequence_xml_enable) {
+        iWriteArrivals = hypocenter_sequence_xml_write_arrivals;
+        // set xml files root path
+        static char hypocenter_sequence_xml_root[STANDARD_STRLEN];
+        sprintf(hypocenter_sequence_xml_root, "%s/event_seq_xml/", outnameroot_archive); // directory
+        mkdir(hypocenter_sequence_xml_root, 0755);
+        for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
+            HypocenterDesc* phypo = hyp_assoc_loc[nhyp];
+            if (phypo->loc_type == LOC_TYPE_FULL || phypo->loc_type == LOC_TYPE_RELOC_EXISTING) {
+                static char hypocenter_sequence_xml_event[STANDARD_STRLEN];
+                sprintf(hypocenter_sequence_xml_event, "%s/%ld/", hypocenter_sequence_xml_root, phypo->unique_id); // directory
+                mkdir(hypocenter_sequence_xml_event, 0755);
+                sprintf(xmlWriterUri, "%s/loc_seq_%3.3d.xml", hypocenter_sequence_xml_event, phypo->loc_seq_num);
+                writeLocXML(xmlWriterUri, time_max, agencyId, hyp_assoc_loc + nhyp, 1, data_list, num_de_data,
+                        iWriteAssociatedOnly, iWriteArrivals, iWriteUnAssociatedPicks, printIgnoredData);
+            }
+        }
+        // clean up old sequence number xml data
+        if (remove_file_archive_directories(hypocenter_sequence_xml_root, hypocenter_sequence_xml_file_archive_age_max) != 0) {
+            printf("ERROR: hypocenter sequence number xml: while cleaning up old waveform data.\n");
+        }
+    }
+
+
+
+
 
 
     // hypocenter timedomain-processing data ===============================================================
@@ -7240,7 +7376,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     // 20101115 AJL - Bug fix: moved this loop to here from beginning of function.
     //    Before, data from active hypocenter could be removed since time_min is later next time function is entered; this can cause a second or changed location of same event.
     // remove old timedomain-processing data from list
-    for (n = num_de_data - 1; n >= 0; n--) {
+    for (int n = num_de_data - 1; n >= 0; n--) {
         TimedomainProcessingData* deData = data_list[n];
         //if (deData->t_time_t < time_min) {
         if (deData->t_time_t < time_min && !deData->is_associated) { // 20150507 AJL - leave associated data, should be removed when hypocenter archived
@@ -7256,7 +7392,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
 
     free(t50ExLevelStatistics);
     for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
-        for (m = 0; m < 3; m++) {
+        for (int m = 0; m < 3; m++) {
             free(t50ExStatisticsArray[nhyp][m]);
         }
         free(t50ExStatisticsArray[nhyp]);
@@ -7276,7 +7412,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++)
             free(taucHistogram[nhyp]);
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
-            for (m = 0; m < 3; m++) {
+            for (int m = 0; m < 3; m++) {
                 free(taucStatisticsArray[nhyp][m]);
             }
             free(taucStatisticsArray[nhyp]);
@@ -7297,7 +7433,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     if (flag_do_mwp) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             free(mwpHistogram[nhyp]);
-            for (m = 0; m < 3; m++) {
+            for (int m = 0; m < 3; m++) {
                 free(mwpStatisticsArray[nhyp][m]);
             }
             free(mwpStatisticsArray[nhyp]);
@@ -7319,7 +7455,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     if (flag_do_mb) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             free(mbHistogram[nhyp]);
-            for (m = 0; m < 3; m++) {
+            for (int m = 0; m < 3; m++) {
                 free(mbStatisticsArray[nhyp][m]);
             }
             free(mbStatisticsArray[nhyp]);
@@ -7334,7 +7470,7 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     if (flag_do_t0) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             free(t0Histogram[nhyp]);
-            for (m = 0; m < 3; m++) {
+            for (int m = 0; m < 3; m++) {
                 free(t0StatisticsArray[nhyp][m]);
             }
             free(t0StatisticsArray[nhyp]);
@@ -7349,12 +7485,12 @@ int td_writeTimedomainProcessingReport(char* outnameroot_archive, char* outnamer
     if (flag_do_mwpd) {
         for (nhyp = 0; nhyp < num_hypocenters_associated; nhyp++) {
             free(mwpdHistogram[nhyp]);
-            for (m = 0; m < 3; m++) {
+            for (int m = 0; m < 3; m++) {
                 free(mwpdStatisticsArray[nhyp][m]);
             }
             free(mwpdStatisticsArray[nhyp]);
 #ifdef USE_MWP_MO_POS_NEG
-            for (m = 0; m < 3; m++) {
+            for (int m = 0; m < 3; m++) {
                 free(mwpdMoPosNegStatisticsArray[nhyp][m]);
             }
             free(mwpdMoPosNegStatisticsArray[nhyp]);

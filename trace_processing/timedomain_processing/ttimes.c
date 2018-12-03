@@ -33,6 +33,12 @@
 #include "ttimes/ttimes_Longmenshan_regional_toang_phases.h"
 #include "ttimes/ttimes_Longmenshan_regional_tvel.h"
 #else
+#ifdef TTIMES_R4_S3_T3_IASP91_REGIONAL
+#include "ttimes/ttimes_r4-s3-t3-iasp91_regional.h"
+#include "ttimes/ttimes_r4-s3-t3-iasp91_regional_times_phases.h"
+#include "ttimes/ttimes_r4-s3-t3-iasp91_regional_toang_phases.h"
+#include "ttimes/ttimes_r4-s3-t3-iasp91_regional_tvel.h"
+#else
 #ifdef TTIMES_MARSITE1_REGIONAL
 #include "ttimes/ttimes_marsite1_regional.h"
 #include "ttimes/ttimes_marsite1_regional_times_phases.h"
@@ -55,6 +61,7 @@
 // default
 #ifndef TTIMES_AK135_GLOBAL
 #define TTIMES_AK135_GLOBAL
+#endif
 #endif
 #endif
 #endif
@@ -490,10 +497,14 @@ double phases_dist_time(int phase_id, int ndist, int ndepth) {
 
 double get_ttime(int phase_id, double dist, double depth) {
 
+    if (phase_id < 0 || phase_id >= NUM_TTIME_PHASES)   // 20180131 AJL - added
+        return (-1.0);
+
     if (dist < 0.0 || dist > DIST_TIME_DIST_MAX) {
         //printf("get_time -1 dist: phase_id %d  dist %g  depth %g\n", phase_id, dist, depth);
         return (-1.0);
     }
+
     int ndist = (int) (dist / DIST_TIME_DIST_STEP);
     double ndist1;
     if (ndist < 0) {

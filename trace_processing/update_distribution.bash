@@ -1,11 +1,14 @@
 #!/bin/bash
 
-BUILD=NO
-TEST_MSPROCESS=NO	# !! Requires BUILD!  Must activate to get example output in distribution.
+BUILD=YES
+TEST_MSPROCESS=YES	# !! Requires BUILD!  Must activate to get example output in distribution.
 TEST_SEEDLINK=NO	# !! Requires BUILD!
 
-VERSION=1.2.2  # !!!IMPORTANT: must match WARNING_MONITOR_VERSION in timedomain_processing.h
+VERSION=1.2.4  # !!!IMPORTANT: must match WARNING_MONITOR_VERSION in timedomain_processing.h
 DISTRIBUTION_NAME=early-est-${VERSION}
+UPDATE_GIT_EARLY_EST=YES
+INCLUDE_RABBITMQ=NO
+
 echo
 echo "Update distribution -------------------------------------------"
 echo "Version: ${VERSION}     Distribution name: ${DISTRIBUTION_NAME}"
@@ -15,76 +18,80 @@ PLOT_MAP_MECHANISM_TYPE=fmamp_polarity	# sets mechanism type to plot on map, has
 
 echo
 echo "Create distribution directory -------------------------------------------"
-mkdir ../temp_dir
-rm -rf ../temp_dir/*
+mkdir /temp/anthony-temp/temp_dir
+rm -rf /temp/anthony-temp/temp_dir/*
 echo "-------------------------------------------"
-
 echo
 echo "Copy files -------------------------------------------"
-rm -rf ${DISTRIBUTION_NAME}/
-cp -pRL * ../temp_dir/
-/bin/mv ../temp_dir/ ${DISTRIBUTION_NAME}/
+DISTRIBUTION_PATH=/temp/anthony-temp/${DISTRIBUTION_NAME}
+rm -rf ${DISTRIBUTION_PATH}/
+cp -pRL * /temp/anthony-temp/temp_dir/
+/bin/mv /temp/anthony-temp/temp_dir/ ${DISTRIBUTION_PATH}/
 # clean up a bit
-rm ${DISTRIBUTION_NAME}/*.tar.gz
-rm ${DISTRIBUTION_NAME}/*.tgz
-rm ${DISTRIBUTION_NAME}/Makefile-trace_processing.mk
-rm -r ${DISTRIBUTION_NAME}/${DISTRIBUTION_NAME}/
-#rm -r ${DISTRIBUTION_NAME}/doc
-#rm -r ${DISTRIBUTION_NAME}/logo
-rm -r ${DISTRIBUTION_NAME}/nbproject
-#rm -r ${DISTRIBUTION_NAME}/archive
-rm -r ${DISTRIBUTION_NAME}/seedlink_out
-rm -r ${DISTRIBUTION_NAME}/seedlink_plots
-#rm -r ${DISTRIBUTION_NAME}/picker/Luca_Elia
-#rm -r ${DISTRIBUTION_NAME}/picker/pick_TP4
-rm -r ${DISTRIBUTION_NAME}/picker/test_data
-rm -r ${DISTRIBUTION_NAME}/timedomain_processing/ttimes/*
-cp -p timedomain_processing/ttimes/ttimes_ak135_0-800_10.h ${DISTRIBUTION_NAME}/timedomain_processing/ttimes/
-cp -p timedomain_processing/ttimes/ttimes_ak135_0-800_10_times_phases.h ${DISTRIBUTION_NAME}/timedomain_processing/ttimes/
-cp -p timedomain_processing/ttimes/ttimes_ak135_0-800_10_toang_phases.h ${DISTRIBUTION_NAME}/timedomain_processing/ttimes/
-cp -p timedomain_processing/ttimes/tvel_ak135.h ${DISTRIBUTION_NAME}/timedomain_processing/ttimes/
-cp -p timedomain_processing/ttimes/latlon_deep.h ${DISTRIBUTION_NAME}/timedomain_processing/ttimes/
+rm ${DISTRIBUTION_PATH}/*.tar.gz
+rm ${DISTRIBUTION_PATH}/*.tgz
+rm ${DISTRIBUTION_PATH}/Makefile-trace_processing.mk
+rm -r ${DISTRIBUTION_PATH}/${DISTRIBUTION_NAME}/
+#rm -r ${DISTRIBUTION_PATH}/doc
+#rm -r ${DISTRIBUTION_PATH}/logo
+rm -r ${DISTRIBUTION_PATH}/nbproject
+#rm -r ${DISTRIBUTION_PATH}/archive
+rm -r ${DISTRIBUTION_PATH}/seedlink_out
+rm -r ${DISTRIBUTION_PATH}/seedlink_plots
+#rm -r ${DISTRIBUTION_PATH}/picker/Luca_Elia
+#rm -r ${DISTRIBUTION_PATH}/picker/pick_TP4
+rm -r ${DISTRIBUTION_PATH}/picker/test_data
+rm -r ${DISTRIBUTION_PATH}/timedomain_processing/ttimes/*
+if [ ${INCLUDE_RABBITMQ} = NO ]; then
+	rm -r ${DISTRIBUTION_PATH}/rabbitmq
+fi
+cp -p timedomain_processing/ttimes/ttimes_ak135_0-800_10.h ${DISTRIBUTION_PATH}/timedomain_processing/ttimes/
+cp -p timedomain_processing/ttimes/ttimes_ak135_0-800_10_times_phases.h ${DISTRIBUTION_PATH}/timedomain_processing/ttimes/
+cp -p timedomain_processing/ttimes/ttimes_ak135_0-800_10_toang_phases.h ${DISTRIBUTION_PATH}/timedomain_processing/ttimes/
+cp -p timedomain_processing/ttimes/tvel_ak135.h ${DISTRIBUTION_PATH}/timedomain_processing/ttimes/
+cp -p timedomain_processing/ttimes/latlon_deep.h ${DISTRIBUTION_PATH}/timedomain_processing/ttimes/
 # copy doc files
-cp -p /Users/anthony/work/mseed_processing/README ${DISTRIBUTION_NAME}/
-cp -p /Users/anthony/work/early-est/doc/${DISTRIBUTION_NAME}_users_guide.pdf ${DISTRIBUTION_NAME}/
+cp -p /Users/anthony/work/mseed_processing/README ${DISTRIBUTION_PATH}/
+cp -p /Users/anthony/work/early-est/doc/${DISTRIBUTION_NAME}_users_guide.pdf ${DISTRIBUTION_PATH}/
 # copy program helper files
-mkdir ${DISTRIBUTION_NAME}/work
-cp -p /Users/anthony/work/tsunami_warning/miniseed_process.prop ${DISTRIBUTION_NAME}/work
-cp -p /Users/anthony/work/mseed_processing/seedlink_monitor.prop ${DISTRIBUTION_NAME}/work
-cp -p /Users/anthony/work/mseed_processing/process_events.prop ${DISTRIBUTION_NAME}/work
-cp -p /Users/anthony/work/mseed_processing/plot_warning_report_seedlink_runtime.bash ${DISTRIBUTION_NAME}/work
-cp -p /Users/anthony/work/mseed_processing/*_GMT5.gmt ${DISTRIBUTION_NAME}/work
-cp -p /Users/anthony/work/mseed_processing/PB2002_steps.dat.txt.*.xy ${DISTRIBUTION_NAME}/work
-cp -p /Users/anthony/work/mseed_processing/*.ras ${DISTRIBUTION_NAME}/work
-cp -p /Users/anthony/work/mseed_processing/plates.lonlat ${DISTRIBUTION_NAME}/work
-cp -p /Users/anthony/www/projects/early-est/warning*.html ${DISTRIBUTION_NAME}/work
-cp -p /Users/anthony/www/projects/early-est/alarm.mp3 ${DISTRIBUTION_NAME}/work
-cp -p /Users/anthony/www/projects/early-est/*.pdf ${DISTRIBUTION_NAME}/work
+mkdir ${DISTRIBUTION_PATH}/work
+cp -p /Users/anthony/work/tsunami_warning/miniseed_process.prop ${DISTRIBUTION_PATH}/work
+cp -p /Users/anthony/work/mseed_processing/seedlink_monitor.prop ${DISTRIBUTION_PATH}/work
+cp -p /Users/anthony/work/mseed_processing/process_events.prop ${DISTRIBUTION_PATH}/work
+cp -p /Users/anthony/work/mseed_processing/plot_warning_report_seedlink_runtime.bash ${DISTRIBUTION_PATH}/work
+cp -p /Users/anthony/work/mseed_processing/*_GMT5.gmt ${DISTRIBUTION_PATH}/work
+cp -p /Users/anthony/work/mseed_processing/PB2002_steps.dat.txt.*.xy ${DISTRIBUTION_PATH}/work
+cp -p /Users/anthony/work/mseed_processing/*.ras ${DISTRIBUTION_PATH}/work
+cp -p /Users/anthony/work/mseed_processing/plates.lonlat ${DISTRIBUTION_PATH}/work
+cp -p /Users/anthony/www/projects/early-est/warning*.html ${DISTRIBUTION_PATH}/work
+cp -p /Users/anthony/www/projects/early-est/alarm.mp3 ${DISTRIBUTION_PATH}/work
+cp -p /Users/anthony/www/projects/early-est/*.pdf ${DISTRIBUTION_PATH}/work
+cp -p /Users/anthony/work/early-est/doc/${DISTRIBUTION_NAME}_users_guide.pdf ${DISTRIBUTION_PATH}/work/early-est_users_guide.pdf
 # station corrections
-mkdir ${DISTRIBUTION_NAME}/work/sta_corr
-cp -pr /Users/anthony/work/mseed_processing/sta_corr/* ${DISTRIBUTION_NAME}/work/sta_corr
+mkdir ${DISTRIBUTION_PATH}/work/sta_corr
+cp -pr /Users/anthony/work/mseed_processing/sta_corr/* ${DISTRIBUTION_PATH}/work/sta_corr
 # copy HASH program
-cp -pRL /Users/anthony/opt/HASH_v1.2 ${DISTRIBUTION_NAME}
-cp -p /Users/anthony/work/mseed_processing/hash_driver_early_est.bash ${DISTRIBUTION_NAME}/work
+cp -pRL /Users/anthony/opt/HASH_v1.2 ${DISTRIBUTION_PATH}
+cp -p /Users/anthony/work/mseed_processing/hash_driver_early_est.bash ${DISTRIBUTION_PATH}/work
 # copy fmamp files
-cp -p /Users/anthony/work/mseed_processing/fmamp_driver_early_est*.bash ${DISTRIBUTION_NAME}/work
+cp -p /Users/anthony/work/mseed_processing/fmamp_driver_early_est*.bash ${DISTRIBUTION_PATH}/work
 # copy python files
-mkdir ${DISTRIBUTION_NAME}/work/python
-cp -pr /Users/anthony/work/mseed_processing/python/* ${DISTRIBUTION_NAME}/work/python
-rm ${DISTRIBUTION_NAME}/work/python/evaluate/data/underwater/percent_prob_underwater.grd		# huge file!
-mkdir ${DISTRIBUTION_NAME}/work/tsunamiLearn_regressors
-cp -pr /Users/anthony/work/early-est/tsunamiLearn/out/regressors/* ${DISTRIBUTION_NAME}/work/tsunamiLearn_regressors
+mkdir ${DISTRIBUTION_PATH}/work/python
+cp -pr /Users/anthony/work/mseed_processing/python/* ${DISTRIBUTION_PATH}/work/python
+rm ${DISTRIBUTION_PATH}/work/python/evaluate/data/underwater/percent_prob_underwater.grd		# huge file!
+mkdir ${DISTRIBUTION_PATH}/work/tsunamiLearn_regressors
+cp -pr /Users/anthony/work/early-est/tsunamiLearn/out/regressors/* ${DISTRIBUTION_PATH}/work/tsunamiLearn_regressors
 # copy example files
-mkdir ${DISTRIBUTION_NAME}/work/seedlink_out
-mkdir ${DISTRIBUTION_NAME}/work/msprocess_out
-mkdir ${DISTRIBUTION_NAME}/work/msprocess_plots
-cp -p /Users/anthony/work/mseed_processing/msprocess_data/Honshu_2011_0_90deg.mseed ${DISTRIBUTION_NAME}/work/msprocess_out
-cp -p /Users/anthony/work/mseed_processing/*station_coordinates*.csv ${DISTRIBUTION_NAME}/work
-cp -p /Users/anthony/work/mseed_processing/*gainfile*.csv ${DISTRIBUTION_NAME}/work
+mkdir ${DISTRIBUTION_PATH}/work/seedlink_out
+mkdir ${DISTRIBUTION_PATH}/work/msprocess_out
+mkdir ${DISTRIBUTION_PATH}/work/msprocess_plots
+cp -p /Users/anthony/work/mseed_processing/msprocess_data/Honshu_2011_0_90deg.mseed ${DISTRIBUTION_PATH}/work/msprocess_out
+cp -p /Users/anthony/work/mseed_processing/*station_coordinates*.csv ${DISTRIBUTION_PATH}/work
+cp -p /Users/anthony/work/mseed_processing/*gainfile*.csv ${DISTRIBUTION_PATH}/work
 
 echo "-------------------------------------------"
 
-cd ${DISTRIBUTION_NAME}/
+cd ${DISTRIBUTION_PATH}/
 
 export MYBIN=$(pwd)/work
 export PATH=${MYBIN}:${PATH}
@@ -128,7 +135,7 @@ COMMAND="python python/processEvents.py EVENTS msprocess_plots/ msprocess_out/Ho
 echo ${COMMAND}
 ${COMMAND}
 # main report processing =======================
-COMMAND="./plot_warning_report_GMT5.gmt msprocess_plots/ msprocess_out/Honshu_2011_0_90deg.mseed.out/ msprocess_out/Honshu_2011_0_90deg.mseed.out/ Honshu_2011_0_90deg 0.2 ${PLOT_MAP_MECHANISM_TYPE}"
+COMMAND="./plot_warning_report_GMT5.gmt msprocess_plots/ msprocess_out/Honshu_2011_0_90deg.mseed.out/ msprocess_out/Honshu_2011_0_90deg.mseed.out/ Honshu_2011_0_90deg 0.19 ${PLOT_MAP_MECHANISM_TYPE}"
 echo ${COMMAND}
 ${COMMAND}
 COMMAND="$PS_VIEWER msprocess_plots/Honshu_2011_0_90deg_Monitor.pdf"
@@ -144,7 +151,7 @@ cd ..
 echo "-------------------------------------------"
 fi
 
-if [ ${TEST_SEEDLINK} =  YES ]; then
+if [ ${TEST_SEEDLINK} = YES ]; then
 echo
 echo "Testing seedlink_monitor -------------------------------------------"
 unset FTP_USER_PW_HOST
@@ -205,10 +212,19 @@ echo "mv -f ${ARCHIVE_NAME} /Users/anthony/work/early-est"
 mv -f ${ARCHIVE_NAME} /Users/anthony/work/early-est
 echo "-------------------------------------------"
 
-echo
-echo "Remove temporary distribution directories -------------------------------------------"
-rm -r ${DISTRIBUTION_NAME}
-echo "-------------------------------------------"
+if [ ${UPDATE_GIT_EARLY_EST} = YES ]; then
+	echo
+	echo "Copy distribution to git/early-est -------------------------------------------"
+	cp -pr ${DISTRIBUTION_PATH}/* /Users/anthony/git/early-est
+	rm /Users/anthony/git/early-est/update_distribution.bash
+	cp -p /Users/anthony/work/early-est/logo/early-est_icon_256_256.png /Users/anthony/git/early-est/logo.png
+	echo "-------------------------------------------"
+fi
+
+#echo
+#echo "Remove temporary distribution directories -------------------------------------------"
+#rm -r ${DISTRIBUTION_PATH}
+#echo "-------------------------------------------"
 
 
 echo

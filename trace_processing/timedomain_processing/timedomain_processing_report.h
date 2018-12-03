@@ -21,10 +21,13 @@
 
 // check for event persistence - keep previous location results for events with insufficient possible new defining picks
 EXTERN_TXT int use_event_persistence;   // set to 1 if event_persistence_min_num_defining_phases > 0
+#define EVENT_PERSISTENCE_MIN_SEQ_NUM_DEFAULT 5
 EXTERN_TXT int event_persistence_min_num_defining_phases;
 #define EVENT_PERSISTENCE_MIN_NUM_DEFINING_PHASES_DEFAULT 20
 EXTERN_TXT double event_persistence_frac_poss_assoc_cutoff;
 #define EVENT_PERSISTENCE_FRAC_POSS_ASSOC_CUTOFF_DEFAULT (1.0 / 20.0)
+EXTERN_TXT double event_persistence_time_after_otime_cutoff;
+#define EVENT_PERSISTENCE_TIME_AFTER_OTIME_CUTOFF_DEFAULT (15.0 * 60.0) // 15min
 EXTERN_TXT double event_persistence_tt_err_fact;
 #define EVENT_PERSISTENCE_TT_ERR_FACTOR_DEFAULT 2.0
 
@@ -62,6 +65,12 @@ EXTERN_TXT int waveform_export_window_start_before_P;   // seconds
 EXTERN_TXT int waveform_export_window_end_after_S;   // seconds
 #define WAVEFORM_EXPORT_FILE_ARCHIVE_AGE_MAX (10*24*3600)     // 10 days
 EXTERN_TXT int waveform_export_file_archive_age_max;   // seconds
+
+// hypocenter_sequence_xml archive parameters
+EXTERN_TXT int hypocenter_sequence_xml_enable;
+EXTERN_TXT int hypocenter_sequence_xml_write_arrivals;
+#define HYPOCENTER_SEQUENCE_XML_FILE_ARCHIVE_AGE_MAX (10*24*3600)     // 10 days
+EXTERN_TXT int hypocenter_sequence_xml_file_archive_age_max;   // seconds
 
 // other properties file parameters
 #define MAGNITUDE_COLORS_SHOW_DEFAULT 0     // no
@@ -161,7 +170,8 @@ EXTERN_TXT double mb_min_mail;   // properties file parameter
 #define T0_LEVEL_STEP 5.0
 #ifdef USE_CLOSE_S_FOR_DURATION
 #define MIN_EPICENTRAL_DISTANCE_T0 5.0 // 20111222 TEST AJL - use S duration (5deg gives S-P=57s > TIME_DELAY_T50=55s)
-#define MAX_EPICENTRAL_DISTANCE_T0_CONDITIONAL 20.0 // 20120410 AJL - only use close duration for report if T50Ex > 1.0 and tauc > LIMIT
+// 20180212 AJL - TEST ignore this limit  #define MAX_EPICENTRAL_DISTANCE_T0_CONDITIONAL 20.0 // 20120410 AJL - only use close duration for report if T50Ex > 1.0 and tauc > LIMIT
+#define MAX_EPICENTRAL_DISTANCE_T0_CONDITIONAL -1
 #define T0_CONDITIONAL_T50_LIMIT 1.0 // 20120410 AJL
 #define T0_CONDITIONAL_TAUC_LIMIT 5.0 // 20120410 AJL
 #else
@@ -190,28 +200,6 @@ EXTERN_TXT double mwpd_min_mail;   // properties file parameter
 
 #define PICK_PLOT_LEVEL_MIN -999.9
 #define PICK_PLOT_LEVEL_MAX 999.9
-
-typedef struct {
-    int mb;
-    int mwp;
-    int mwpd;
-    int t0;
-    int tdT50Ex;
-    int t50Ex;
-    int tauc;
-}
-report_min_number_values_use;
-#define MIN_NUM_VALUES_USE_DEFAULT 4
-
-typedef struct {
-    double mb;
-    double mwp;
-    double mwpd;
-}
-report_preferred_min_value;
-#define PREFERRED_MIN_VALUE_MB_DEFAULT -9
-#define PREFERRED_MIN_VALUE_MWP_DEFAULT 5.5
-#define PREFERRED_MIN_VALUE_MWPD_DEFAULT 8.0
 
 
 // 20160307 AJL - acceptable location quality levels to use for alerts, hypo display row colors, ...

@@ -97,28 +97,37 @@ enum AmpUnits { NO_AMP_UNITS, DATA_AMP_UNITS, CHAR_FUNCT_AMP_UNITS, INDEP_VAR_UN
 //#define SIGNAL_TO_NOISE_RATIO_HF_MIN 10.0
 #define A_REF_WINDOW_MIN_TO_MAX_AMP_RATIO_MIN 0.3333
 
+// 20180823 AJL - Bug fix: SHIFT_BEFORE_P values were too large, does not capture increase in amplitude just before pick when pick in LP noise of previous event, likely causing false, high magnitudes on strong LP arrivals from preceeding large events
+/*
+ * In following, Fiji has false, too high Mwp7.3 (note only 4 Mwp readings!)
+ 1534995679202 	25	220	175	3.7	41	46	-0.91	1.3  	2018.08.23-03:41:18	-18.19	-178.13	   15	559	   17	A	0.0 	 56	4.4 	 2	0.0 	5.1 	 96	7.3 	 4	1 	 55	-9.0 	 2		 Fiji Islands Region <- False Mwp7.3
+ 1534995310291 	11	345	290	12.6	78	84	-0.71	1.2  	2018.08.23-03:35:22	51.59	-177.93	   13	85	   22	A	0.7 	 198	4.3 	 35	2.9 	5.4 	 249	6.4 	 205	40 	 192	6.5 	 193		 Andreanof Islands, Aleutian Is.
+*/
 // brb
 // Mwp brb hp int  // 20120612 AJL - added
-// 20151117 AJL #define SHIFT_BEFORE_P_BRB_HP_INT_SN 10.0  // S/N N window
-// 20151117 AJL #define TIME_DELAY_BRB_HP_INT_RMS 200.0    // S/N S window
-#define SHIFT_BEFORE_P_BRB_HP_INT_SN 20.0  // S/N N window
-#define TIME_DELAY_BRB_HP_INT_RMS 20.0    // S/N S window
+// 20151117 AJL #define SHIFT_BEFORE_P_BRB_HP_INT_SN 10.0  // S/N N window end
+// 20151117 AJL #define TIME_DELAY_BRB_HP_INT_RMS 200.0    // S/N S & N window
+// 20180823 AJL #define SHIFT_BEFORE_P_BRB_HP_INT_SN 20.0  // S/N N window end
+#define SHIFT_BEFORE_P_BRB_HP_INT_SN 5.0  // S/N N window end before P  // 20180823 AJL - changed to 1/4 S/N window TIME_DELAY_*
+#define TIME_DELAY_BRB_HP_INT_RMS 20.0    // S/N S & N window
 #define SMOOTHING_WINDOW_HALF_WIDTH_BRB_HP_INT_RMS (TIME_DELAY_BRB_HP_INT_RMS/2.0)
 #define SIGNAL_TO_NOISE_RATIO_BRB_HP_INT_MIN 3.0
 // brb hp
-// 20151117 AJL #define SHIFT_BEFORE_P_BRB_HP_SN 10.0  // S/N N window
-// 20151117 AJL #define TIME_DELAY_BRB_HP_RMS 50.0    // S/N S window
-#define SHIFT_BEFORE_P_BRB_HP_SN 10.0  // S/N N window
-#define TIME_DELAY_BRB_HP_RMS 10.0    // S/N S window
+// 20151117 AJL #define SHIFT_BEFORE_P_BRB_HP_SN 10.0  // S/N N window end
+// 20151117 AJL #define TIME_DELAY_BRB_HP_RMS 50.0    // S/N S & N window
+// 20180823 AJL #define SHIFT_BEFORE_P_BRB_HP_SN 10.0  // S/N N window end
+#define SHIFT_BEFORE_P_BRB_HP_SN 2.5  // S/N N window end before P  // 20180823 AJL - changed to 1/4 S/N window TIME_DELAY_*
+#define TIME_DELAY_BRB_HP_RMS 10.0    // S/N S & N window
 #define SMOOTHING_WINDOW_HALF_WIDTH_BRB_HP_RMS (TIME_DELAY_BRB_HP_RMS/2.0)
 //#define SIGNAL_TO_NOISE_RATIO_BRB_MIN 3.0
 //#define SIGNAL_TO_NOISE_RATIO_BRB_HP_MIN 2.5  // 20100412 AJL
 #define SIGNAL_TO_NOISE_RATIO_BRB_HP_MIN 3.0  // 20101229 AJL
 // mB bp
-// 20151117 AJL #define SHIFT_BEFORE_P_BRB_BP_SN 4.0  // S/N N window
-// 20151117 AJL #define TIME_DELAY_BRB_BP_RMS 20.0    // S/N S window
-#define SHIFT_BEFORE_P_BRB_BP_SN 10.0  // S/N N window
-#define TIME_DELAY_BRB_BP_RMS 10.0    // S/N S window
+// 20151117 AJL #define SHIFT_BEFORE_P_BRB_BP_SN 4.0  // S/N N window end
+// 20151117 AJL #define TIME_DELAY_BRB_BP_RMS 20.0    // S/N S & N window
+// 20180823 AJL #define SHIFT_BEFORE_P_BRB_BP_SN 10.0  // S/N N window end
+#define SHIFT_BEFORE_P_BRB_BP_SN 2.5  // S/N N window end before P  // 20180823 AJL - changed to 1/4 S/N window TIME_DELAY_*
+#define TIME_DELAY_BRB_BP_RMS 10.0    // S/N S & N window
 //#define TIME_DELAY_BRB_BP_RMS 50.0  // 20110610 AJL
 #define SMOOTHING_WINDOW_HALF_WIDTH_BRB_BP_RMS (TIME_DELAY_BRB_BP_RMS/2.0)
 //#define SMOOTHING_WINDOW_HALF_WIDTH_BRB_BP_RMS 25.0  // 20110610 AJL
@@ -411,7 +420,7 @@ int addTimedomainProcessingDataToDataList(TimedomainProcessingData* deData, Time
 void removeTimedomainProcessingDataFromDataList(TimedomainProcessingData* deData, TimedomainProcessingData*** pdata_list, int* pnum_data);
 void free_TimedomainProcessingDataList(TimedomainProcessingData** data_list, int num_data);
 int fprintf_TimedomainProcessingData(TimedomainProcessingData* deData, FILE* pfile);
-int fprintf_NLLoc_TimedomainProcessingData(TimedomainProcessingData* deData, FILE* pfile, int append_evt_ndx_to_phase);
+int fprintf_NLLoc_TimedomainProcessingData(TimedomainProcessingData* deData, FILE* pfile, int append_evt_ndx_to_phase, double hypo_depth);
 char setPolarity(TimedomainProcessingData* deData, double *pfmquality, int *pfmpolarity, char *fmtype);
 time_t get_time_t(TimedomainProcessingData* deData, double* dsec);
 double calculate_init_P_grd_mot_amp(TimedomainProcessingData* deData, double snr_brb, double snr_brb_int, int force_polarity, double *pfmquality, int *pfmpolarity, char *fmtype);

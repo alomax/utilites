@@ -23,8 +23,10 @@
 #include "location.h"
 #include "../miniseed_utils/miniseed_utils.h"
 #include "time_utils.h"
+#ifdef USE_RABBITMQ_MESSAGING
 #include "timedomain_processing.h"  // 20171222 AJL - added
 #include "../rabbitmq/rabbitmq.h"  // 20171222 AJL - added
+#endif
 
 /** timedomain-processing memory class */
 
@@ -447,14 +449,19 @@ int rmq_send_pick(TimedomainProcessingData* deData) {
             : "undecidable")
             ;
 
-    sprintf(messagebody, "{networkCode:%s,stationCode:%s,locationCode:%s,channelCode:%s,filterID:%s,phaseHint:%s,polarity:%s,time.value:%s,time.uncertainty:%f,epochTimeSec:%ld,latitude:%f,longitude:%f,elevation:%f,creationTime:%s,agencyID:%s,publicID:%s}",
+	/* 20180919 AJL - Bug fix: strings need to be quoted “ “ for standard json parsers
+    sprintf(messagebody, "{\"networkCode:%s,stationCode:%s,locationCode:%s,channelCode:%s,filterID:%s,phaseHint:%s,polarity:%s,time.value:%s,time.uncertainty:%f,epochTimeSec:%ld,latitude:%f,longitude:%f,elevation:%f,creationTime:%s,agencyID:%s,publicID:%s}",
+         */
+    sprintf(messagebody, "{\"networkCode\":\"%s\",\"stationCode\":\"%s\",\"locationCode\":\"%s\",\"channelCode\":\"%s\",\"filterID\":\"%s\",\"phaseHint\":\"%s\",\"polarity\":\"%s\",\"time.value\":\"%s\",\"time.uncertainty\":%f,\"epochTimeSec\":%ld,\"latitude\":%f,\"longitude\":%f,\"elevation\":%f,\"creationTime\":\"%s\",\"agencyID\":\"%s\",\"publicID\":\"%s\"}",
             deData->network, deData->station, deData->location, deData->channel, pick_stream,
             deData->phase, pick_polarity, pick_time, deData->pick_error, (long) deData->t_time_t,
             deData->lat, deData->lon, deData->elev,
             time_now, agencyId, resource_id_tmp);
 
     int ireturn = amqp_sendstring(
-            rmq_parameters.rmq_hostname, rmq_parameters.rmq_port, rmq_parameters.rmq_exchange, rmq_parameters.rmq_routingkey,
+            rmq_parameters.rmq_hostname, rmq_parameters.rmq_port,
+            rmq_parameters.rmq_vhost, rmq_parameters.rmq_username, rmq_parameters.rmq_password,
+            rmq_parameters.rmq_exchange, rmq_parameters.rmq_exchangetype, rmq_parameters.rmq_routingkey,
             messagebody);
 
     return (ireturn);
@@ -663,13 +670,13 @@ char *timeDecSec2NLLocstring(double time_dec_sec, char* str) {
 
 static char tmp_str[128];
 
-int fprintf_NLLoc_TimedomainProcessingData(TimedomainProcessingData* deData, FILE* pfile, int append_evt_ndx_to_phase) {
+int fprintf_NLLoc_TimedomainProcessingData(TimedomainProcessingData* deData, FILE* pfile, int append_evt_ndx_to_phase, double hypo_depth) {
 
     if (pfile == NULL || deData == NULL)
         return (0);
 
     // phase
-    char phase[16];
+    char phase[64];
     if (is_associated_phase(deData))
         if (append_evt_ndx_to_phase) {
             // 20130307 AJL - added "_" between phase and event index
@@ -737,6 +744,21 @@ int fprintf_NLLoc_TimedomainProcessingData(TimedomainProcessingData* deData, FIL
             period,
             apriori_weight // NLL_FORMAT_VER_2
             );
+
+
+    // include calculated values travel-time and residual
+    // 20180131 AJL - added to support waveform residual display in SeisGram2K
+    double ttime = -1.0;
+    if (deData->is_associated) {
+        ttime = strcmp(deData->phase, "P") == 0 ? deData->ttime_P
+                : strcmp(deData->phase, "S") == 0 ? deData->ttime_S
+                : get_ttime(phase_id_for_name(deData->phase), deData->epicentral_distance, hypo_depth);
+    }
+    if (ttime > 0.0) {
+        fprintf(pfile, " > %9.4lf %9.4lf", ttime, deData->residual);
+    } else {
+        fprintf(pfile, " > -1 -1 ");
+    }
 
     return (1);
 
@@ -1212,17 +1234,23 @@ double calculate_Mwp_Mag(TimedomainProcessingData* deData, double hypo_depth, in
 
 /** set pick polarity and weight based on HF first motion and BRB waveform polarity */
 
+//#define TEST_PICK_FM_ONLY 1
+//#define TEST_MWP_INT_FM_ONLY 1
+
 char setPolarity(TimedomainProcessingData* deData, double *pfmquality, int *pfmpolarity, char *fmtype) {
 
     *pfmquality = 0.0;
     *pfmpolarity = POLARITY_UNKNOWN;
     strcpy(fmtype, "F\0                        ");
 
+#ifndef TEST_MWP_INT_FM_ONLY
     if (deData->pickData->polarity != POLARITY_UNKNOWN) {
         *pfmpolarity = deData->pickData->polarity;
         *pfmquality = deData->pickData->polarityWeight;
         sprintf(fmtype, "F");
     }
+#endif
+#ifndef TEST_PICK_FM_ONLY
     // 20120312 AJL - use Mwp integral for first motion
     if (USE_MWP_INT_FOR_FIRST_MOTION) {
         if (!deData->flag_snr_brb_too_low && !deData->flag_snr_brb_int_too_low && deData->brb_polarity != POLARITY_UNKNOWN
@@ -1239,6 +1267,7 @@ char setPolarity(TimedomainProcessingData* deData, double *pfmquality, int *pfmp
             sprintf(fmtype, "W%.1f", deData->brb_polarity_delay);
         }
     }
+#endif
 
     if (*pfmquality < 0.0)
         *pfmquality = 0.0;
@@ -1645,7 +1674,7 @@ double calculate_mb_Mag(TimedomainProcessingData* deData, double hypo_depth, int
     }
     double peak = 0.0;
     double peak_dur = 1.0; // 1 sec default
-    int peak_index = -1;
+    //int peak_index;
     int n;
     //printf("DEBUG: mb->peak_dur[n]: ");
     for (n = 0; n < index_max; n++) {
@@ -1654,7 +1683,7 @@ double calculate_mb_Mag(TimedomainProcessingData* deData, double hypo_depth, int
         if (deData->mb->amplitude[n] > peak && deData->mb->peak_dur[n] > 0.0) {
             peak = deData->mb->amplitude[n];
             peak_dur = deData->mb->peak_dur[n];
-            peak_index = n;
+            //peak_index = n;
         }
         //if (strcmp(deData->station, "HGN") == 0)
         //    printf("%d/%g/%g  ", n, deData->mb->amplitude[n], deData->mb->peak_dur[n]);
@@ -1887,7 +1916,7 @@ TimedomainProcessingData *get_next_pick_nll(FILE *fp_in, int verbose) {
         char phase[MAX_LEN_STR]; /* char phase id */
         char onset[MAX_LEN_STR]; /* char onset (ie E I) */
         char first_mot[MAX_LEN_STR]; /* char first motion id */
-        int quality; /* pick quality (ie weight 0 1 2 3 4) */
+        //int quality; /* pick quality (ie weight 0 1 2 3 4) */
         int year, month, day; /* observed arrival date */
         int hour, min; /* observed arrival hour/min */
         double sec; /* observed arrival seconds */
@@ -1982,13 +2011,13 @@ TimedomainProcessingData *get_next_pick_nll(FILE *fp_in, int verbose) {
         min = ihrmin % 100;
 
         /* set null quality value */
-        quality = -1;
+        //quality = -1;
 
 
         // map NLL pick data to TimedomainProcessingData
-        char location[MAX_LEN_STR] = "--";
-        char channel[MAX_LEN_STR] = "--";
-        char network[MAX_LEN_STR] = "--";
+        char location[MAX_LEN_STR] = "$$";
+        char channel[MAX_LEN_STR] = "$$";
+        char network[MAX_LEN_STR] = "$$";
         double station_quality_weight = apriori_weight;
         // 20170715 AJL - use NLL comp as channel.  TODO: Added for SG2K/CEA_AftershockDetectionContest, may not work for Marsite!
         strcpy(channel, comp);

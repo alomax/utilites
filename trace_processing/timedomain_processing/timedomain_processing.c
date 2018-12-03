@@ -97,7 +97,13 @@ static PickParams hfPickParams[MAX_NUM_PICK_CHANNEL_LIST];
 
 //#define TEST_TO_FILE
 
-#define USE_RAW_PICKS_UNCONDITIONALLY  // # TEST! 20150930 AJL; seems to work well 20151119 AJL
+//#define USE_RAW_PICKS_UNCONDITIONALLY  // # TEST! 20150930 AJL; seems to work well 20151119 AJL
+// 20180823 AJL - IMPORTANT! Disabled above, likely caused false events due to picking strong, long period arrivals from preceding large events without verification of existence of a corresponding high-frequency pick.   Some if these false events had very large Mwp and Mwpd due to large amplitude and long period of picked arrivals.
+/* In following, Tonga events are false and have very large Mwp and Mwpd
+ 1534638104751 	1	85	83	18.6	127	171	-2.10	1.3  	2018.08.19-00:21:46	-15.24	-175.29	   15	307	   28	B	0.0 	 0	35.4 	 1	0.0 	5.7 	 60	7.4 	 54	-1 	 0	7.8 	 22		 Tonga Islands
+ 1534638073375 	6	94	92	12.8	82	118	-2.74	2.9  	2018.08.19-00:21:13	-17.16	-173.37	   15	20	   12	B	1.6 	 1	22.3 	 2	0.0 	5.9 	 66	7.4 	 58	-1 	 1	7.9 	 22		 Tonga Islands
+ 1534637975904 	14	609	304	3.8	12	20	-1.49	1.1  	2018.08.19-00:19:39	-18.16	-178.00	   13	576	   14	A	0.4 	 164	4.6 	 30	2.0 	6.2 	 173	7.8 	 151	31 	 164	8.1 	 161		 Fiji Islands Region
+ */
 
 
 
@@ -213,15 +219,19 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
         double tdiff = data_start_time - channelParameters[source_id].last_data_end_time;
         // 20150211 AJL - separated early and late case - early packets are now ignored in case next packet is contiguous
         if (tdiff < -1.5) { // 1 sec tolerance - early
-            printf("Warning: %.2s_%.5s_%.2s_%.3s dt=%f: data packet start time = %lf not contiguous: %fs earlier than last data end time = %lf, ignoring packet\n",
-                    network, station, location, channel, deltaTime, data_start_time, tdiff, channelParameters[source_id].last_data_end_time);
+            if (verbose > 1) {
+                printf("Warning: %.2s_%.5s_%.2s_%.3s dt=%f: data packet start time = %lf not contiguous: %fs earlier than last data end time = %lf, ignoring packet\n",
+                        network, station, location, channel, deltaTime, data_start_time, tdiff, channelParameters[source_id].last_data_end_time);
+            }
             channelParameters[source_id].error = channelParameters[source_id].error | ERROR_DATA_NON_CONTIGUOUS;
             channelParameters[source_id].count_non_contiguous++;
             return (-1);
         }
         if (tdiff > 1.5) { // 1 sec tolerance - late
-            printf("Warning: %.2s_%.5s_%.2s_%.3s dt=%f: data packet start time = %lf not contiguous: %fs later than last data end time = %lf, assuming gap\n",
-                    network, station, location, channel, deltaTime, data_start_time, tdiff, channelParameters[source_id].last_data_end_time);
+            if (verbose > 1) {
+                printf("Warning: %.2s_%.5s_%.2s_%.3s dt=%f: data packet start time = %lf not contiguous: %fs later than last data end time = %lf, assuming gap\n",
+                        network, station, location, channel, deltaTime, data_start_time, tdiff, channelParameters[source_id].last_data_end_time);
+            }
             channelParameters[source_id].error = channelParameters[source_id].error | ERROR_DATA_NON_CONTIGUOUS;
             channelParameters[source_id].count_non_contiguous++;
             flag_non_contiguous = 1;
@@ -232,17 +242,19 @@ int td_process_timedomain_processing(MSRecord* pmsrecord, char* sladdr, int sour
     // waveform export
     if (waveform_export_enable) {
         return_value = mslist_addMsRecord(pmsrecord, &(waveform_export_miniseed_list[source_id]), &(num_waveform_export_miniseed_list[source_id]));
-        hptime_t remove_before_time = pmsrecord->starttime - ((long int) waveform_export_memory_sliding_window_length) * HPTMODULUS;
-        //printf("DEBUG: remove_before_time=%ld, pmsrecord->starttime=%ld, diff=%ld, waveform_export_memory_sliding_window_length=%ld\n",
-        //remove_before_time / HPTMODULUS, pmsrecord->starttime / HPTMODULUS, (pmsrecord->starttime - remove_before_time) / HPTMODULUS, waveform_export_memory_sliding_window_length);
-        return_value = mslist_removeMsRecords(remove_before_time, &(waveform_export_miniseed_list[source_id]), &(num_waveform_export_miniseed_list[source_id]));
-        if (0 || verbose > 2) {
-            char mdtimestr1[128];
-            char mdtimestr2[128];
-            hptime_t hptime_start = mslist_getStartTime(waveform_export_miniseed_list[source_id], num_waveform_export_miniseed_list[source_id]);
-            hptime_t hptime_end = mslist_getEndTime(waveform_export_miniseed_list[source_id], num_waveform_export_miniseed_list[source_id]);
-            printf("INFO: %.2s_%.5s_%.2s_%.3s: waveform export memory: start=%s, end=%s, diff=%lds\n", network, station, location, channel,
-                    ms_hptime2mdtimestr(hptime_start, mdtimestr1, 1), ms_hptime2mdtimestr(hptime_end, mdtimestr2, 1), (long int) ((hptime_end - hptime_start) / HPTMODULUS));
+        if (return_value > 0) { // record added correctly
+            hptime_t remove_before_time = pmsrecord->starttime - ((long int) waveform_export_memory_sliding_window_length) * HPTMODULUS;
+            //printf("DEBUG: remove_before_time=%ld, pmsrecord->starttime=%ld, diff=%ld, waveform_export_memory_sliding_window_length=%ld\n",
+            //remove_before_time / HPTMODULUS, pmsrecord->starttime / HPTMODULUS, (pmsrecord->starttime - remove_before_time) / HPTMODULUS, waveform_export_memory_sliding_window_length);
+            return_value = mslist_removeMsRecords(remove_before_time, &(waveform_export_miniseed_list[source_id]), &(num_waveform_export_miniseed_list[source_id]));
+            if (verbose > 2) {
+                char mdtimestr1[128];
+                char mdtimestr2[128];
+                hptime_t hptime_start = mslist_getStartTime(waveform_export_miniseed_list[source_id], num_waveform_export_miniseed_list[source_id]);
+                hptime_t hptime_end = mslist_getEndTime(waveform_export_miniseed_list[source_id], num_waveform_export_miniseed_list[source_id]);
+                printf("INFO: %.2s_%.5s_%.2s_%.3s: waveform export memory: start=%s, end=%s, diff=%lds\n", network, station, location, channel,
+                        ms_hptime2mdtimestr(hptime_start, mdtimestr1, 1), ms_hptime2mdtimestr(hptime_end, mdtimestr2, 1), (long int) ((hptime_end - hptime_start) / HPTMODULUS));
+            }
         }
     }
 
@@ -1988,7 +2000,7 @@ int td_process_timedomain_processing_init(Settings *settings, char* outpath, cha
     rawPickParams[0].threshold1 = 10.0;
     rawPickParams[0].threshold2 = 10.0;
     rawPickParams[0].tUpEvent = 2.0; // must be less than TIME_DELAY_TAUC_MIN
-    /*
+    //*
     double pick_params[MAX_NUM_PICK_CHANNEL_LIST];
     int n_params_returned;
     int n_params, nparam;
@@ -2074,7 +2086,8 @@ int td_process_timedomain_processing_init(Settings *settings, char* outpath, cha
     for (nparam = n_params; nparam < MAX_NUM_PICK_CHANNEL_LIST; nparam++) { // initialize all remaining channel list parameters
         rawPickParams[nparam].tUpEvent = pick_params[n_params - 1];
     }
-     */
+    //*/
+    /*
     // set pick parameters from properties file
     if ((double_param = settings_get_double(app_prop_settings, "TimedomainProcessing", "pick.raw.filterWindow")) != DBL_INVALID)
         rawPickParams[0].filterWindow = double_param;
@@ -2088,7 +2101,7 @@ int td_process_timedomain_processing_init(Settings *settings, char* outpath, cha
         rawPickParams[0].tUpEvent = double_param;
     printf("Info: property set: [TimedomainProcessing] pick.raw. filterWindow %f longTermWindow %f threshold1 %f threshold2 %f tUpEvent %f\n",
             rawPickParams[0].filterWindow, rawPickParams[0].longTermWindow, rawPickParams[0].threshold1, rawPickParams[0].threshold2, rawPickParams[0].tUpEvent);
-
+     * */
 
     // hf picker
     hfPickParams[0].filterWindow = 10.0;
@@ -2111,6 +2124,16 @@ int td_process_timedomain_processing_init(Settings *settings, char* outpath, cha
             hfPickParams[0].filterWindow, hfPickParams[0].longTermWindow, hfPickParams[0].threshold1, hfPickParams[0].threshold2, hfPickParams[0].tUpEvent);
 
 
+#ifdef USE_OPENMP
+    //
+    openmp_parameters.openmp_use = OPENMP_USE_DEFAULT;
+    if ((int_param = settings_get_int(app_prop_settings, "ParallelProcessing", "openmp.use")) != INT_INVALID) {
+        openmp_parameters.openmp_use = int_param;
+    }
+    //
+#endif
+
+
 #ifdef USE_RABBITMQ_MESSAGING
     //
     rmq_parameters.rmq_use_rmq = RMQ_USE_RMQ_DEFAULT;
@@ -2130,11 +2153,35 @@ int td_process_timedomain_processing_init(Settings *settings, char* outpath, cha
     }
     printf("Info: property set: [Messaging] rmq.rmq_port %d\n", rmq_parameters.rmq_port);
     //
+    strcpy(rmq_parameters.rmq_vhost, RMQ_VHOST_DEFAULT);
+    if (settings_get(app_prop_settings, "Messaging", "rmq.vhost", out_buf, SETTINGS_MAX_STR_LEN)) {
+        strcpy(rmq_parameters.rmq_vhost, out_buf);
+    }
+    printf("Info: property set: [Messaging] rmq.vhost %s\n", rmq_parameters.rmq_vhost);
+    //
+    strcpy(rmq_parameters.rmq_username, RMQ_USERNAME_DEFAULT);
+    if (settings_get(app_prop_settings, "Messaging", "rmq.username", out_buf, SETTINGS_MAX_STR_LEN)) {
+        strcpy(rmq_parameters.rmq_username, out_buf);
+    }
+    printf("Info: property set: [Messaging] rmq.username %s\n", rmq_parameters.rmq_username);
+    //
+    strcpy(rmq_parameters.rmq_password, RMQ_PASSWORD_DEFAULT);
+    if (settings_get(app_prop_settings, "Messaging", "rmq.password", out_buf, SETTINGS_MAX_STR_LEN)) {
+        strcpy(rmq_parameters.rmq_password, out_buf);
+    }
+    printf("Info: property set: [Messaging] rmq.password %s\n", rmq_parameters.rmq_password);
+    //
     strcpy(rmq_parameters.rmq_exchange, RMQ_EXCHANGE_DEFAULT);
     if (settings_get(app_prop_settings, "Messaging", "rmq.exchange", out_buf, SETTINGS_MAX_STR_LEN)) {
         strcpy(rmq_parameters.rmq_exchange, out_buf);
     }
     printf("Info: property set: [Messaging] rmq.exchange %s\n", rmq_parameters.rmq_exchange);
+    //
+    strcpy(rmq_parameters.rmq_exchangetype, RMQ_EXCHANGETYPE_DEFAULT);
+    if (settings_get(app_prop_settings, "Messaging", "rmq.exchangetype", out_buf, SETTINGS_MAX_STR_LEN)) {
+        strcpy(rmq_parameters.rmq_exchangetype, out_buf);
+    }
+    printf("Info: property set: [Messaging] rmq.exchangetype %s\n", rmq_parameters.rmq_exchangetype);
     //
     strcpy(rmq_parameters.rmq_routingkey, RMQ_ROUTNGKEY_DEFAULT);
     if (settings_get(app_prop_settings, "Messaging", "rmq.routingkey", out_buf, SETTINGS_MAX_STR_LEN)) {
@@ -2330,8 +2377,11 @@ int td_set_station_coordinates(int source_id, char* network, char* station, char
                     if ((nscan = sscanf(line, "%s %s %lf %lf %lf %*d %*d %*d %s %s %lf %lf",
                             net, sta, &lat, &lon, &elev, loc, chan, &azimuth, &dip)) >= 5) {
                         //printf("DEBUG: %s[%s] %s[%s] %s[%s] %s[%s] sensor coordinates (%lf %lf %lf), az/dip (%lf %lf) read from geog file: %s\n", net, network, sta, station, loc, location, chan, channel, lat, lon, elev, azimuth, dip, geogfile_name);
-                        if ((strcmp(net, network) == 0) && (strcmp(sta, station) == 0)) { // found
-                            if (nscan <= 5 || ((strcmp(loc, location) == 0) && (strcmp(chan, channel) == 0))) { // check loc and chan if available
+                        // 20180205 AJL - added check for "$$" network location channel (from timedomain_processing_data.c->get_next_pick_nll
+                        if ((strcmp(net, network) == 0 || strcmp("$$", network) == 0)
+                                && (strcmp(sta, station) == 0)) { // found
+                            if (nscan <= 5 || ((strcmp(loc, location) == 0 || strcmp("$$", location) == 0)
+                                    && (strcmp(chan, channel) == 0 || strcmp("$$", channel) == 0))) { // check loc and chan if available
                                 if (verbose)
                                     printf("Info: %s %s %s %s sensor coordinates (%lf %lf %lf), az/dip (%lf %lf) read from geog file: %s\n",
                                         network, station, loc, chan, lat, lon, elev, azimuth, dip, geogfile_name);
@@ -3063,8 +3113,9 @@ int td_doPolarizationAnalysis(TimedomainProcessingData* deData, int ndata) {
         if (az_var > FLT_MIN) {
             az_std_dev = sqrt(az_var);
         }
-        free(az_array);
-        free(wt_array);
+        // 20180112 AJL - bug fix, moved outside if statement
+        //free(az_array);
+        //free(wt_array);
         // constrain az to 0-360deg
         if (az_mean >= 360.0) {
             az_mean -= 360.0;
@@ -3092,6 +3143,10 @@ int td_doPolarizationAnalysis(TimedomainProcessingData* deData, int ndata) {
         // have all needed data, polarization analysis not available
         deData->polarization.status = POL_NA;
     }
+
+    // 20180112 AJL - bug fix, moved from if statement above
+    free(az_array);
+    free(wt_array);
 
     free(data_z);
     free(data_x);

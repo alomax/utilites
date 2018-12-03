@@ -367,7 +367,7 @@ int parameter_proc_common(int *poptind, char **argvec, char *PACKAGE, char *VERS
 
 char* tm2timestring(struct tm* timep, double secfrac, char* timestring) {
 
-    snprintf(timestring, 20, "%04d.%02d.%02d-%02d:%02d:%02d.%01.0f", timep->tm_year + 1900, timep->tm_mon + 1, timep->tm_mday, timep->tm_hour, timep->tm_min, timep->tm_sec, secfrac);
+    sprintf(timestring, "%04d.%02d.%02d-%02d:%02d:%03.1f", timep->tm_year + 1900, timep->tm_mon + 1, timep->tm_mday, timep->tm_hour, timep->tm_min, ((double) timep->tm_sec + secfrac));
 
     return (timestring);
 

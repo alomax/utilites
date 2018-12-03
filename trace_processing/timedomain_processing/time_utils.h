@@ -39,6 +39,7 @@ extern "C" {
 #define IRIS_WS_TIME_FORMAT 1       // 2 decimal places for seconds
 #define IRIS_WS_TIME_FORMAT_4 2     // 4 decimal places for seconds
 #define COMMA_DELIMTED_TIME_FORMAT 3
+#define PERIOD_DELIMTED_TIME_FORMAT 4
 
 
 char *timeDiff2string(time_t later_time, time_t earlier_time, char* tdiff_string);

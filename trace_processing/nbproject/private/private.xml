@@ -14,15 +14,11 @@
             <file>file:/Users/anthony/soft/trace_processing/timedomain_processing/timedomain_processing_data.c</file>
             <file>file:/Users/anthony/soft/trace_processing/timedomain_processing/timedomain_processing.c</file>
             <file>file:/Users/anthony/soft/trace_processing/timedomain_processing/timedomain_processing_report.c</file>
-            <file>file:/Users/anthony/soft/trace_processing/timedomain_processing/time_utils.h</file>
-            <file>file:/Users/anthony/soft/trace_processing/applications/app_lib.h</file>
+            <file>file:/Users/anthony/soft/trace_processing/update_distribution.bash</file>
             <file>file:/Users/anthony/soft/trace_processing/timedomain_processing/location.c</file>
+            <file>file:/Users/anthony/soft/trace_processing/applications/seedlink_monitor.c</file>
             <file>file:/Users/anthony/soft/trace_processing/Makefile</file>
-            <file>file:/Users/anthony/soft/trace_processing/timedomain_processing/time_utils.c</file>
-            <file>file:/Users/anthony/soft/trace_processing/timedomain_processing/timedomain_processing_data.h</file>
             <file>file:/Users/anthony/soft/trace_processing/timedomain_processing/timedomain_processing.h</file>
-            <file>file:/Users/anthony/soft/trace_processing/timedomain_processing/location.h</file>
-            <file>file:/Users/anthony/soft/trace_processing/applications/app_lib.c</file>
         </group>
     </open-files>
 </project-private>

@@ -16,6 +16,8 @@
 #include "../timedomain_processing/ttimes.h"
 #include "../octtree/octtree.h"
 
+
+
 // hypocenter =====================================================================================
 
 #define WARNING_LEVEL_STRING_LEN 64
@@ -207,15 +209,6 @@ ChannelResponse;
 #define ERROR_DT_NOT_SUPPORTED_BY_FILTER 2
 #define ERROR_DIFFERENT_SAMPLE_RATES 4
 
-#define LOCATION_UPWEIGHT_HIGH_SN_PICKS_SN_CUTOFF_DEFAULT -1.0
-static double upweight_picks_sn_cutoff;
-#define LOCATION_UPWEIGHT_HIGH_SN_PICKS_DIST_MIN_DEFAULT 5.0
-static double upweight_picks_dist_full;
-#define LOCATION_UPWEIGHT_HIGH_SN_PICKS_DIST_MAX_DEFAULT 10.0
-static double upweight_picks_dist_max;
-#define LOCATION_USE_AMPLITUDE_ATTENUATION_DEFAULT 0
-static int use_amplitude_attenuation;
-
 
 #define MIN_NUM_STATION_CORRECTIONS_USE 10
 
@@ -390,6 +383,41 @@ int addChannelParametersToSortedList(ChannelParameters* pnew_chan_params, Channe
 void removeChannelParametersFromSortedList(ChannelParameters* pchan_params, ChannelParameters*** psorted_chan_params_list, int* pnum_sorted_chan_params);
 void free_ChannelParametersList(ChannelParameters*** psorted_chan_params_list, int* pnum_sorted_chan_params);
 void setHypocenterQuality(HypocenterDesc* phypo, double min_weight_sum_assoc, double critical_errh, double critical_errz);
+
+
+#define MAG_NONE_PREFERRED 0
+#define MAG_MB_PREFERRED 1
+#define MAG_MWP_PREFERRED 2
+#define MAG_MWPD_PREFERRED 3
+int getPreferredMagnitude(HypocenterDesc* phypo);
+
+typedef struct {
+    int mb;
+    int mwp;
+    int mwpd;
+    int t0;
+    int tdT50Ex;
+    int t50Ex;
+    int tauc;
+}
+report_min_number_values_use;
+#define MIN_NUM_VALUES_USE_DEFAULT 4
+
+typedef struct {
+    double mb;
+    double mwp;
+    double mwpd;
+}
+report_preferred_min_value;
+#define PREFERRED_MIN_VALUE_MB_DEFAULT -9
+#define PREFERRED_MIN_VALUE_MWP_DEFAULT 5.5
+#define PREFERRED_MIN_VALUE_MWPD_DEFAULT 8.0
+
+//
+EXTERN_TXT report_min_number_values_use reportMinNumberValuesUse;
+EXTERN_TXT report_preferred_min_value reportPreferredMinValue;
+
+
 
 // values (e.g. distance, azimuth =====================================================================================
 

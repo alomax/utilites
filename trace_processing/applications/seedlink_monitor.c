@@ -629,14 +629,16 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
             time_max = isystem_time_t;
 
         // parse with unpacking since we will use this data
-        if (sl_msr_parse(slconn_packet->log, msrecord, &sl_msr, 1, 1) == NULL) {
+        if (sl_msr_parse(slconn_packet->log, msrecord, &sl_msr, 1, 1) == NULL
+                || sl_msr->numsamples < 1   // 20180322 AJL - bug fix
+                ) {
             sl_log(2, 0, "sl_msr_parse() failed, skipping %s\n", srcname);
             sl_msr_free(&sl_msr);
             sl_msr = NULL;
             return;
         }
         if (verbose > 2)
-            printf("DEBUG: sl_msr->fsdh.num_samples %d  sl_msr->numsamples %d  sl_msr->unpackerr %d\n",
+            printf("DEBUG: sl_msr->fsdh.num_samples %hu  sl_msr->numsamples %d  sl_msr->unpackerr %d\n",
                 sl_msr->fsdh.num_samples, sl_msr->numsamples, sl_msr->unpackerr);
 
 
@@ -670,7 +672,7 @@ static void packet_handler(char *msrecord, int packet_type, int seqnum, int pack
 
         // process record
         if (slp_process(sl_msr, source_id, msr_net, msr_sta, msr_loc, msr_chan, details, verbose, data_latency, slconn_packet) < 0) {
-            sl_log(2, 0, "slp_process() failed, skipping %s\n", srcname);
+            sl_log(2, 2, "slp_process() failed, skipping %s\n", srcname);
             sl_msr_free(&sl_msr);
             sl_msr = NULL;
             return;
@@ -979,7 +981,7 @@ int slp_process(SLMSrecord* sl_msr, int source_id, char* msr_net, char* msr_sta,
         dsec += (double) sl_msr->Blkt1001->usec / 1000000.0;
         if (verbose) {
             if ((double) sl_msr->Blkt1001->usec / 1000000.0 > 0.1)
-                printf("DEBUG: sl_msr->Blkt1001->usec = %d (%lfs)\n", sl_msr->Blkt1001->usec, (double) sl_msr->Blkt1001->usec / 1000000.0);
+                printf("DEBUG: sl_msr->Blkt1001->usec = %hhd (%lfs)\n", sl_msr->Blkt1001->usec, (double) sl_msr->Blkt1001->usec / 1000000.0);
         }
     }
 
@@ -999,14 +1001,19 @@ int slp_process(SLMSrecord* sl_msr, int source_id, char* msr_net, char* msr_sta,
         strncpy(station, msr_sta, 15);
      * */
     MSRecord* pmsrecord = msr_init(NULL);
-    msr_unpack((char *) sl_msr->msrecord, SLRECSIZE, &pmsrecord, 1, verbose - 2);
-    if (td_process_timedomain_processing(pmsrecord, slconn_packet->sladdr, source_id, sourcename_list[source_id], deltaTime, &data_float, (int) sl_msr->numsamples,
+    int retcode = msr_unpack((char *) sl_msr->msrecord, SLRECSIZE, &pmsrecord, 1, verbose - 2);
+    if (retcode != MS_NOERROR) {
+        sl_log(2, 2, "libmseed.h error code %d: unpacking: ch: %d:  %s %s %s %s  %.4d%.2d%.2d  %.2d:%.2d:%f\n",
+                source_id, msr_net, msr_sta, msr_loc, msr_chan, btime.year, month, mday, btime.hour, btime.min, dsec);
+        return_value = -1;
+    } else if (td_process_timedomain_processing(
+            pmsrecord, slconn_packet->sladdr, source_id, sourcename_list[source_id], deltaTime, &data_float, (int) sl_msr->numsamples,
             msr_net, msr_sta, msr_loc, msr_chan, btime.year, btime.day, month, mday, btime.hour, btime.min, dsec,
             (int) verbose, flag_clipped, data_latency, PACKAGE,
             no_aref_level_check,
             &num_new_loc_picks, count_new_use_loc_picks_cutoff_time
             ) < 0) {
-        sl_log(2, 0, "applying timedomain-processing processing: ch: %d:  %s %s %s %s  %.4d%.2d%.2d  %.2d:%.2d:%f\n",
+        sl_log(2, 2, "applying timedomain-processing processing: ch: %d:  %s %s %s %s  %.4d%.2d%.2d  %.2d:%.2d:%f\n",
                 source_id, msr_net, msr_sta, msr_loc, msr_chan, btime.year, month, mday, btime.hour, btime.min, dsec);
         return_value = -1;
     }
@@ -1095,7 +1102,7 @@ static int parameter_proc(int argcount, char **argvec) {
         } else if (strncmp(argvec[optind], "-", 1) == 0) {
             fprintf(stderr, "Unknown option: %s\n", argvec[optind]);
             exit(1);
-        } // check for common application parameters
+        }// check for common application parameters
         else if (parameter_proc_common(&optind, argvec, PACKAGE, VERSION, VERSION_DATE, usage) > 0) {
             ;
         } else if (num_slconn < MAX_NUM_SLCON) {
