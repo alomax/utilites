@@ -221,7 +221,7 @@
       <folder path="0/alomax_matrix">
         <cTool>
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -234,7 +234,7 @@
       <folder path="0/applications">
         <cTool>
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -247,7 +247,7 @@
       <folder path="0/feregion">
         <cTool>
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -318,7 +318,7 @@
       <folder path="0/math">
         <cTool>
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -331,7 +331,7 @@
       <folder path="0/matrix_statistics">
         <cTool>
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -344,7 +344,7 @@
       <folder path="0/miniseed_utils">
         <cTool>
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -357,7 +357,7 @@
       <folder path="0/net">
         <cTool>
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -370,7 +370,7 @@
       <folder path="0/octtree">
         <cTool>
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -405,7 +405,7 @@
       <folder path="0/ran1">
         <cTool>
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -418,7 +418,7 @@
       <folder path="0/response">
         <cTool>
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -431,7 +431,7 @@
       <folder path="0/settings">
         <cTool>
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -444,7 +444,7 @@
       <folder path="0/statistics">
         <cTool>
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -457,7 +457,7 @@
       <folder path="0/vector">
         <cTool>
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -507,7 +507,7 @@
       <item path="fmamp/fmamp.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -517,7 +517,7 @@
       <item path="fmamp/fmamp_invert.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -527,7 +527,7 @@
       <item path="fmamp/fmamp_utils.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -552,7 +552,7 @@
       <item path="fmamp/read_input.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -606,7 +606,7 @@
       <item path="fmamp/write_output.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -643,7 +643,7 @@
       <item path="picker/FilterPicker5.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -656,7 +656,7 @@
       <item path="picker/FilterPicker5_Memory.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -669,7 +669,7 @@
       <item path="picker/PickData.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -682,7 +682,7 @@
       <item path="picker/picker_func_test.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -695,7 +695,7 @@
       <item path="picker/picker_func_test_memory.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -778,7 +778,7 @@
       <item path="timedomain_processing/loc2xml.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -791,7 +791,7 @@
       <item path="timedomain_processing/location.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -804,7 +804,7 @@
       <item path="timedomain_processing/time_utils.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -820,7 +820,7 @@
             flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -913,7 +913,7 @@
             flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -929,7 +929,7 @@
             flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -945,7 +945,7 @@
             flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -961,7 +961,7 @@
             flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -977,7 +977,7 @@
             flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>
@@ -990,7 +990,7 @@
       <item path="timedomain_processing/ttimes.c" ex="false" tool="0" flavor2="3">
         <cTool flags="0">
           <incDir>
-            <pElem>/usr/include/libxml2</pElem>
+            <pElem>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/libxml2</pElem>
           </incDir>
           <preprocessorList>
             <Elem>GOOGLE_API_KEY="AIzaSyC1Z9waqQXN1qu7o0Q0keGGB4N3IFXerGA"</Elem>

@@ -4,9 +4,9 @@ BUILD=YES
 TEST_MSPROCESS=YES	# !! Requires BUILD!  Must activate to get example output in distribution.
 TEST_SEEDLINK=NO	# !! Requires BUILD!
 
-VERSION=1.2.4  # !!!IMPORTANT: must match WARNING_MONITOR_VERSION in timedomain_processing.h
+VERSION=1.2.5  # !!!IMPORTANT: must match WARNING_MONITOR_VERSION in timedomain_processing.h
 DISTRIBUTION_NAME=early-est-${VERSION}
-UPDATE_GIT_EARLY_EST=YES
+UPDATE_GIT_EARLY_EST=NO
 INCLUDE_RABBITMQ=NO
 
 echo
@@ -14,7 +14,7 @@ echo "Update distribution -------------------------------------------"
 echo "Version: ${VERSION}     Distribution name: ${DISTRIBUTION_NAME}"
 echo "---------------------------------------------------------------"
 
-PLOT_MAP_MECHANISM_TYPE=fmamp_polarity	# sets mechanism type to plot on map, hash or fmamp, see also plot_event_info._GMT5.gmt, plot_warning_map_GMT5.gmt, processEvents.py
+PLOT_MAP_MECHANISM_TYPE=fmamp_polarity	# sets mechanism type to plot on map, hash or fmamp, see also plot_event_info._GMT4.gmt, plot_warning_map_GMT4.gmt, processEvents.py
 
 echo
 echo "Create distribution directory -------------------------------------------"
@@ -59,7 +59,7 @@ cp -p /Users/anthony/work/tsunami_warning/miniseed_process.prop ${DISTRIBUTION_P
 cp -p /Users/anthony/work/mseed_processing/seedlink_monitor.prop ${DISTRIBUTION_PATH}/work
 cp -p /Users/anthony/work/mseed_processing/process_events.prop ${DISTRIBUTION_PATH}/work
 cp -p /Users/anthony/work/mseed_processing/plot_warning_report_seedlink_runtime.bash ${DISTRIBUTION_PATH}/work
-cp -p /Users/anthony/work/mseed_processing/*_GMT5.gmt ${DISTRIBUTION_PATH}/work
+cp -p /Users/anthony/work/mseed_processing/*_GMT4.gmt ${DISTRIBUTION_PATH}/work
 cp -p /Users/anthony/work/mseed_processing/PB2002_steps.dat.txt.*.xy ${DISTRIBUTION_PATH}/work
 cp -p /Users/anthony/work/mseed_processing/*.ras ${DISTRIBUTION_PATH}/work
 cp -p /Users/anthony/work/mseed_processing/plates.lonlat ${DISTRIBUTION_PATH}/work
@@ -99,6 +99,8 @@ export PATH=${MYBIN}:${PATH}
 # build =======================================================================
 
 if [ ${BUILD} =  YES ]; then
+export PATH="/usr/local/opt/libxml2/bin:$PATH"
+export LDFLAGS="-L/usr/local/opt/libxml2/lib"
 echo
 echo "Clean and make ${DISTRIBUTION_NAME} -------------------------------------------"
 make clean
@@ -135,7 +137,7 @@ COMMAND="python python/processEvents.py EVENTS msprocess_plots/ msprocess_out/Ho
 echo ${COMMAND}
 ${COMMAND}
 # main report processing =======================
-COMMAND="./plot_warning_report_GMT5.gmt msprocess_plots/ msprocess_out/Honshu_2011_0_90deg.mseed.out/ msprocess_out/Honshu_2011_0_90deg.mseed.out/ Honshu_2011_0_90deg 0.19 ${PLOT_MAP_MECHANISM_TYPE}"
+COMMAND="./plot_warning_report_GMT4.gmt msprocess_plots/ msprocess_out/Honshu_2011_0_90deg.mseed.out/ msprocess_out/Honshu_2011_0_90deg.mseed.out/ Honshu_2011_0_90deg 0.19 ${PLOT_MAP_MECHANISM_TYPE}"
 echo ${COMMAND}
 ${COMMAND}
 COMMAND="$PS_VIEWER msprocess_plots/Honshu_2011_0_90deg_Monitor.pdf"
@@ -209,7 +211,7 @@ echo "cp -p ${ARCHIVE_NAME} /Users/anthony/www/projects/early-est/software"
 cp -p ${ARCHIVE_NAME} /Users/anthony/www/projects/early-est/software
 cp -p /Users/anthony/work/early-est/doc/${DISTRIBUTION_NAME}_users_guide.pdf /Users/anthony/www/projects/early-est/early-est_users_guide.pdf
 echo "mv -f ${ARCHIVE_NAME} /Users/anthony/work/early-est"
-mv -f ${ARCHIVE_NAME} /Users/anthony/work/early-est
+cp -p ${ARCHIVE_NAME} /Users/anthony/work/early-est
 echo "-------------------------------------------"
 
 if [ ${UPDATE_GIT_EARLY_EST} = YES ]; then

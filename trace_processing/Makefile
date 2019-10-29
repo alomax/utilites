@@ -195,6 +195,8 @@ all:
 		make -f Makefile); \
 	done
 	@echo
+	gcc --version
+	@echo
 	@echo "Notes:"
 	@echo "   Build requires Libxml2 (XML C parser and toolkit) available from http://xmlsoft.org/ and from http://www.macports.org/"
 	@echo "   Velocity model / travel-time grid: $(TTIME_DEFS)"

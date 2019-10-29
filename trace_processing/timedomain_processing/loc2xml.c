@@ -843,14 +843,16 @@ void writeXMLOriginUncertainty(xmlTextWriterPtr writer, HypocenterDesc* phypo) {
      * +	confidenceLevel: float [0..1]*/
 
     // Write an element as child.
-    rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "minHorizontalUncertainty", "%g", phypo->ellipse.len1);
+    // 20190430 AJL - Bug fix:  rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "minHorizontalUncertainty", "%g", phypo->ellipse.len1);
+    rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "minHorizontalUncertainty", "%g", phypo->ellipse.len1 * 1000.0);
     if (rc < 0) {
         printf("loc2xml: Error at xmlTextWriterWriteFormatElement\n");
         return;
     }
 
     // Write an element as child.
-    rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "maxHorizontalUncertainty", "%g", phypo->ellipse.len2);
+    // 20190430 AJL - Bug fix:  rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "maxHorizontalUncertainty", "%g", phypo->ellipse.len2);
+    rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "maxHorizontalUncertainty", "%g", phypo->ellipse.len2 * 1000.0);
     if (rc < 0) {
         printf("loc2xml: Error at xmlTextWriterWriteFormatElement\n");
         return;
@@ -949,7 +951,8 @@ void writeXMLConfidenceEllipsoid(xmlTextWriterPtr writer, HypocenterDesc* phypo)
 
 
     // Write an element as child.
-    rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "semiMajorAxisLength", "%g", semiMajorAxisLength);
+    // 20190430 AJL - Bug fix:  rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "semiMajorAxisLength", "%g", semiMajorAxisLength);
+    rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "semiMajorAxisLength", "%g", semiMajorAxisLength * 1000.0);
     if (rc < 0) {
         printf("loc2xml: Error at xmlTextWriterWriteFormatElement\n");
         return;
@@ -970,7 +973,8 @@ void writeXMLConfidenceEllipsoid(xmlTextWriterPtr writer, HypocenterDesc* phypo)
     }
 
     // Write an element as child.
-    rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "semiIntermediateAxisLength", "%g", semiIntermediateAxisLength);
+    // 20190430 AJL - Bug fix:  rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "semiIntermediateAxisLength", "%g", semiIntermediateAxisLength);
+    rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "semiIntermediateAxisLength", "%g", semiIntermediateAxisLength * 1000.0);
     if (rc < 0) {
         printf("loc2xml: Error at xmlTextWriterWriteFormatElement\n");
         return;
@@ -991,7 +995,8 @@ void writeXMLConfidenceEllipsoid(xmlTextWriterPtr writer, HypocenterDesc* phypo)
     }
 
     // Write an element as child.
-    rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "semiMinorAxisLength", "%g", semiMinorAxisLength);
+    // 20190430 AJL - Bug fix:  rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "semiMinorAxisLength", "%g", semiMinorAxisLength);
+    rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "semiMinorAxisLength", "%g", semiMinorAxisLength * 1000.0);
     if (rc < 0) {
         printf("loc2xml: Error at xmlTextWriterWriteFormatElement\n");
         return;

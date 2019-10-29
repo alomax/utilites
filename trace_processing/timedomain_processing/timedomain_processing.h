@@ -18,9 +18,9 @@
 #define EARLY_EST_MONITOR_VERSION "1.2.4xALPHA"   // use "N.N.NxDEV" for development version
 #else
 //#define EARLY_EST_MONITOR_VERSION "1.2.4"   // use "N.N.NxDEV" for development version
-#define EARLY_EST_MONITOR_VERSION "1.2.4xDEV"   // use "N.N.NxDEV" for development version
+#define EARLY_EST_MONITOR_VERSION "1.2.5xDEV"   // use "N.N.NxDEV" for development version
 #endif
-#define EARLY_EST_MONITOR_VERSION_DATE "2018.11.01"
+#define EARLY_EST_MONITOR_VERSION_DATE "2019.10.10"
 #define EARLY_EST_MONITOR_BANNER_1 "comes with ABSOLUTELY NO WARRANTY."
 #define EARLY_EST_MONITOR_BANNER_2 "WARNING: DISCLAIMER: This is prototype software, it is not fully validated for use in continuous, real-time systems."
 #define EARLY_EST_MONITOR_BANNER_3 "                     This software produces automatic earthquake information that has not been reviewed by a seismologist."

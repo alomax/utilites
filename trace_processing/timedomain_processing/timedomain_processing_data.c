@@ -449,9 +449,9 @@ int rmq_send_pick(TimedomainProcessingData* deData) {
             : "undecidable")
             ;
 
-	/* 20180919 AJL - Bug fix: strings need to be quoted “ “ for standard json parsers
-    sprintf(messagebody, "{\"networkCode:%s,stationCode:%s,locationCode:%s,channelCode:%s,filterID:%s,phaseHint:%s,polarity:%s,time.value:%s,time.uncertainty:%f,epochTimeSec:%ld,latitude:%f,longitude:%f,elevation:%f,creationTime:%s,agencyID:%s,publicID:%s}",
-         */
+    /* 20180919 AJL - Bug fix: strings need to be quoted “ “ for standard json parsers
+sprintf(messagebody, "{\"networkCode:%s,stationCode:%s,locationCode:%s,channelCode:%s,filterID:%s,phaseHint:%s,polarity:%s,time.value:%s,time.uncertainty:%f,epochTimeSec:%ld,latitude:%f,longitude:%f,elevation:%f,creationTime:%s,agencyID:%s,publicID:%s}",
+     */
     sprintf(messagebody, "{\"networkCode\":\"%s\",\"stationCode\":\"%s\",\"locationCode\":\"%s\",\"channelCode\":\"%s\",\"filterID\":\"%s\",\"phaseHint\":\"%s\",\"polarity\":\"%s\",\"time.value\":\"%s\",\"time.uncertainty\":%f,\"epochTimeSec\":%ld,\"latitude\":%f,\"longitude\":%f,\"elevation\":%f,\"creationTime\":\"%s\",\"agencyID\":\"%s\",\"publicID\":\"%s\"}",
             deData->network, deData->station, deData->location, deData->channel, pick_stream,
             deData->phase, pick_polarity, pick_time, deData->pick_error, (long) deData->t_time_t,
@@ -687,10 +687,11 @@ int fprintf_NLLoc_TimedomainProcessingData(TimedomainProcessingData* deData, FIL
         sprintf(phase, "X");
 
     // location
-    char location[16] = "?";
+    // 20181203 AJL - not needed, added NET_STA_LOC phase label format
+    /*char location[16] = "?";
     if (strlen(deData->location) > 0 && strcmp(deData->location, "--")) {
         strcpy(location, deData->location);
-    }
+    }*/
 
     // first motion
     double fmquality = 0.0;
@@ -730,9 +731,10 @@ int fprintf_NLLoc_TimedomainProcessingData(TimedomainProcessingData* deData, FIL
     //fprintf(pfile,
     //        "%-6s %-4s %-4s %-1s %-6s %-1s %8.8ld %4.4ld %9.4lf %-3s %9.3le %9.3le %9.3le %9.3le",
     fprintf(pfile,
-            "%-6s %-4s %-4s %-1s %-6s %-1c %s %-3s %9.2le %9.2le %9.2le %9.2le %9.4lf",
-            deData->station,
-            location,
+            "%s_%s_%s %-4s %-4s %-1s %-6s %-1c %s %-3s %9.2le %9.2le %9.2le %9.2le %9.4lf",
+            // 20181203 AJL - added NET_STA_LOC phase label format
+            deData->network, deData->station, deData->location,
+            "?",
             deData->channel,
             "?",
             phase,
