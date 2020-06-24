@@ -1,0 +1,76 @@
+Etree-based CVM service package
+
+Tiankai Tu, David R. O'Hallaron, Julio Lopez
+Computer Science Department
+Carnegie Mellon University
+
+
+#########################
+0. Content of the package
+######################### 
+
+This package contains the programs and specifications of building the
+CVM etree database for the LA basin. There are three directories:
+    
+    libsrc/      contains the etree library souce code programs.
+    examples/    contains example programs demonstrating how to use 
+                 the etree library.
+    cvm/         contains the programs and specifications of building 
+                 cvm etree database for the LA basin.
+
+In each of these directories, there is a README file that explains the
+contents in details. 
+
+###########################
+1. How to build the package
+###########################
+
+The first thing you need to do is to build the etree library. 
+
+Step 1: Enter libsrc/ directory.
+Step 2: Modify the variable in Makefile according to your platform.
+Step 3: Type gmake to build the etree library.
+
+You may optionally choose to build the examples. The steps are similar
+to that of building the etree library except for a different directory.
+
+To build the programs for building the CVM etree database for the LA basin.
+
+Step 1: Enter cvm/ directory.
+Step 2: Read the README file. This is important. You need the instruction in
+        README to set the variables correctly in the Makefile.
+Step 3: Modify the variables in Makefile properly as instructed.
+Step 4: Build the programs and etree database as per the instructions.
+
+####################
+2. Problem reporting 
+####################
+
+Programs contained in this package are research codes. If you find any
+problem during compilation or any bugs while running the programs,
+please don't hesitate to send us a report describing the nature of the
+problem. We are more than glad to work with you to solve the problems
+and fix bugs that may exist. 
+
+To report a problem, please send email to Tiankai Tu (tutk@cs.cmu.edu).
+
+
+
+
+
+    
+    
+
+        
+  
+
+    
+    
+    
+
+
+
+
+
+
+

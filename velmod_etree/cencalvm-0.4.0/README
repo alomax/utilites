@@ -1,0 +1,93 @@
+// -*- C++ -*-
+//
+// ----------------------------------------------------------------------
+//
+//                           Brad T. Aagaard
+//                        U.S. Geological Survey
+//
+// <LicenseText>
+//
+// ----------------------------------------------------------------------
+//
+
+/** @mainpage
+ *
+ * @author Brad Aagaard
+ * @date 2005/11/05
+ * @version 0.4.0
+ *
+ * @section summary Summary
+ *
+ * This directory tree contains the software used to create and query
+ * the seismic velocity model(s) covering the greater San Francisco
+ * Bay area (central California) developed by the United States
+ * Geological Survey.
+ *
+ * @note Updates to the data in the velocity model (the etree database
+ * file) are generally independent of updates to the querying
+ * software. This means the version numbers are also independent of
+ * one another. In other words, unless the velocity model undergoes
+ * fundamental changes in the way the data is stored, you can safely
+ * use updated versions of the etree database without recompiling the
+ * query software, and vice versa.
+ *
+ * This software was designed with the assumption that users will want
+ * to query the velocity model from their own code. As a result, an
+ * API is provided for the query routines. Examples of how to use the
+ * query routines from C++, C, and Fortran are provided in
+ * pkgs/query/examples with sample input and output in
+ * pkgs/query/examples/data. Any of these examples could be used to
+ * get material property values for locations, but performance will be
+ * improved if you use the API because the data won't have to be
+ * written to and then read from a file.
+ *
+ * @section installation Installation
+ *
+ * For installation instructions, see \link INSTALL INSTALL \endlink.
+ *
+ * @section dirs Directories
+ *
+ * @li \b doc Directory where the documentation for the query API
+ * resides. The documentation is available online at
+ * http://www.sf06simulation.org/geology/velocitymodel/querydoc/. You
+ * can generate the documentation if you have doxygen installed by
+ * running 'make' in the doc directory. The routines associated with
+ * the user interface are labeled as such in the html documentation.
+ *
+ * @li \b pkgs Packages comprising cencalvm
+ *
+ * @subsection average Package 'average'
+ *
+ * This package is used to populate the interior octants of the etree
+ * with averages of the children. In general, it is for internal use
+ * only.
+ *
+ * @subsection create Package 'create'
+ *
+ * This package is used to create the etree database from Earth Vision
+ * files. In general, it is for internal use only.
+ *
+ * @subsection query Package 'query'
+ *
+ * This package is used to query the etree database holding the
+ * velocity model. See \link pkgs/query/README pkgs/query/README \endlink for
+ * additional information on the query routines.
+ *
+ * @subsection storage Package 'storage'
+ *
+ * This package defines the geometry of the velocity model and
+ * performs transformation of geographic coordinates to the etree
+ * ticks. This package is used by the other packages. You should never
+ * need to call the routines in this library directly.
+ *
+ * @section version Version history
+ *
+ * For information regarding changes, enhancements, significant bug
+ * fixes, etc. see \link CHANGES CHANGES \endlink.
+ * 
+ */
+
+// version
+// $Id: README,v 1.12 2005/11/05 18:55:25 brad Exp $
+
+// End of file 

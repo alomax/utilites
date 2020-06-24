@@ -1,0 +1,14 @@
+Etree library examples to manipulate 4D datasets.
+
+Tiankai Tu <tutk@cs.cmu.edu>, Carnegie Mellon University
+
+
+Files:
+
+Makefile	"Makefile" to build the examples.
+README		This file.
+bin2etree4d.c	
+etree4d2txt.c	Produces a text output of a 4D dataset stored in an etree.
+		The output octants are printed in Z-order.
+query4d.c	Query individual points of a 4D dataset stored in an etree.
+txt2etree4d.c	Converts from octant ascii representation into an etree.

@@ -126,7 +126,7 @@ Tree3D* newTree3D(int data_code, int numx, int numy, int numz,
     if (tree == NULL) {
         return (NULL);
     }
-    // alocate node array in x, y and z
+    // allocate node array in x, y and z
     garray = (OctNode ****) malloc((size_t) numx * sizeof (OctNode***));
     if (garray == NULL) {
         free(tree);
@@ -178,8 +178,8 @@ Tree3D* newTree3D(int data_code, int numx, int numy, int numz,
 
 /*** function to create a new Tree3D - an x, y, z array of octtree root nodes
  * creates a Tree3D for a sphere:
- *    width of cells in azimuth ior longitude is approximately constant,
- *    giving fewer azimuth cells with increasing inclination or latitiude (y)
+ *    width of cells in azimuth or longitude is approximately constant,
+ *    giving fewer azimuth cells with increasing inclination or latitude (y)
  ***/
 
 Tree3D* newTree3D_spherical(int data_code, int numx_nominal, int numy, int numz,
@@ -197,20 +197,20 @@ Tree3D* newTree3D_spherical(int data_code, int numx_nominal, int numy, int numz,
     if (tree == NULL) {
         return (NULL);
     }
-    // alocate node array in x, y and z
+    // allocate node array in x, y and z
     garray = (OctNode ****) malloc((size_t) numx_nominal * sizeof (OctNode***));
     if (garray == NULL) {
         free(tree);
         return (NULL);
     }
-    // alocate ds_x array
+    // allocate ds_x array
     tree->ds_x = (double*) malloc((size_t) numy * sizeof (double));
     if (tree->ds_x == NULL) {
         free(garray);
         free(tree);
         return (NULL);
     }
-    // alocate num_x array
+    // allocate num_x array
     tree->num_x = (int*) malloc((size_t) numy * sizeof (int));
     if (tree->num_x == NULL) {
         free(garray);
@@ -274,7 +274,7 @@ Tree3D* newTree3D_spherical(int data_code, int numx_nominal, int numy, int numz,
 
 }
 
-/*** funciton to calculate dx values as a funciton of y value for a Tree3D spherical*/
+/*** function to calculate dx values as a function of y value for a Tree3D spherical*/
 
 double get_dx_spherical(double dx_nominal, double origx, double x_max, double center_y, int *pnum_x) {
 
@@ -287,7 +287,7 @@ double get_dx_spherical(double dx_nominal, double origx, double x_max, double ce
 
 }
 
-/*** function to sudivide a node into child nodes ***/
+/*** function to subdivide a node into child nodes ***/
 
 void subdivide(OctNode* parent, double value, void *pdata) {
 
@@ -298,7 +298,7 @@ void subdivide(OctNode* parent, double value, void *pdata) {
     ds.y = parent->ds.y / 2.0;
     ds.z = parent->ds.z / 2.0;
 
-    // alocate nodes in x, y and z
+    // allocate nodes in x, y and z
 
     for (ix = 0; ix < 2; ix++) {
         center.x = parent->center.x + (double) (2 * ix - 1) * ds.x / 2.0;
@@ -331,7 +331,7 @@ void freeNode(OctNode* node, int freeDataPointer) {
     }
 
     // try to free data
-    if (freeDataPointer)
+    if (freeDataPointer && node->pdata != NULL)
         free(node->pdata);
     free(node);
 
@@ -339,34 +339,77 @@ void freeNode(OctNode* node, int freeDataPointer) {
 
 /*** function to get the leaf node in a Tree3D containing the given x, y, z coordinates ***/
 
-OctNode* getLeafNodeContaining(Tree3D* tree, Vect3D coords) {
+OctNode* getTreeNodeContaining(Tree3D* tree, Vect3D coords) {
 
     int ix, iy, iz;
     OctNode* rootNode;
 
     // get indices of root in tree
     // z
-    iz = (int) ((coords.z - tree->orig.z) / tree->ds.z);
-    if (iz < 0 || iz >= tree->numz)
+    double diz = (coords.z - tree->orig.z) / tree->ds.z;
+    iz = (int) diz;
+    if (iz < 0 || iz > tree->numz) {
         return (NULL);
+    } else if (iz == tree->numz) {
+        if (fabs(diz - (double) tree->numz) < tree->ds.z / 10000.0) {
+            // z is at upper bound of tree limits
+            iz = tree->numz - 1;
+        } else {
+            return (NULL);
+        }
+    }
+
     // y
-    iy = (int) ((coords.y - tree->orig.y) / tree->ds.y);
-    if (iy < 0 || iy >= tree->numy)
+    double diy = (coords.y - tree->orig.y) / tree->ds.y;
+    iy = (int) diy;
+    if (iy < 0 || iy > tree->numy) {
         return (NULL);
+    } else if (iy == tree->numy) {
+        if (fabs(diy - (double) tree->numy) < tree->ds.y / 10000.0) {
+            // y is at upper bound of tree limits
+            iy = tree->numy - 1;
+        } else {
+            return (NULL);
+        }
+    }
+
     // x
+    double dx, num_x;
     if (tree->isSpherical) {
-        double dx = tree->ds_x[iy];
-        int num_x = tree->num_x[iy];
-        ix = (int) ((coords.x - tree->orig.x) / dx);
-        if (ix < 0 || ix >= num_x)
-            return (NULL);
+        dx = tree->ds_x[iy];
+        num_x = tree->num_x[iy];
     } else {
-        ix = (int) ((coords.x - tree->orig.x) / tree->ds.x);
-        if (ix < 0 || ix >= tree->numx)
+        dx = tree->ds.x;
+        num_x = tree->numx;
+    }
+    double dix = (coords.x - tree->orig.x) / dx;
+    if (dix < 0.0) {
+        // x is far lower bound of tree limits
+        return (NULL);
+    }
+    ix = (int) dix;
+    if (ix < 0 || ix > num_x) {
+        return (NULL);
+    } else if (ix == num_x) {
+        if (fabs(dix - (double) num_x) < dx / 10000.0) {
+            // x is at upper bound of tree limits
+            ix = num_x - 1;
+        } else {
             return (NULL);
+        }
     }
 
     rootNode = tree->nodeArray[ix][iy][iz];
+
+    return (rootNode);
+
+}
+
+/*** function to get the leaf node in a Tree3D containing the given x, y, z coordinates ***/
+
+OctNode* getLeafNodeContaining(Tree3D* tree, Vect3D coords) {
+
+    OctNode* rootNode = getTreeNodeContaining(tree, coords);
 
     if (rootNode == NULL)
         return (NULL);
@@ -417,6 +460,7 @@ int nodeContains(OctNode* node, double x, double y, double z) {
 
     dz2 = ds.z / 2.0;
     if (z < node->center.z - dz2 || z > node->center.z + dz2)
+
         return (0);
 
     return (1);
@@ -443,6 +487,7 @@ int extendedNodeContains(OctNode* node, double x, double y, double z, int checkZ
     if (checkZ) {
         dz2 = ds.z;
         if (z < node->center.z - dz2 || z > node->center.z + dz2)
+
             return (0);
     }
 
@@ -477,6 +522,7 @@ ResultTreeNode* addResult(ResultTreeNode* prtree, double value, double volume, O
         prtree->left = addResult(prtree->left, value, volume, pnode);
 
     } else {
+
         prtree->right = addResult(prtree->right, value, volume, pnode);
     }
 
@@ -492,6 +538,7 @@ void freeResultTree(ResultTreeNode* prtree) {
 
     if (prtree->left != NULL)
         freeResultTree(prtree->left);
+
     if (prtree->right != NULL)
         freeResultTree(prtree->right);
     free(prtree);
@@ -517,7 +564,7 @@ ResultTreeNode* getHighestLeafValue(ResultTreeNode* prtree) {
     if (prtree == NULL)
         return (NULL);
 
-    ResultTreeNode* prtree_returned = NULL;
+    ResultTreeNode * prtree_returned = NULL;
 
     if (prtree->right != NULL)
         prtree_returned = getHighestLeafValue(prtree->right);
@@ -687,6 +734,11 @@ ResultTreeNode* getHighestLeafValueGESpecifiedLevel(ResultTreeNode* prtree, int 
     return (prtree_returned);
 }
 
+
+// 20190508 AJL - Create new Tree3D file format to support read/write of spherical grids
+// IMPORTANT: first item in original format is data type code, here assume this is always a positive or small negative
+#define TREE3D_FORMAT_VER2_FLAG INT_MIN
+
 /*** function to read a Tree3D ***/
 
 // TODO: modify to support spherical Tree3D!
@@ -704,28 +756,62 @@ Tree3D* readTree3D(FILE *fpio) {
     Vect3D ds;
     double integral;
 
+    // flag this is new version of octtree format
+    int new_format_flag;
+    istat = fread(&(new_format_flag), sizeof (int), 1, fpio);
+    if (istat < 0)
+        return (NULL);
 
-    istat = fread(&data_code, sizeof (int), 1, fpio);
-    istat += fread(&numx, sizeof (int), 1, fpio);
+    int isSpherical = 0;
+
+    // 20190508 AJL
+    if (new_format_flag == TREE3D_FORMAT_VER2_FLAG) {
+        istat = fread(&isSpherical, sizeof (int), 1, fpio);
+        if (istat < 0)
+            return (NULL);
+        istat = fread(&data_code, sizeof (int), 1, fpio);
+        if (istat < 0)
+            return (NULL);
+    } else {
+        data_code = new_format_flag;
+    }
+
+    istat = fread(&numx, sizeof (int), 1, fpio);
     istat += fread(&numy, sizeof (int), 1, fpio);
     istat += fread(&numz, sizeof (int), 1, fpio);
     istat += fread(&orig, sizeof (Vect3D), 1, fpio);
     istat += fread(&ds, sizeof (Vect3D), 1, fpio);
     istat += fread(&integral, sizeof (double), 1, fpio);
-
-    if (istat < 7)
+    if (istat < 6)
         return (NULL);
 
-    tree = newTree3D(data_code, numx, numy, numz, orig.x, orig.y, orig.z, ds.x, ds.y, ds.z, -1.0, integral, NULL);
+    // 20190508 AJL
+    if (new_format_flag == TREE3D_FORMAT_VER2_FLAG) {
+        // read dummy space to support future extensions
+        int idummy;
+        for (int n = 0; n < 64; n++) {
+            istat = fread(&idummy, sizeof (int), 1, fpio);
+            if (istat < 0)
+                return (NULL);
+        }
+    }
+
+    if (isSpherical) {
+        tree = newTree3D_spherical(data_code, numx, numy, numz, orig.x, orig.y, orig.z, ds.x, ds.y, ds.z, -1.0, integral, NULL);
+    } else {
+        tree = newTree3D(data_code, numx, numy, numz, orig.x, orig.y, orig.z, ds.x, ds.y, ds.z, -1.0, integral, NULL);
+    }
 
     istat_cum = 0;
     for (ix = 0; ix < tree->numx; ix++) {
         for (iy = 0; iy < tree->numy; iy++) {
             for (iz = 0; iz < tree->numz; iz++) {
-                istat += readNode(fpio, tree->nodeArray[ix][iy][iz]);
-                if (istat < 0)
-                    return (NULL);
-                istat_cum += istat;
+                if (tree->nodeArray[ix][iy][iz] != NULL) {
+                    istat += readNode(fpio, tree->nodeArray[ix][iy][iz]);
+                    if (istat < 0)
+                        return (NULL);
+                    istat_cum += istat;
+                }
             }
         }
     }
@@ -743,11 +829,24 @@ int readNode(FILE *fpio, OctNode* node) {
     int ix, iy, iz;
 
     float value;
+    char isleaf;
 
 
     istat = fread(&value, sizeof (float), 1, fpio); /* node value */
+    istat += fread(&isleaf, sizeof (char), 1, fpio); /* leaf flag, 1=leaf */
+    if (istat < 2)
+        return (-1);
+
+    // 20190508 AJL - Create new Tree3D file format to support read/write of spherical grids
+    // NULL node (spherical)
+    /*if (isleaf == -1) { // leaf flag, for read/write spherical: -1=NULL node
+        node = NULL;
+        return (1);
+    }*/
+
     node->value = (double) value;
-    istat += fread(&(node->isLeaf), sizeof (char), 1, fpio); /* leaf flag, 1=leaf */
+    node->isLeaf = isleaf;
+
     if (node->parent != NULL)
         node->level = node->parent->level + 1;
     else
@@ -784,22 +883,58 @@ int readNode(FILE *fpio, OctNode* node) {
 
 // TODO: modify to support spherical Tree3D!
 
-int writeTree3D(FILE *fpio, Tree3D* tree) {
+int writeTree3D(FILE *fpio, Tree3D * tree) {
+
+    // 20190218 AJL - added support for spherical Tree3D by defining new format (TREE3D_FORMAT_VER2_FLAG)
+
+    // 20190218 AJL - added to handle elegantly case where spherical Tree3D is passed.
+    /*if (tree->isSpherical == 1) {
+        // not supported
+        return (-1);
+    }*/
 
     int istat;
     int istat_cum;
     int ix, iy, iz;
 
-    istat = fwrite(&(tree->data_code), sizeof (int), 1, fpio);
+    // set Tree3D structure values
+    /*tree->nodeArray = garray;
+    tree->data_code = data_code;
+    tree->numx = numx_nominal;
+    tree->numy = numy;
+    tree->numz = numz;
+    tree->orig.x = origx;
+    tree->orig.y = origy;
+    tree->orig.z = origz;
+    tree->ds = tree_ds;
+    tree->integral = integral;
+    tree->isSpherical = 1;*/
+
+    // flag this is new version of octtree format
+    int new_format_flag = TREE3D_FORMAT_VER2_FLAG;
+    istat = fwrite(&(new_format_flag), sizeof (int), 1, fpio);
+    if (istat < 0)
+        return (-1);
+
+
+    istat = fwrite(&(tree->isSpherical), sizeof (int), 1, fpio);
+    istat += fwrite(&(tree->data_code), sizeof (int), 1, fpio);
     istat += fwrite(&(tree->numx), sizeof (int), 1, fpio);
     istat += fwrite(&(tree->numy), sizeof (int), 1, fpio);
     istat += fwrite(&(tree->numz), sizeof (int), 1, fpio);
     istat += fwrite(&(tree->orig), sizeof (Vect3D), 1, fpio);
     istat += fwrite(&(tree->ds), sizeof (Vect3D), 1, fpio);
     istat += fwrite(&(tree->integral), sizeof (double), 1, fpio);
-
-    if (istat < 6)
+    if (istat < 7)
         return (-1);
+
+    // add some dummy space to support future extensions
+    int idummy = INT_MIN;
+    for (int n = 0; n < 64; n++) {
+        istat = fwrite(&idummy, sizeof (int), 1, fpio);
+        if (istat < 0)
+            return (-1);
+    }
 
     istat_cum = 0;
     for (ix = 0; ix < tree->numx; ix++) {
@@ -819,13 +954,24 @@ int writeTree3D(FILE *fpio, Tree3D* tree) {
 
 /*** function to write an OctNode and all its child nodes ***/
 
-int writeNode(FILE *fpio, OctNode* node) {
+int writeNode(FILE *fpio, OctNode * node) {
 
     int istat;
     int istat_cum;
-    int ix, iy, iz;
 
     float value;
+
+    // 20190508 AJL - Create new Tree3D file format to support read/write of spherical grids
+    // NULL node (spherical)
+    if (node == NULL) {
+        /*value = 0.0;
+        istat = fwrite(&value, sizeof (float), 1, fpio); // node value
+        int isleaf = -1;
+        istat += fwrite(&isleaf, sizeof (char), 1, fpio); // leaf flag, for read/write spherical: -1=NULL node
+        if (istat < 2)
+            return (-1);*/
+        return (1);
+    }
 
     value = (float) node->value;
     istat = fwrite(&value, sizeof (float), 1, fpio); /* node value */
@@ -838,12 +984,14 @@ int writeNode(FILE *fpio, OctNode* node) {
         return (1);
 
     istat_cum = 1;
+    int ix, iy, iz;
     for (ix = 0; ix < 2; ix++) {
         for (iy = 0; iy < 2; iy++) {
             for (iz = 0; iz < 2; iz++) {
                 if (node->child[ix][iy][iz] != NULL) {
                     istat = writeNode(fpio, node->child[ix][iy][iz]);
                     if (istat < 0)
+
                         return (-1);
                     istat_cum += istat;
                 }
@@ -868,7 +1016,7 @@ int getScatterSampleResultTreeAtLevels(ResultTreeNode* prtree, int value_type, i
     double xnpoints = 0.0;
     double xval, yval, zval;
     double dx, dy, dz;
-    int isample_taken;
+    //int isample_taken;
 
     if (prtree->right != NULL)
         npoints = getScatterSampleResultTreeAtLevels(prtree->right, value_type, num_scatter, integral,
@@ -899,7 +1047,7 @@ int getScatterSampleResultTreeAtLevels(ResultTreeNode* prtree, int value_type, i
         dy = pnode->ds.y / 2.0;
         dz = pnode->ds.z / 2.0;
 
-        isample_taken = 0;
+        //isample_taken = 0;
 
         //while (xnpoints > 0.0 /*&& npoints < num_scatter*/) {
         while (xnpoints > 0.0 && npoints < num_scatter) { // 20110118 AJL
@@ -912,7 +1060,7 @@ int getScatterSampleResultTreeAtLevels(ResultTreeNode* prtree, int value_type, i
                 fdata[*pfdata_index + 3] = pnode->value;
                 //printf("npoints %d  *pfdata_index %d  value %lf  dx %g dy %g dz %g   x %g y %g z %g\n", npoints, *pfdata_index, pnode->value, dx, dy, dz, xval, yval, zval);
                 npoints++;
-                isample_taken = 1;
+                //isample_taken = 1;
                 *pfdata_index += 4;
             }
 
@@ -1001,23 +1149,54 @@ double integrateResultTree(ResultTreeNode* prtree, int value_type, double sum, d
     return (integrateResultTreeAtLevels(prtree, value_type, sum, oct_node_value_ref, level_min, level_max));
 }
 
-/** function to normalize value of all leafs in results tree to range 0.0-1.0 */
+/** function to convert value of all leafs in results tree to probability density */
 
-double convertOcttreeValuesToProb(ResultTreeNode* prtree, double integral, double oct_node_value_ref) {
+double convertOcttreeValuesToProbabilityDensity(ResultTreeNode* prtree, int value_type, double integral, double oct_node_value_ref) {
 
     OctNode* pnode;
 
     if (prtree->left != NULL)
-        integral = convertOcttreeValuesToProb(prtree->left, integral, oct_node_value_ref);
+        integral = convertOcttreeValuesToProbabilityDensity(prtree->left, value_type, integral, oct_node_value_ref);
 
     pnode = prtree->pnode;
     if (pnode->isLeaf) {
-        pnode->value = exp(pnode->value - oct_node_value_ref); // replace leaf value with relative prob density
+        if (value_type == VALUE_IS_LOG_PROB_DENSITY_IN_NODE) {
+            pnode->value = exp(pnode->value - oct_node_value_ref); // replace leaf value with relative prob density
+            integral += pnode->value * prtree->volume; // integrate value * cell volume
+        } else if (value_type == VALUE_IS_PROB_DENSITY_IN_NODE) {
+            pnode->value = ((pnode->value / oct_node_value_ref) > 0.0 ? (pnode->value / oct_node_value_ref) : 0.0); // replace leaf value with relative prob density
+            integral += pnode->value * prtree->volume; // integrate value * cell volume
+        } else if (value_type == VALUE_IS_PROBABILITY_IN_NODE) {
+            pnode->value = (pnode->value / oct_node_value_ref) > 0.0 ? (pnode->value / oct_node_value_ref) : 0.0; // replace leaf value with relative prob density
+            integral += pnode->value; // integrate prob
+            pnode->value /= prtree->volume; // convert to prob den
+        }
+    }
+
+    if (prtree->right != NULL)
+        integral = convertOcttreeValuesToProbabilityDensity(prtree->right, value_type, integral, oct_node_value_ref);
+
+    return (integral);
+
+}
+
+/** function to convert value of all leafs in results tree to probability density */
+
+double normalizeProbabilityDensityOcttree(ResultTreeNode* prtree, double integral, double norm) {
+
+    OctNode* pnode;
+
+    if (prtree->left != NULL)
+        integral = normalizeProbabilityDensityOcttree(prtree->left, integral, norm);
+
+    pnode = prtree->pnode;
+    if (pnode->isLeaf) {
+        pnode->value /= norm; // normalize
         integral += pnode->value * prtree->volume; // integrate value * cell volume
     }
 
     if (prtree->right != NULL)
-        integral = convertOcttreeValuesToProb(prtree->right, integral, oct_node_value_ref);
+        integral = normalizeProbabilityDensityOcttree(prtree->right, integral, norm);
 
     return (integral);
 

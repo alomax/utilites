@@ -1,0 +1,24 @@
+# -*- Makefile -*-
+#
+# ----------------------------------------------------------------------
+#
+#                           Brad T. Aagaard
+#                        U.S. Geological Survey
+#
+# <LicenseText>
+#
+# ----------------------------------------------------------------------
+#
+
+# define subpackage dirs
+subpkgsysconfdir = $(pkgsysconfdir)/$(subpackage)
+subpkgincludedir = $(pkgincludedir)/$(subpackage)
+subpkgpythondir = $(pkgpythondir)/$(subpackage)
+subpkgpyexecdir = $(pkgpyexecdir)/$(subpackage)
+
+INCLUDES = -I$(top_builddir)/include
+
+# version
+# $Id: subpackage.am,v 1.1 2005/10/25 15:46:15 brad Exp $
+
+# End of file 

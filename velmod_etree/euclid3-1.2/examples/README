@@ -1,0 +1,19 @@
+Etree library example programs
+
+Dave O'Hallaron, Tiankai Tu
+Carnegie Mellon University
+
+Files:
+Makefile	Builds the example programs
+README      This file
+
+etree2txt.c	Dumps octants in an etree to a textfile in z-order
+query.c		Queries an etree 
+refine.c	Recursively builds the tree.txt etree
+tree.e		Example etree created by txt2etree
+tree.txt    Text version of tree.e
+txt2etree.c	Loads octants in a textfile to an etree
+
+Note: if compiling on Alpha/DUX40D platform, set the appropriate CFLAGS in 
+Makefile.
+

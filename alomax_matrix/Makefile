@@ -37,9 +37,9 @@ CCFLAGS = -O3 $(CCFLAGS_BASIC)
 endif
 
 
-OBJS = alomax_matrix.o alomax_matrix_svd.o
+OBJS = alomax_matrix.o alomax_matrix_svd.o eigv.o polarization.o
 
-all: $(OBJS)
+all: $(OBJS) ${BINDIR}/test_real_symmetric_eigen
 
 clean:
 	rm -f *.o
@@ -48,4 +48,13 @@ clean:
 # Implicit rule for building object files
 %.o: %.c
 	$(CC) -c $< $(CCFLAGS)
+
+
+# --------------------------------------------------------------------------
+# response_test
+#
+OBJ_TEST1= test_real_symmetric_eigen.o $(OBJS)
+${BINDIR}/test_real_symmetric_eigen : ${OBJ_TEST1}
+	$(CC) ${OBJ_TEST1} ${CCFLAGS} -o ${BINDIR}/test_real_symmetric_eigen -lm
+# --------------------------------------------------------------------------
 

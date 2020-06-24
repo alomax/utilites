@@ -1,0 +1,101 @@
+// -*- C++ -*-
+//
+// ======================================================================
+//
+//                           Brad T. Aagaard
+//                        U.S. Geological Survey
+//
+// {LicenseText}
+//
+// ======================================================================
+//
+
+/**
+ * @file CHANGES Summary of changes made to cencalvm query software.
+ *
+ * \section ver040 Version 0.4.0, 2005/11/05
+ *
+ * @li Restructured query routines, adding the ability to query the
+ * regional model, if desired.
+ * @li Updated sample input and output data files to be compatible
+ * with release 05.1.0 of the USGS Bay Area Velocity Model, including
+ * the abilty to use the regional model, if desired.
+ * @li Created extension of VMQuery to be compatible with CIG
+ * spatialdata package. This will only be of use in CIG code. Building
+ * this extension is turned off by default.
+ * @li Fixed bug in query routines where projection routine was called
+ * twice. Second, superfluous call was removed. This should speed up
+ * queries a very slight amount.
+ *
+ * \section ver030 Version 0.3.0, 2005/10/07
+ *
+ * @li Changed examples to include FIXEDRES and WAVERES query
+ * types. Improved instructions for the examples.
+ * @li Turned on averaging of water points but do not allow mixing of
+ * averaging of water and solid material points in averaging by giving
+ * solid material points precedence (if attempting to mix the two,
+ * ignore the water values).
+ * @li Fixed FIXEDRES and WAVERES queries so averaged values aren't
+ * used when query wants finer resolution than available. For example,
+ * if you want values at 200m resolution and a search says only values
+ * at 800m are available, then this location is a "void" at 200m
+ * resolution so "NODATA" should be returned instead of the values at
+ * 800m. Previous versions would return values at the 800m resolution.
+ * @li Switched to GNU build system for easier installtion and
+ * portability. Users now run configure to generate Makefiles instead
+ * of creating them by hand.
+ *
+ * \section ver022 Version 0.2.2, 2005/08/10
+ *
+ * @li Fixed bug where inclusion of assert header file was missing in
+ * several source files. This resulted in compiler errors in some
+ * cases.
+ *
+ * \section ver021 Version 0.2.1, 2005/08/03
+ *
+ * @li Fixed bug in creation routine where Vs for water (-999) was
+ * scaled. 'No data' values should not be scaled. The query routine
+ * was adjusted to undo this scaling, so 'no data' values will now be
+ * consistent.
+ * @li Fixed bug in MAXRES query routine. Interior octants were
+ * returned in search of etree. Now if an interior octant is returned,
+ * the values are set to 'no data'. This only occurred when querying
+ * the etree at locations above topography and the water surface.
+ * @li Added 'no data' and water points to examples for illustration
+ * of those cases.
+ * @li Added ability to make creation/averaging routines run quietly
+ * (no progress reports).
+ * @li Fixed bug in cencalvmcquery where filenames were not
+ * initialized to empty string. This created filenames from garbage
+ * and log files tended to created by default which is not the desired
+ * behavior.
+ *
+ * \section ver020 Version 0.2.0, 2005/07/29
+ *
+ * @li Added error handler to allow queries to continue even when
+ * values cannnot be found for locations. Coordinates of locations
+ * where data was not found can be written to a log file. Values for
+ * locations not found are set to predefined value (see \link
+ * pkgs/query/README pkgs/query/README \endlink for details).
+ * @li Fixed bugs in C and C++ examples associated with setting values
+ * to be returned in a query.
+ * @li Fixed documentation for units of cache size. Units are MB.
+ * @li Added average package for creating database with spatial averaging.
+ * @li Finished implementing routines and unit testing of queries
+ * at fixed resolution or resolution based on wavelength of shear wave.
+ *
+ * \section ver011 Version 0.1.1, 2005/07/18
+ *
+ * @li Fixed errors in documentation and updated Make.mm files in examples
+ * directory to reflect name of database in release pre1.0.
+ *
+ * \section ver010 Version 0.1.0, 2005/07/09 
+ *
+ * original version
+ *
+ */
+
+// version
+// $Id: CHANGES,v 1.14 2005/11/05 18:55:25 brad Exp $
+
+// End of file 

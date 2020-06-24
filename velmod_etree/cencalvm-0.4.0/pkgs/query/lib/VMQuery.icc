@@ -1,0 +1,56 @@
+// -*- C++ -*-
+//
+// ======================================================================
+//
+//                           Brad T. Aagaard
+//                        U.S. Geological Survey
+//
+// {LicenseText}
+//
+// ======================================================================
+//
+
+#if !defined(cencalvm_query_vmquery_h)
+#error "VMQuery.icc must only be included from VMQuery.h"
+#endif
+
+// Set the database filename.
+inline
+void
+cencalvm::query::VMQuery::filename(const char* filename)
+{ _filename = filename; }
+
+// Set the database filename for the regional model.
+inline
+void
+cencalvm::query::VMQuery::filenameExt(const char* filename)
+{ _filenameExt = filename; }
+
+// Set size of cache during queries.
+inline
+void
+cencalvm::query::VMQuery::cacheSize(const int size)
+{ if (size > 0) _cacheSize = size; }
+
+// Set size of cache during queries of the regional model.
+inline
+void
+cencalvm::query::VMQuery::cacheSizeExt(const int size)
+{ if (size > 0) _cacheSizeExt = size; }
+
+// Set query resolution.
+inline
+void
+cencalvm::query::VMQuery::queryRes(const double res)
+{ if (res > 0.0) _queryRes = res; }
+
+// Get handle to error handler.
+inline
+cencalvm::storage::ErrorHandler*
+cencalvm::query::VMQuery::errorHandler(void)
+{ return _pErrHandler; }
+
+// version
+// $Id: VMQuery.icc,v 1.4 2005/10/29 01:01:15 brad Exp $
+
+// End of file 

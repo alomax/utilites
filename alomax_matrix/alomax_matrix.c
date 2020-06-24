@@ -13,6 +13,7 @@
 #include <float.h>
 #include "alomax_matrix.h"
 #include "alomax_matrix_svd.h"
+#include "eigv.h"
 
 //#define EPSILON_BIG  (1.0e-5)
 //#define EPSILON_BIG  (1.0e-3)
@@ -58,10 +59,13 @@ void free_matrix_double(MatrixDouble mtx, int nrow, int ncol) {
 
     int n;
     for (n = nrow - 1; n >= 0; n--) {
-        if (mtx[n] != NULL)
+        if (mtx[n] != NULL) {
             free(mtx[n]);
+            mtx[n] = NULL;
+        }
     }
     free((mtx));
+    mtx = NULL;
 
 }
 
@@ -104,6 +108,7 @@ void free_vector_double(VectorDouble vect) {
     if ((vect) == NULL) return;
 
     free((vect));
+    vect = NULL;
 
 }
 
@@ -451,3 +456,61 @@ void svd_helper(MatrixDouble A_matrix, int num_rows, int num_cols, VectorDouble 
     clean_SingularValueDecomposition();
 
 }
+
+/**
+ *  Helper function to apply real symmetric eigen decomposition
+ *
+ * input:
+ *    a_matrix - isize x isize matrix to which to apply svs
+ *
+ * output:
+ *   s_vector - vector of eigenvalues of size isize, in ascending order
+ *   v_matrix - orthogonal matrix of right singular vectors of size isize x isize
+ *
+ * returns:
+ *   error code or zero on normal completion
+ *
+ */
+
+int real_symmetric_eigen_helper(MatrixDouble A_matrix, int isize, VectorDouble S_vector, MatrixDouble V_matrix) {
+
+    int i, j;
+
+    int n = isize;
+    double *a = (double *) calloc(isize * isize, sizeof (double));
+    double *w = (double *) calloc(isize, sizeof (double));
+    double *z = (double *) calloc(isize * isize, sizeof (double));
+
+    for (i = 0; i < isize; i++) { // row
+        for (j = 0; j < isize; j++) { // col
+            a[j + i * n] = A_matrix[i][j];
+        }
+    }
+
+    //    Input, int n, the order of the matrix.
+    //    Input, double a[N*N], the real symmetric matrix.
+    //    Output, double w[N], the eigenvalues in ascending order.
+    //    Output, double z[N*N], contains the eigenvectors
+    //    Output, int rs, is set equal to an error
+    //    completion code described in the documentation for TQLRAT and TQL2.
+    //    The normal completion code is zero.
+    int istat = rs(n, a, w, z);
+
+    for (i = 0; i < isize; i++) { // row
+        for (j = 0; j < isize; j++) { // col
+            V_matrix[i][j] = z[j + i * n];
+        }
+    }
+    for (j = 0; j < isize; j++) {
+        S_vector[j] = w[j];
+    }
+
+    free(a);
+    free(w);
+    free(z);
+
+    return (istat);
+
+}
+
+
